@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Life Manager</title>
+  <!-- SEO Meta Tags -->
+  <meta name="description"
+    content="Offline-first production academic and student life management PWA for Biological Science undergraduates at Rajarata University of Sri Lanka.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@300;400;500;600;700;800&family=Nunito:wght@300;400;500;600;700;800&family=Open+Sans:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&family=Roboto:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=9">
+  <!-- Chart.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+  <!-- Fullscreen Focus Mode HUD overlay -->
+  <div class="focus-overlay" id="focus-hud-overlay">
+    <div class="focus-label" id="pomo-type-label">Focus Interval</div>
+    <div class="focus-timer" id="focus-overlay-timer">25:00</div>
+    <div style="display: flex; gap: 16px;">
+      <button class="btn-solid" id="pomo-break" style="background-color: #f59e0b;">Take Break</button>
+      <button class="btn-outline" id="btn-exit-focus" style="border-color: #ffffff; color: #ffffff;">Exit Focus
+        Mode</button>
+    </div>
+  </div>
+
+  <!-- Onboarding Profile Screen overlay -->
+  <div class="onboarding-overlay" id="onboarding-overlay">
+    <div class="onboarding-box">
+      <div style="text-align: center;">
+        <img src="assets/logo.png" alt="Logo" class="logo-img-large"
+          style="margin: 0 auto 16px; display: block; height: 48px; width: auto; object-fit: contain;">
+        <h2 style="font-size: 1.6rem; font-weight: 800;">Campus Life</h2>
+        <p style="color: var(--text-secondary); margin-top: 8px; font-size: 0.9rem;">Setup your local profile to start
+          tracking your academic gravity.</p>
+      </div>
+      <form id="onboarding-form" style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" id="onboard-name" class="input-text" placeholder="e.g. Ruwan Silva" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">University</label>
+          <input type="text" id="onboard-university" class="input-text" placeholder="e.g. Rajarata University" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Faculty</label>
+          <input type="text" id="onboard-faculty" class="input-text" placeholder="e.g. Faculty of Applied Sciences" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Admission Year</label>
+          <input type="number" id="onboard-year" class="input-text" value="2024" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Current Year / Semester</label>
+          <select id="onboard-semester" class="select-input">
+            <option value="1-1">Year 1 - Semester I</option>
+            <option value="1-2">Year 1 - Semester II</option>
+            <option value="2-1">Year 2 - Semester I</option>
+            <option value="2-2">Year 2 - Semester II</option>
+            <option value="3-1">Year 3 - Semester I</option>
+            <option value="3-2">Year 3 - Semester II</option>
+            <option value="4-1">Year 4 - Semester I</option>
+            <option value="4-2">Year 4 - Semester II</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-solid" style="padding: 12px; margin-top: 12px;">Initialize Logbook</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Command Palette Modal overlay -->
+  <div class="command-palette-overlay" id="command-palette-overlay">
+    <div class="command-palette-box">
+      <input type="text" class="command-palette-input" id="command-palette-input"
+        placeholder="Type a view command (e.g. Go to dashboard, GPA...)" autocomplete="off">
+      <div class="command-palette-list" id="command-palette-list-container">
+        <!-- Dyn list -->
+      </div>
+    </div>
+  </div>
+
+  <!-- App Wrapper Frame Layout -->
+  <div class="app-container">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="logo-section">
+        <img src="assets/logo.png" alt="Logo" class="logo-img">
+        <span style="font-size: 30px;">Uni Life</span>
+      </div>
+
+      <nav class="nav-group">
+        <a href="#" class="nav-link active" data-target="dashboard">Dashboard</a>
+        <a href="#" class="nav-link" data-target="academic">Academic Manager</a>
+        <a href="#" class="nav-link" data-target="exams">Exam Scheduler</a>
+        <a href="#" class="nav-link" data-target="practicals">Practical Labs</a>
+        <a href="#" class="nav-link" data-target="assignments">Assignments</a>
+        <a href="#" class="nav-link" data-target="gpa">GPA Calculator</a>
+        <a href="#" class="nav-link" data-target="attendance">Attendance logs</a>
+        <a href="#" class="nav-link" data-target="sports">Sports & Gym</a>
+        <a href="#" class="nav-link" data-target="study">Focus Planner</a>
+        <a href="#" class="nav-link" data-target="notes">Notebook Pages</a>
+        <a href="#" class="nav-link" data-target="analytics">Analytics Trends</a>
+        <a href="#" class="nav-link" data-target="calendar">Month Planner</a>
+        <a href="#" class="nav-link" data-target="settings">Settings</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div style="font-weight: 600; font-size: 0.8rem; color: var(--text-primary);" id="user-profile-badge">Student Profile</div>
+        <span id="user-profile-faculty">Faculty of Applied Sciences</span>
+        <span id="user-profile-university">Rajarata University</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Frame -->
+    <main class="main-content">
+
+      <!-- Top header bar -->
+      <header class="top-bar">
+        <button class="search-trigger" id="search-trigger-btn">
+          <span>Search views...</span>
+          <span style="margin-left: auto; font-size: 0.7rem;">Ctrl+K</span>
+        </button>
+        <div class="user-controls">
+          <div class="sync-indicator state-offline" id="cloud-sync-indicator" title="Cloud Database Sync Status">
+            <span class="sync-dot"></span>
+            <span class="sync-text">Offline Mode</span>
+          </div>
+          <button class="btn-icon" id="theme-toggle-btn" title="Toggle Theme">🌓</button>
+        </div>
+      </header>
+
+      <!-- VIEW 01: DASHBOARD -->
+      <div class="page-view active" id="view-dashboard">
+        <div class="page-header">
+          <div>
+            <h1>Dashboard</h1>
+            <p>Undergraduate status summary, upcoming events, and weekly focus logs.</p>
+          </div>
+        </div>
+
+        <div class="grid-layout">
+          <!-- GPA metrics -->
+          <div class="card col-4">
+            <div class="card-title">Cumulative GPA</div>
+            <div class="metric-value" id="dash-metric-gpa">0.00</div>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Current overall GPA trajectory</span>
+          </div>
+          <div class="card col-4">
+            <div class="card-title">Semester GPA</div>
+            <div class="metric-value" id="dash-metric-sem-gpa">0.00</div>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Current active semester progress</span>
+          </div>
+          <!-- Attendance circular doughnut metric -->
+          <div class="card col-4" style="flex-direction: row; align-items: center; justify-content: space-around;">
+            <div>
+              <div class="card-title">Attendance</div>
+              <div class="metric-value" id="dash-metric-att">0%</div>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Eligibility average</span>
+            </div>
+            <div style="position: relative; width: 70px; height: 70px;">
+              <canvas id="chart-dashboard-attendance"></canvas>
+              <div id="dashboard-attendance-text-val"
+                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 0.85rem; font-weight: 700;">
+                0%</div>
+            </div>
+          </div>
+
+          <!-- Pending counters HUD -->
+          <div class="card col-6">
+            <div class="card-title">Academic Load Highlights</div>
+            <div style="display: flex; justify-content: space-around; text-align: center; padding: 10px 0;">
+              <div>
+                <h4 style="font-size: 1.8rem; font-weight: 800; color: var(--danger);" id="dash-pending-exams">0</h4>
+                <span style="font-size: 0.75rem; color: var(--text-secondary);">Upcoming Exams</span>
+              </div>
+              <div>
+                <h4 style="font-size: 1.8rem; font-weight: 800; color: var(--accent);" id="dash-pending-pracs">0</h4>
+                <span style="font-size: 0.75rem; color: var(--text-secondary);">Upcoming Labs</span>
+              </div>
+              <div>
+                <h4 style="font-size: 1.8rem; font-weight: 800; color: var(--warning);" id="dash-pending-assigns">0</h4>
+                <span style="font-size: 0.75rem; color: var(--text-secondary);">Assignments Pending</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Weekly Schedule events -->
+          <div class="card col-6">
+            <div class="card-title">Next 7 Days Schedule</div>
+            <div class="task-list" id="dash-weekly-schedule-list">
+              <!-- Dyn populated -->
+            </div>
+          </div>
+
+          <!-- Quick GPA Trend chart -->
+          <div class="card col-12">
+            <div class="card-title">Academic Performance Progression</div>
+            <div style="height: 200px; position: relative;">
+              <canvas id="chart-dashboard-gpa"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 02: ACADEMIC MANAGER -->
+      <div class="page-view" id="view-academic">
+        <div class="page-header">
+          <div>
+            <h1>Academic Manager</h1>
+            <p>Track modules, credits, and lecturer office hours.</p>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <select class="select-input" id="subject-semester-filter" style="width: 180px;">
+              <option value="1-1">Year 1 - Semester I</option>
+              <option value="1-2">Year 1 - Semester II</option>
+              <option value="2-1">Year 2 - Semester I</option>
+              <option value="2-2">Year 2 - Semester II</option>
+              <option value="3-1">Year 3 - Semester I</option>
+              <option value="3-2">Year 3 - Semester II</option>
+              <option value="4-1">Year 4 - Semester I</option>
+              <option value="4-2">Year 4 - Semester II</option>
+            </select>
+            <button class="btn-solid" id="btn-add-subject">+ Add Course Unit</button>
+          </div>
+        </div>
+        <div class="grid-layout" id="subjects-list-container">
+          <!-- Dyn cards -->
+        </div>
+      </div>
+
+      <!-- VIEW 03: EXAM SCHEDULER -->
+      <div class="page-view" id="view-exams">
+        <div class="page-header">
+          <div>
+            <h1>Exam Scheduler</h1>
+            <p>Log exam papers, locations, and watch live target countdowns.</p>
+          </div>
+          <button class="btn-solid" id="btn-add-exam">+ Schedule Exam</button>
+        </div>
+        <div class="grid-layout" id="exams-list-container">
+          <!-- Dyn cards -->
+        </div>
+      </div>
+
+      <!-- VIEW 04: PRACTICAL LABS -->
+      <div class="page-view" id="view-practicals">
+        <div class="page-header">
+          <div>
+            <h1>Practical Labs</h1>
+            <p>Log laboratory experiments, session timings, and required materials.</p>
+          </div>
+          <button class="btn-solid" id="btn-add-practical">+ Add Practical</button>
+        </div>
+        <div class="grid-layout" id="practicals-list-container">
+          <!-- Dyn cards -->
+        </div>
+      </div>
+
+      <!-- VIEW 05: ASSIGNMENTS -->
+      <div class="page-view" id="view-assignments">
+        <div class="page-header">
+          <div>
+            <h1>Assignments Tracker</h1>
+            <p>Manage coursework reports, homework submissions, and deadlines.</p>
+          </div>
+          <button class="btn-solid" id="btn-add-assignment">+ Log Assignment</button>
+        </div>
+        <div class="grid-layout" id="assignments-list-container">
+          <!-- Dyn items -->
+        </div>
+      </div>
+
+      <!-- VIEW 06: GPA CALCULATOR -->
+      <div class="page-view" id="view-gpa">
+        <div class="page-header">
+          <div>
+            <h1>GPA Calculator & Forecasts</h1>
+            <p>Estimate grade forecasts and log semester outcomes.</p>
+          </div>
+        </div>
+
+        <div class="grid-layout">
+          <!-- Forecast display widgets -->
+          <div class="card col-6">
+            <div class="card-title">Overall CGPA</div>
+            <div class="metric-value" id="gpa-display-overall" style="color: var(--accent);">0.00</div>
+          </div>
+          <div class="card col-6">
+            <div class="card-title">Active Semester GPA</div>
+            <div class="metric-value" id="gpa-display-semester" style="color: var(--success);">0.00</div>
+          </div>
+
+          <!-- Mark updates form card -->
+          <div class="card col-4">
+            <div class="card-title">Enter Subject Result</div>
+            <form id="gpa-grade-form" style="display: flex; flex-direction: column; gap: 12px;">
+              <div class="form-group">
+                <label class="form-label">Course Unit</label>
+                <select class="select-input" id="gpa-subject-select" required></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Obtained Grade</label>
+                <select class="select-input" id="gpa-grade-select" required>
+                  <option value="A+">A+</option>
+                  <option value="A">A</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B">B</option>
+                  <option value="B-">B-</option>
+                  <option value="C+">C+</option>
+                  <option value="C">C</option>
+                  <option value="C-">C-</option>
+                  <option value="D+">D+</option>
+                  <option value="D">D</option>
+                  <option value="E">E</option>
+                </select>
+              </div>
+              <button type="submit" class="btn-solid">Save Result</button>
+            </form>
+          </div>
+
+          <!-- Table records list card -->
+          <div class="card col-8">
+            <div class="card-title">Curriculum Log Book</div>
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+              <thead>
+                <tr
+                  style="border-bottom: 2px solid var(--border-color); font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase;">
+                  <th style="padding: 8px;">Subject</th>
+                  <th style="padding: 8px; text-align: center;">Credits</th>
+                  <th style="padding: 8px; text-align: center;">Grade</th>
+                  <th style="padding: 8px; text-align: center;">GP Value</th>
+                </tr>
+              </thead>
+              <tbody id="gpa-table-body">
+                <!-- Dyn rows -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Exam Mark Predictor HUD Card -->
+          <div class="card col-12" id="exam-predictor-hud" style="margin-top: 16px;">
+            <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+              <span>🔬 Exam Mark Predictor HUD</span>
+              <span class="badge" style="background-color: var(--accent-glow); color: var(--accent); font-size: 0.7rem; font-weight: 700;">RUSL Biological Science</span>
+            </div>
+            <div style="display: flex; gap: 24px; flex-wrap: wrap; width: 100%; margin-top: 8px;">
+              <!-- Left side: selectors -->
+              <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 14px;">
+                <div class="form-group">
+                  <label class="form-label">Select Course Unit</label>
+                  <select class="select-input" id="predictor-subject-select" style="width: 100%;"></select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Target Letter Grade</label>
+                  <select class="select-input" id="predictor-grade-select" style="width: 100%;">
+                    <option value="A+">A+ (90%)</option>
+                    <option value="A" selected>A (85%)</option>
+                    <option value="A-">A- (80%)</option>
+                    <option value="B+">B+ (75%)</option>
+                    <option value="B">B (70%)</option>
+                    <option value="B-">B- (65%)</option>
+                    <option value="C+">C+ (60%)</option>
+                    <option value="C">C (55%)</option>
+                    <option value="C-">C- (50%)</option>
+                    <option value="D+">D+ (45%)</option>
+                    <option value="D">D (40%)</option>
+                  </select>
+                </div>
+                <!-- Mini HUD specs display -->
+                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; font-size: 0.8rem; line-height: 1.6; display: flex; flex-direction: column; gap: 4px;">
+                  <div><strong>Theory Weight:</strong> <span id="predictor-theory-weight">70</span>%</div>
+                  <div><strong>Practical Weight:</strong> <span id="predictor-practical-weight">30</span>%</div>
+                  <div style="margin-top: 4px; border-top: 1px solid var(--border-color); padding-top: 4px;"><strong>Continuous Internals:</strong></div>
+                  <div>CA: <span id="predictor-ca-val">0</span> | Quiz: <span id="predictor-quiz-val">0</span> | Lab: <span id="predictor-lab-val">0</span></div>
+                </div>
+              </div>
+              
+              <!-- Right side: large display + grade breakdown table -->
+              <div style="flex: 1.5; min-width: 320px; display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; gap: 16px; align-items: center; background: rgba(0, 229, 255, 0.05); border: 1px solid rgba(0, 229, 255, 0.15); border-radius: 10px; padding: 16px; min-height: 100px;">
+                  <div style="font-size: 2.2rem; font-weight: 800; color: var(--accent); min-width: 80px; text-align: center; border-right: 1px solid var(--border-color); padding-right: 16px;" id="predictor-result-grade">A</div>
+                  <div style="flex: 1;">
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Required Final Exam Score</div>
+                    <div style="font-size: 1.5rem; font-weight: 800; color: #ffffff; margin-top: 2px;" id="predictor-result-required">75.5%</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; line-height: 1.3;">Assumes theory CA & Quiz count for 20% and final exam for 80% of Theory component.</div>
+                  </div>
+                </div>
+                
+                <!-- Grade list breakdown -->
+                <div>
+                  <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Minimum Final Exam marks required per letter grade:</div>
+                  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px;" id="predictor-breakdown-list">
+                    <!-- populated dynamically -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 07: ATTENDANCE TRACKER -->
+      <div class="page-view" id="view-attendance">
+        <div class="page-header">
+          <div>
+            <h1>Attendance Tracker</h1>
+            <p>Track class session counts to secure exam admission eligibility (>80%).</p>
+          </div>
+        </div>
+        <div class="grid-layout" id="attendance-tracker-container">
+          <!-- Dyn rows -->
+        </div>
+      </div>
+
+      <!-- VIEW 08: SPORTS & GYM -->
+      <div class="page-view" id="view-sports">
+        <div class="page-header">
+          <div>
+            <h1>Sports & Fitness Management</h1>
+            <p>Log university training sessions, athletic matches, and fitness metrics.</p>
+          </div>
+          <button class="btn-solid" id="btn-add-sport">+ Log Activity</button>
+        </div>
+
+        <div class="grid-layout">
+          <!-- Goals Panel -->
+          <div class="card col-4">
+            <div class="card-title">Fitness Targets</div>
+            <div id="sports-fitness-goals" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          </div>
+
+          <!-- Event List -->
+          <div class="col-8 grid-layout" id="sports-list-container" style="gap: 20px;">
+            <!-- Dyn items -->
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 09: FOCUS PLANNER -->
+      <div class="page-view" id="view-study">
+        <div class="page-header">
+          <div>
+            <h1>Focus Planner & Pomodoro</h1>
+            <p>Schedule your personal study hours and activate deep focus intervals.</p>
+          </div>
+          <button class="btn-solid" id="btn-add-study">+ Schedule Study Session</button>
+        </div>
+
+        <div class="grid-layout">
+          <!-- Pomodoro Widget Card -->
+          <div class="card col-4" style="text-align: center;">
+            <div class="card-title" id="pomo-type-label-main">Pomodoro Timer</div>
+            <div
+              style="font-family: 'JetBrains Mono', monospace; font-size: 3.5rem; font-weight: 800; margin: 16px 0; color: var(--accent);"
+              id="pomo-time-display">25:00</div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <button class="btn-solid" id="pomo-start">Start Session</button>
+              <div style="display: flex; gap: 10px;">
+                <button class="btn-outline" id="pomo-reset" style="flex: 1;">Reset</button>
+                <button class="btn-outline" id="btn-enter-focus"
+                  style="flex: 1; border-color: var(--accent); color: var(--accent);">Focus HUD</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Schedule log -->
+          <div class="card col-8">
+            <div class="card-title">Study Milestones Planner</div>
+            <div class="task-list" id="study-plans-list-container">
+              <!-- Dyn items -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 10: NOTEBOOK PAGES -->
+      <div class="page-view" id="view-notes">
+        <div class="page-header">
+          <div>
+            <h1>Notebook Pages</h1>
+            <p>Document observations, research references, and tag notes by subject.</p>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <button class="btn-outline" id="btn-delete-note"
+              style="border-color: var(--danger); color: var(--danger); display: none;">Delete Page</button>
+            <button class="btn-solid" id="btn-new-note">+ New Page</button>
+          </div>
+        </div>
+
+        <div class="note-editor-pane">
+          <!-- Notes Sidebar List -->
+          <div class="note-sidebar">
+            <input type="text" id="note-search" class="input-text" placeholder="Search pages..."
+              style="margin-bottom: 12px; font-size: 0.8rem;">
+            <div id="notes-sidebar-list" style="display: flex; flex-direction: column; gap: 4px;">
+              <!-- Dyn notes links -->
+            </div>
+          </div>
+
+          <!-- Editor Content Area -->
+          <div class="note-main-editor">
+            <input type="text" id="note-title" class="input-text" placeholder="Note Title"
+              style="font-size: 1.3rem; font-weight: 700; background: none; border: none; border-bottom: 1px solid var(--border-color); padding: 4px 0;"
+              required>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+              <div class="form-group">
+                <label class="form-label">Subject Link</label>
+                <select id="note-subject-select" class="select-input"></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Search Tags (comma-separated)</label>
+                <input type="text" id="note-tags" class="input-text" placeholder="e.g. Zoology, Invertebrates">
+              </div>
+            </div>
+            <textarea id="note-body" class="textarea-input"
+              style="flex: 1; font-family: var(--font-body); font-size: 0.9rem; line-height: 1.6; resize: none;"
+              placeholder="Start writing markdown-styled study notes here..."></textarea>
+            <button class="btn-solid" id="btn-save-note" style="width: 140px; margin-left: auto;">Save Page</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 11: ANALYTICS TRENDS -->
+      <div class="page-view" id="view-analytics">
+        <div class="page-header">
+          <div>
+            <h1>Analytics Trends</h1>
+            <p>Multi-dimensional logs metrics mapping and progression charts.</p>
+          </div>
+        </div>
+
+        <div class="grid-layout">
+          <!-- Bar comparison charts -->
+          <div class="card col-8">
+            <div class="card-title">GPA vs Class Attendance Analysis</div>
+            <div style="height: 300px; position: relative;">
+              <canvas id="chart-analytics-detailed"></canvas>
+            </div>
+          </div>
+
+          <!-- Study hours bar chart -->
+          <div class="card col-4">
+            <div class="card-title">Study Hours (Daily)</div>
+            <div style="height: 300px; position: relative;">
+              <canvas id="chart-analytics-study"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 12: MONTH PLANNER -->
+      <div class="page-view" id="view-calendar">
+        <div class="page-header">
+          <div>
+            <h1>Unified Calendar Planner</h1>
+            <p>View examinations, practicals, tasks, and fitness items on a monthly map.</p>
+          </div>
+        </div>
+
+        <div class="card col-12" style="gap: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 id="calendar-month-year-label" style="font-size: 1.1rem; font-weight: 700;">June 2026</h2>
+          </div>
+
+          <div class="calendar-grid" id="calendar-grid-container">
+            <!-- Calendar layout cells populated in JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 13: SETTINGS -->
+      <div class="page-view" id="view-settings">
+        <div class="page-header">
+          <div>
+            <h1>Settings</h1>
+            <p>Adjust themes, local configuration targets, and perform manual database backup restores.</p>
+          </div>
+        </div>
+
+        <div class="grid-layout">
+          <!-- Profile Card -->
+          <div class="card col-6">
+            <div class="card-title">Profile Configuration</div>
+            <form id="settings-profile-form" style="display: flex; flex-direction: column; gap: 14px;">
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" id="settings-name" class="input-text" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">University</label>
+                <input type="text" id="settings-university" class="input-text" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Faculty</label>
+                <input type="text" id="settings-faculty" class="input-text" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Admission Year</label>
+                <input type="number" id="settings-year" class="input-text" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Active Semester</label>
+                <select id="settings-semester" class="select-input">
+                  <option value="1-1">Year 1 - Semester I</option>
+                  <option value="1-2">Year 1 - Semester II</option>
+                  <option value="2-1">Year 2 - Semester I</option>
+                  <option value="2-2">Year 2 - Semester II</option>
+                  <option value="3-1">Year 3 - Semester I</option>
+                  <option value="3-2">Year 3 - Semester II</option>
+                  <option value="4-1">Year 4 - Semester I</option>
+                  <option value="4-2">Year 4 - Semester II</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">GPA Target</label>
+                <input type="number" id="settings-target-gpa" class="input-text" step="0.05" min="2.0" max="4.0"
+                  required>
+              </div>
+              <button type="submit" class="btn-solid" style="margin-top: 8px;">Save Settings</button>
+            </form>
+          </div>
+
+          <!-- Backup Card -->
+          <div class="card col-6" style="justify-content: flex-start;">
+            <div class="card-title">Database Storage & Backups</div>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">
+              Rajarata Life runs completely offline. Export your database into a local JSON file to ensure backup
+              safety, or select a previous JSON file to restore records.
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px;">
+              <button class="btn-solid" id="btn-backup-export" style="background-color: var(--success);">Export Database
+                to JSON</button>
+              <div
+                style="border: 1px dashed var(--border-color); border-radius: 8px; padding: 16px; text-align: center; position: relative;">
+                <input type="file" id="backup-import-file" accept=".json"
+                  style="position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;">
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">Drag or click here to restore from JSON
+                  file</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Typography Settings Card -->
+          <div class="card col-6" style="justify-content: flex-start;">
+            <div class="card-title">Typography Settings</div>
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <div class="form-group">
+                <label class="form-label">Font Family</label>
+                <select id="settings-font-family" class="select-input">
+                  <option value="Inter">Inter (Default)</option>
+                  <option value="Poppins">Poppins</option>
+                  <option value="Roboto">Roboto</option>
+                  <option value="Open Sans">Open Sans</option>
+                  <option value="Nunito">Nunito</option>
+                  <option value="Montserrat">Montserrat</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Font Size</label>
+                <select id="settings-font-size" class="select-input">
+                  <option value="small">Small</option>
+                  <option value="medium" selected>Medium (Default)</option>
+                  <option value="large">Large</option>
+                  <option value="xlarge">Extra Large</option>
+                </select>
+              </div>
+
+              <!-- Live Preview Section -->
+              <div
+                style="margin-top: 10px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: rgba(255, 255, 255, 0.02);">
+                <div
+                  style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
+                  Live Preview</div>
+                <div id="typography-preview-text"
+                  style="font-size: 0.95rem; line-height: 1.5; color: var(--text-primary);">
+                  The quick brown fox jumps over the lazy dog. 1234567890
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Theme Studio Card -->
+          <div class="card col-6" style="justify-content: flex-start;">
+            <div class="card-title">Theme Studio</div>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">
+              Customize your Academic OS. Select a theme variant derived from visual palette parameters and configure visual engine toggles.
+            </p>
+            
+            <!-- Visual Theme Grid -->
+            <div style="margin-top: 8px;">
+              <label class="form-label" style="margin-bottom: 8px; display: block;">Select Theme Palette</label>
+              <div class="theme-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <div class="theme-swatch active" data-theme-id="space-gravity">
+                  <div class="swatch-colors" style="background: linear-gradient(135deg, #0a0f1d 0%, #00e5ff 100%);"></div>
+                  <span>Space Gravity</span>
+                </div>
+                <div class="theme-swatch" data-theme-id="emerald-aurora">
+                  <div class="swatch-colors" style="background: linear-gradient(135deg, #0e1d20 0%, #45dfb1 100%);"></div>
+                  <span>Emerald Aurora</span>
+                </div>
+                <div class="theme-swatch" data-theme-id="sunset-amethyst">
+                  <div class="swatch-colors" style="background: linear-gradient(135deg, #0f0714 0%, #e3b6b1 100%);"></div>
+                  <span>Sunset Amethyst</span>
+                </div>
+                <div class="theme-swatch" data-theme-id="deep-indigo">
+                  <div class="swatch-colors" style="background: linear-gradient(135deg, #030430 0%, #00b4d8 100%);"></div>
+                  <span>Deep Indigo</span>
+                </div>
+                <div class="theme-swatch" data-theme-id="steel-slate">
+                  <div class="swatch-colors" style="background: linear-gradient(135deg, #121a24 0%, #aab7b7 100%);"></div>
+                  <span>Steel Slate</span>
+                </div>
+                <div class="theme-swatch" data-theme-id="crimson-obsidian">
+                  <div class="swatch-colors" style="background: linear-gradient(135deg, #080002 0%, #d00018 100%);"></div>
+                  <span>Crimson Obsidian</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Visual Toggles -->
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;">
+              <label class="form-label">Engine Configurations</label>
+              <label class="toggle-container" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
+                <input type="checkbox" id="toggle-glow" checked style="cursor: pointer;">
+                <span>Enable Glow Effects</span>
+              </label>
+              <label class="toggle-container" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
+                <input type="checkbox" id="toggle-hover-anims" checked style="cursor: pointer;">
+                <span>Enable Animated Hover Effects</span>
+              </label>
+              <label class="toggle-container" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
+                <input type="checkbox" id="toggle-reflections" checked style="cursor: pointer;">
+                <span>Enable Glass Reflections</span>
+              </label>
+              <label class="toggle-container" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
+                <input type="checkbox" id="toggle-accent-lighting" checked style="cursor: pointer;">
+                <span>Enable Dynamic Accent Lighting</span>
+              </label>
+            </div>
+
+            <!-- Actions -->
+            <div style="display: flex; gap: 10px; margin-top: 16px;">
+              <button class="btn-solid" id="btn-apply-theme" style="flex: 1; padding: 10px 14px;">Apply Theme</button>
+              <button class="btn-outline" id="btn-reset-theme" style="padding: 10px 14px;">Reset</button>
+            </div>
+          </div>
+
+          <!-- Theme Live Preview Card -->
+          <div class="card col-6" style="justify-content: flex-start;">
+            <div class="card-title">Live Preview Panel</div>
+            
+            <!-- Mock Container applying local CSS variables reflecting selection -->
+            <div id="theme-preview-box" class="preview-box-container" style="border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px; background: var(--bg-app); position: relative; overflow: hidden; height: 100%; transition: all 0.3s ease;">
+              
+              <!-- Ambient background lighting indicators in preview -->
+              <div class="preview-glow-1" style="position: absolute; top: -20px; left: -20px; width: 80px; height: 80px; background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+              <div class="preview-glow-2" style="position: absolute; bottom: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, var(--accent-secondary-glow) 0%, transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+              
+              <!-- Mini Navigation Header -->
+              <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <div class="preview-logo-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent);"></div>
+                  <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-primary);">Preview OS</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <span class="preview-nav-item active" style="font-size: 0.65rem; padding: 4px 8px; border-radius: 4px; background: var(--accent-glow); color: var(--accent); font-weight: 700; border: 1px solid var(--border-color); box-shadow: var(--shadow-glow);">Dash</span>
+                  <span class="preview-nav-item" style="font-size: 0.65rem; color: var(--text-secondary); padding: 4px 8px;">Logs</span>
+                </div>
+              </div>
+
+              <!-- Mini Dashboard Widget Card -->
+              <div class="preview-card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; box-shadow: var(--shadow-sm); position: relative; transition: all 0.3s ease;">
+                <div class="preview-reflection" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(255, 255, 255, 0.015) 0%, rgba(255, 255, 255, 0) 100%); pointer-events: none;"></div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">
+                  <span>Academic Gravity</span>
+                  <span style="color: var(--accent); font-weight: 700;">Active</span>
+                </div>
+                <div style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin-top: 6px;">3.84 GPA</div>
+                
+                <!-- Mini Progress Bar -->
+                <div style="width: 100%; height: 5px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; margin-top: 8px; overflow: hidden;">
+                  <div class="preview-progress-bar" style="width: 82%; height: 100%; background: linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%); box-shadow: 0 0 6px var(--accent);"></div>
+                </div>
+              </div>
+
+              <!-- Interactive Controls (Mock Button & Input) -->
+              <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
+                <input type="text" value="Text Field Input" readonly style="flex: 1; font-size: 0.7rem; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-secondary); pointer-events: none; outline: none;">
+                <button class="preview-btn-solid" style="font-size: 0.7rem; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: none; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%); color: #050608; cursor: default; box-shadow: 0 0 8px var(--accent-glow);">Trigger Action</button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Dynamic Modals Markup Overlays -->
+
+  <!-- Add/Edit Subject Modal -->
+  <div class="modal-overlay" id="subject-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="subject-modal-title">New Course Unit</h3>
+        <button class="btn-icon modal-close-btn">&times;</button>
+      </div>
+      <form id="subject-form">
+        <div class="modal-body">
+          <input type="hidden" id="subject-mode" value="add">
+          <div class="form-group">
+            <label class="form-label">Subject Code</label>
+            <input type="text" id="sub-code" class="input-text" placeholder="e.g. BOT 1101" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Subject Title</label>
+            <input type="text" id="sub-name" class="input-text" placeholder="e.g. Plant Diversity I" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Credits</label>
+            <input type="number" id="sub-credits" class="input-text" value="3" min="1" max="8" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Semester</label>
+            <select id="sub-semester" class="select-input">
+              <option value="1-1">Year 1 - Semester I</option>
+              <option value="1-2">Year 1 - Semester II</option>
+              <option value="2-1">Year 2 - Semester I</option>
+              <option value="2-2">Year 2 - Semester II</option>
+              <option value="3-1">Year 3 - Semester I</option>
+              <option value="3-2">Year 3 - Semester II</option>
+              <option value="4-1">Year 4 - Semester I</option>
+              <option value="4-2">Year 4 - Semester II</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Lecturer Name</label>
+            <input type="text" id="sub-lecturer" class="input-text" placeholder="e.g. Dr. K. Silva">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Lecturer Office / Contact Info</label>
+            <input type="text" id="sub-info" class="input-text" placeholder="e.g. Lab A, Ext. 431">
+          </div>
+          <div style="margin: 16px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent); border-top: 1px solid var(--border-color); padding-top: 16px;">🔬 Theory/Practical Component Weights</div>
+          <div style="display: flex; gap: 12px;">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Theory Weight %</label>
+              <input type="number" id="sub-theory-weight" class="input-text" value="70" min="0" max="100" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Practical Weight %</label>
+              <input type="number" id="sub-practical-weight" class="input-text" value="30" min="0" max="100" required>
+            </div>
+          </div>
+          
+          <div style="margin: 12px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent);">📊 Continuous Assessments / Internal Marks</div>
+          <div style="display: flex; gap: 10px;">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">CA Marks (out of 100)</label>
+              <input type="number" id="sub-ca-marks" class="input-text" value="80" min="0" max="100" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Quiz Marks (out of 100)</label>
+              <input type="number" id="sub-quiz-marks" class="input-text" value="80" min="0" max="100" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Lab Marks (out of 100)</label>
+              <input type="number" id="sub-lab-marks" class="input-text" value="80" min="0" max="100" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline modal-close-btn">Cancel</button>
+          <button type="submit" class="btn-solid">Save Course Unit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add/Edit Exam Modal -->
+  <div class="modal-overlay" id="exam-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="exam-modal-title">Schedule Exam</h3>
+        <button class="btn-icon modal-close-btn">&times;</button>
+      </div>
+      <form id="exam-form">
+        <div class="modal-body">
+          <input type="hidden" id="exam-mode" value="add">
+          <input type="hidden" id="exam-id" value="">
+          <div class="form-group">
+            <label class="form-label">Exam Name / Details</label>
+            <input type="text" id="exam-name" class="input-text" placeholder="e.g. Botany Mid-Semester Paper" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Course Unit</label>
+            <select id="exam-subject" class="select-input" required></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="date" id="exam-date" class="input-text" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Time</label>
+            <input type="time" id="exam-time" class="input-text" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Venue</label>
+            <input type="text" id="exam-venue" class="input-text" placeholder="e.g. FAS Hall A" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Exam Type</label>
+            <select id="exam-type" class="select-input">
+              <option value="Final Theory">Final Theory</option>
+              <option value="Final Practical">Final Practical</option>
+              <option value="Mid-Semester">Mid-Semester</option>
+              <option value="Quiz Spotting">Quiz Spotting</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline modal-close-btn">Cancel</button>
+          <button type="submit" class="btn-solid">Schedule Exam</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add/Edit Practical Modal -->
+  <div class="modal-overlay" id="practical-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="practical-modal-title">Add Practical Session</h3>
+        <button class="btn-icon modal-close-btn">&times;</button>
+      </div>
+      <form id="practical-form">
+        <div class="modal-body">
+          <input type="hidden" id="practical-mode" value="add">
+          <input type="hidden" id="practical-id" value="">
+          <div class="form-group">
+            <label class="form-label">Practical Session Title</label>
+            <input type="text" id="prac-name" class="input-text" placeholder="e.g. Mitosis Observation" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Course Unit</label>
+            <select id="prac-subject" class="select-input" required></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Lab Venue</label>
+            <input type="text" id="prac-lab" class="input-text" placeholder="e.g. Botany Lab II" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="date" id="prac-date" class="input-text" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Time</label>
+            <input type="time" id="prac-time" class="input-text" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Required Materials (Surgical razor, slide plates etc.)</label>
+            <input type="text" id="prac-materials" class="input-text" placeholder="e.g. Microscope slides, Cover slips">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Preparatory Notes</label>
+            <textarea id="prac-notes" class="textarea-input" style="height: 60px;"
+              placeholder="e.g. Revise Lab report 2 procedures..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline modal-close-btn">Cancel</button>
+          <button type="submit" class="btn-solid">Save Session</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add/Edit Assignment Modal -->
+  <div class="modal-overlay" id="assignment-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="assignment-modal-title">Log Assignment</h3>
+        <button class="btn-icon modal-close-btn">&times;</button>
+      </div>
+      <form id="assignment-form">
+        <div class="modal-body">
+          <input type="hidden" id="assignment-mode" value="add">
+          <input type="hidden" id="assignment-id" value="">
+          <div class="form-group">
+            <label class="form-label">Assignment Title</label>
+            <input type="text" id="assign-title" class="input-text"
+              placeholder="e.g. Cryptogams Flora Collection Report" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Course Unit Tag</label>
+            <select id="assign-subject" class="select-input" required></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Submission Date</label>
+            <input type="date" id="assign-date" class="input-text" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Priority</label>
+            <select id="assign-priority" class="select-input">
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Progress Status</label>
+            <select id="assign-status" class="select-input">
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline modal-close-btn">Cancel</button>
+          <button type="submit" class="btn-solid">Save Assignment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add/Edit Sports Modal -->
+  <div class="modal-overlay" id="sport-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="sport-modal-title">Sports Activity</h3>
+        <button class="btn-icon modal-close-btn">&times;</button>
+      </div>
+      <form id="sport-form">
+        <div class="modal-body">
+          <input type="hidden" id="sport-mode" value="add">
+          <input type="hidden" id="sport-id" value="">
+          <div class="form-group">
+            <label class="form-label">Activity Type</label>
+            <select id="sport-type" class="select-input">
+              <option value="Training">Training Session</option>
+              <option value="Match">Match / Game Day</option>
+              <option value="Goal">Fitness Target Goal</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Scheduled Date</label>
+            <input type="date" id="sport-date" class="input-text">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Training Duration (Hours)</label>
+            <input type="number" id="sport-hours" class="input-text" step="0.5" value="1.5">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Performance Score (Optional /10)</label>
+            <input type="number" id="sport-rating" class="input-text" min="0" max="10">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Details / Notes / Goal Text</label>
+            <textarea id="sport-details" class="textarea-input" style="height: 60px;"
+              placeholder="e.g. 5K running practice, or Football Match vs Wayamba" required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline modal-close-btn">Cancel</button>
+          <button type="submit" class="btn-solid">Save Entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add/Edit Study Plan Modal -->
+  <div class="modal-overlay" id="study-plan-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="study-plan-modal-title">Schedule Study Session</h3>
+        <button class="btn-icon modal-close-btn">&times;</button>
+      </div>
+      <form id="study-plan-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Session Topic / Details</label>
+            <input type="text" id="study-plan-title" class="input-text"
+              placeholder="e.g. Review Inorganic titration chemistry formulas" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="date" id="study-plan-date" class="input-text" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Start Time</label>
+            <input type="time" id="study-plan-start" class="input-text" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Duration (Hours)</label>
+            <input type="number" id="study-plan-duration" class="input-text" step="0.5" value="2" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Target Focus Interval (Pomodoro minutes)</label>
+            <input type="number" id="study-plan-focus" class="input-text" value="45" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline modal-close-btn">Cancel</button>
+          <button type="submit" class="btn-solid">Add Session</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bootstrapping scripts loaded as ES6 modules -->
+  <script type="module" src="js/app.js?v=9"></script>
+</body>
+
+</html>
