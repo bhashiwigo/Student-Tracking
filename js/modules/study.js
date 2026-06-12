@@ -97,7 +97,7 @@ export const StudyModule = {
       // Bind status toggle
       container.querySelectorAll('.toggle-plan-status').forEach(chk => {
         chk.addEventListener('change', async (e) => {
-          const id = chk.getAttribute('data-id');
+          const id = String(chk.getAttribute('data-id'));
           const isChecked = e.target.checked;
           try {
             const pl = await Database.get('studyplans', id);

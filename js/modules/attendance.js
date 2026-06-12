@@ -142,7 +142,10 @@ export const AttendanceModule = {
       }
 
       this.render();
-      window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+      // BUG FIX: Was dispatching 'subjectsUpdated' which caused an infinite re-render
+      // loop because AttendanceModule.init() listens on 'subjectsUpdated' → render().
+      // Now dispatches a dedicated 'attendanceUpdated' event instead.
+      window.dispatchEvent(new CustomEvent('attendanceUpdated'));
 
     } catch (err) {
       console.error('Adjust attendance failed:', err);

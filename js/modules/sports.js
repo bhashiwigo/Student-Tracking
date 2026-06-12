@@ -26,38 +26,53 @@ export const SportsModule = {
   async render() {
     const container = document.getElementById('sports-list-container');
     const fitnessText = document.getElementById('sports-fitness-goals');
-    
+
     if (!container) return;
 
     try {
       const records = await Database.getAll('sports');
-      
-      // Update fitness summary separately if element exists
+
+      // Update fitness goals summary separately if element exists
       const goals = records.filter(r => r.activityType === 'Goal');
       if (fitnessText) {
         fitnessText.innerHTML = goals.map(g => `
           <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding: 8px 0;">
-            <span style="font-size:0.85rem;">🎯 ${g.goalText}</span>
-            <button class="btn-icon delete-sport-btn" data-id="${g.id}" style="width:20px; height:20px; font-size:0.7rem;">✕</button>
+            <span style="font-size:0.85rem; display:flex; align-items:center; gap:8px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+              ${g.goalText}
+            </span>
+            <button class="btn-icon delete-sport-goal-btn" data-id="${g.id}" style="width:20px; height:20px; font-size:0.7rem;">✕</button>
           </div>
         `).join('') || '<div style="color:var(--text-muted); font-size:0.8rem;">No fitness goals set. Add a Goal below.</div>';
+
+        // BUG FIX: Scope delete listener to fitnessText, not document (avoids duplicate bindings)
+        fitnessText.querySelectorAll('.delete-sport-goal-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-id');
+            if (confirm('Delete this fitness goal?')) {
+              this.handleDeleteSport(id);
+            }
+          });
+        });
       }
 
       // Filter events/training list (excludes Goals)
       const events = records.filter(r => r.activityType !== 'Goal');
 
+      // BUG FIX: Return early when empty — previously set innerHTML then immediately
+      // overwrote it with events.map() which produced an empty string for 0 events.
       if (events.length === 0) {
         container.innerHTML = `
           <div class="col-12" style="text-align: center; padding: 40px; color: var(--text-muted); font-size:0.85rem;">
-            No sports training or match matches scheduled.
+            No sports training or match schedules recorded.
           </div>
         `;
         return;
       }
 
       container.innerHTML = events.map(sp => {
-        const typeBadge = sp.activityType === 'Match' 
-          ? `<span class="badge high">Match</span>` 
+        const typeBadge = sp.activityType === 'Match'
+          ? `<span class="badge high">Match</span>`
           : `<span class="badge low">Training</span>`;
 
         return `
@@ -86,8 +101,8 @@ export const SportsModule = {
         `;
       }).join('');
 
-      // Bind deletes (for both goals and events)
-      document.querySelectorAll('.delete-sport-btn').forEach(btn => {
+      // BUG FIX: Use container.querySelectorAll (scoped) instead of document.querySelectorAll (global)
+      container.querySelectorAll('.delete-sport-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const id = btn.getAttribute('data-id');
           if (confirm('Delete this sports entry?')) {
@@ -148,7 +163,7 @@ export const SportsModule = {
     e.preventDefault();
     const mode = document.getElementById('sport-mode').value;
     const id = document.getElementById('sport-id').value || 'sp-' + Date.now();
-    
+
     const activityType = document.getElementById('sport-type').value;
     const scheduleDate = document.getElementById('sport-date').value;
     const trainingHours = parseFloat(document.getElementById('sport-hours').value) || 0;

@@ -1,9 +1,11 @@
 /**
  * Rajarata Campus Life Manager - Main Application Orchestrator
- * Coordinates Navigation, Search Palette, Onboarding, Calendar, and Module bootstrap
+ * Coordinates Navigation, Search Palette, Auth Gate, Calendar, and Module bootstrap
  */
 
 import { Database, checkAndRestoreFromCloud, triggerBackgroundSync } from './database/db.js';
+import { Auth } from './auth.js';
+import { UserDatabase } from './database/userdb.js';
 import { BackupService } from './services/backup.js';
 import { NotificationService } from './services/notifications.js';
 
@@ -21,11 +23,38 @@ import { AnalyticsModule } from './modules/analytics.js';
 const App = {
   currentView: 'dashboard',
   currentDate: new Date(),
+  _initialized: false, // Guard against double-bootstrap on re-init after login
 
   async init() {
     this.registerServiceWorker();
     this.setupSyncIndicatorListener();
 
+    // ── Live DOM Reactivity — re-render dashboard charts and rings whenever
+    //    any IndexedDB write completes (dispatched by Database.add/put/delete).
+    //    Debounced to 80 ms so rapid sequential writes (e.g. during registration)
+    //    collapse into a single render pass instead of firing 4-5 times.
+    let _dashDebounceTimer = null;
+    window.addEventListener('subjectsUpdated', () => {
+      clearTimeout(_dashDebounceTimer);
+      _dashDebounceTimer = setTimeout(() => {
+        if (App.currentView === 'dashboard') {
+          App.renderDashboard();
+        }
+      }, 80);
+    });
+
+    // ── Auth Gate ─────────────────────────────────────────────────────────────
+    // Must be logged in before any app content is accessible
+    if (!Auth.isLoggedIn()) {
+      this.showAuthGate();
+      return;
+    }
+
+    // Prevent double-bootstrapping when init() is called again after login
+    if (this._initialized) return;
+    this._initialized = true;
+
+    // ── Cloud Restore ─────────────────────────────────────────────────────────
     try {
       const restored = await checkAndRestoreFromCloud();
       if (restored) {
@@ -36,6 +65,7 @@ const App = {
       console.error('Initial cloud sync check failed:', err);
     }
 
+    // ── App Bootstrap ─────────────────────────────────────────────────────────
     await this.setupProfileOnboarding();
     await this.setupTheme();
     await this.setupTypography();
@@ -57,11 +87,189 @@ const App = {
     this.renderActiveView();
   },
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // AUTH GATE METHODS
+  // ────────────────────────────────────────────────────────────────────────────
+
+  showAuthGate() {
+    // Hide the legacy onboarding overlay if still present
+    const legacyOnboarding = document.getElementById('onboarding-overlay');
+    if (legacyOnboarding) legacyOnboarding.style.display = 'none';
+
+    const authOverlay = document.getElementById('auth-overlay');
+    if (authOverlay) authOverlay.classList.add('active');
+    this.bindAuthEvents();
+  },
+
+  bindAuthEvents() {
+    // ── Sign In handler ───────────────────────────────────────────────────────
+    const signinBtn = document.getElementById('btn-auth-signin');
+    if (signinBtn) {
+      signinBtn.addEventListener('click', async () => {
+        const identifier = (document.getElementById('auth-signin-identifier')?.value || '').trim();
+        const pin = (document.getElementById('auth-signin-pin')?.value || '').trim();
+        const rememberMe = document.getElementById('auth-remember-me')?.checked ?? true;
+
+        if (!identifier || pin.length !== 4) {
+          NotificationService.show('Sign In Failed', 'Enter your name or Reg. No. and a 4-digit PIN.', 'error');
+          return;
+        }
+
+        try {
+          const allUsers = await Database.getAll('users');
+          const user = allUsers.find(u =>
+            u.name.toLowerCase() === identifier.toLowerCase() ||
+            (u.studentId || '').toLowerCase() === identifier.toLowerCase()
+          );
+
+          if (!user || !Auth.verifyPin(pin, user.pinHash)) {
+            NotificationService.show('Sign In Failed', 'Incorrect name/Reg. No. or PIN.', 'error');
+            return;
+          }
+
+          Auth.setSession(user.userId, rememberMe);
+          const authOverlay = document.getElementById('auth-overlay');
+          if (authOverlay) authOverlay.classList.remove('active');
+
+          // Re-run init with session now set
+          this._initialized = false;
+          await this.init();
+        } catch (err) {
+          console.error('Sign in error:', err);
+          NotificationService.show('Sign In Error', err.message, 'error');
+        }
+      });
+    }
+
+    // ── Register handler ──────────────────────────────────────────────────────
+    const registerBtn = document.getElementById('btn-auth-register');
+    if (registerBtn) {
+      registerBtn.addEventListener('click', async () => {
+        const name         = (document.getElementById('auth-reg-name')?.value || '').trim();
+        const studentId    = (document.getElementById('auth-reg-studentid')?.value || '').trim();
+        const dob          = document.getElementById('auth-reg-dob')?.value || '';
+        const university   = (document.getElementById('auth-reg-university')?.value || '').trim();
+        const faculty      = (document.getElementById('auth-reg-faculty')?.value || '').trim();
+        const courseSelect = document.getElementById('auth-reg-course')?.value || '';
+        const courseOther  = (document.getElementById('auth-reg-course-other')?.value || '').trim();
+        const course       = courseSelect === 'Other' ? courseOther : courseSelect;
+        const specialization = (document.getElementById('auth-reg-specialization')?.value || '').trim();
+        const admissionYear  = document.getElementById('auth-reg-admyear')?.value || '2024';
+        const semester       = document.getElementById('auth-reg-semester')?.value || '1-1';
+        const pin            = (document.getElementById('auth-reg-pin')?.value || '').trim();
+        const pinConfirm     = (document.getElementById('auth-reg-pin-confirm')?.value || '').trim();
+
+        if (!name || !studentId || !course || pin.length !== 4) {
+          NotificationService.show('Validation Error', 'Fill all required fields and set a 4-digit PIN.', 'error');
+          return;
+        }
+        if (pin !== pinConfirm) {
+          NotificationService.show('PIN Mismatch', 'PINs do not match. Please try again.', 'error');
+          return;
+        }
+
+        try {
+          // Check if student ID already exists
+          const allUsers = await Database.getAll('users');
+          if (allUsers.find(u => (u.studentId || '').toLowerCase() === studentId.toLowerCase())) {
+            NotificationService.show('Already Registered', 'This Reg. No. already has an account. Sign in instead.', 'error');
+            return;
+          }
+
+          const userId = Auth.generateUserId();
+          const newUser = {
+            userId, name, studentId, dob, university, faculty, course,
+            specialization, admissionYear, currentSemester: semester,
+            pinHash: Auth.hashPin(pin),
+            createdAt: new Date().toISOString()
+          };
+
+          await Database.add('users', newUser);
+
+          // Create legacy student profile for backward compatibility
+          await Database.put('students', {
+            id: 'profile',
+            userId,
+            name, university, faculty,
+            degree: course,
+            admissionYear,
+            currentSemester: semester
+          });
+
+          // Save default settings
+          await Database.put('settings', { key: 'currentSemester', value: semester });
+          await Database.put('settings', { key: 'gpaTarget', value: 3.70 });
+          await Database.put('settings', { key: 'themeMode', value: 'dark' });
+
+          Auth.setSession(userId, true);
+          NotificationService.show('Account Created!', `Welcome to Campus Life, ${name}!`, 'success');
+
+          const authOverlay = document.getElementById('auth-overlay');
+          if (authOverlay) authOverlay.classList.remove('active');
+
+          this._initialized = false;
+          await this.init();
+        } catch (err) {
+          console.error('Registration error:', err);
+          NotificationService.show('Registration Failed', err.message, 'error');
+        }
+      });
+    }
+
+    // ── Panel switch links ────────────────────────────────────────────────────
+    document.querySelector('[data-switch-to="register"]')
+      ?.addEventListener('click', (e) => { e.preventDefault(); this.switchAuthPanel('register'); });
+    document.querySelector('[data-switch-to="signin"]')
+      ?.addEventListener('click', (e) => { e.preventDefault(); this.switchAuthPanel('signin'); });
+
+    // ── "Other" course input toggle ───────────────────────────────────────────
+    document.getElementById('auth-reg-course')
+      ?.addEventListener('change', (e) => {
+        const otherGroup = document.getElementById('auth-reg-course-other-group');
+        if (otherGroup) otherGroup.style.display = e.target.value === 'Other' ? 'block' : 'none';
+      });
+
+    // ── Multi-step form navigation ────────────────────────────────────────────
+    document.getElementById('btn-reg-next-1')
+      ?.addEventListener('click', () => this.switchRegStep(2));
+    document.getElementById('btn-reg-next-2')
+      ?.addEventListener('click', () => this.switchRegStep(3));
+    document.getElementById('btn-reg-back-2')
+      ?.addEventListener('click', () => this.switchRegStep(1));
+    document.getElementById('btn-reg-back-3')
+      ?.addEventListener('click', () => this.switchRegStep(2));
+  },
+
+  switchAuthPanel(panel) {
+    const signin   = document.getElementById('auth-panel-signin');
+    const register = document.getElementById('auth-panel-register');
+    if (signin)   signin.style.display   = panel === 'signin'   ? 'flex' : 'none';
+    if (register) register.style.display = panel === 'register' ? 'flex' : 'none';
+  },
+
+  switchRegStep(step) {
+    [1, 2, 3].forEach(n => {
+      const el = document.getElementById(`auth-reg-step-${n}`);
+      if (el) el.style.display = n === step ? 'flex' : 'none';
+    });
+    // Update step indicator dots
+    document.querySelectorAll('.auth-step-dot').forEach(dot => {
+      const s = parseInt(dot.getAttribute('data-step'));
+      dot.classList.toggle('active', s === step);
+      dot.classList.toggle('done', s < step);
+    });
+  },
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // SERVICE WORKER
+  // ────────────────────────────────────────────────────────────────────────────
+
   registerServiceWorker() {
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(key => {
-          if (key !== 'campus-life-cache-v10') {
+          // BUG FIX: Must match the CACHE_NAME in service-worker.js (was v10, now v11)
+          if (key !== 'campus-life-cache-v11') {
             caches.delete(key);
           }
         });
@@ -93,13 +301,16 @@ const App = {
     }
   },
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // SYNC INDICATOR
+  // ────────────────────────────────────────────────────────────────────────────
+
   setupSyncIndicatorListener() {
     window.addEventListener('syncStatusChanged', (e) => {
       const status = e.detail;
       const indicator = document.getElementById('cloud-sync-indicator');
       if (!indicator) return;
 
-      const dot = indicator.querySelector('.sync-dot');
       const text = indicator.querySelector('.sync-text');
 
       // Reset classes
@@ -110,7 +321,7 @@ const App = {
         if (text) text.innerText = 'Syncing...';
       } else if (status === 'synced') {
         indicator.classList.add('state-synced');
-        if (text) text.innerText = '🟢 Cloud Synced';
+        if (text) text.innerText = 'Cloud Synced';
       } else if (status === 'error') {
         indicator.classList.add('state-error');
         if (text) text.innerText = 'Sync Error';
@@ -120,66 +331,92 @@ const App = {
       }
     });
 
-    // Run once at start to trigger initial status
+    // Initial trigger
     triggerBackgroundSync();
   },
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // PROFILE — Populate sidebar after login (B8)
+  // ────────────────────────────────────────────────────────────────────────────
+
   async setupProfileOnboarding() {
-    const student = await Database.get('students', 'profile');
-    if (!student) {
-      // Prompt Onboarding Screen overlay
-      const onboarding = document.getElementById('onboarding-overlay');
-      if (onboarding) {
-        onboarding.classList.add('active');
-        document.getElementById('onboarding-form').addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const name = document.getElementById('onboard-name').value.trim();
-          const university = document.getElementById('onboard-university').value.trim() || 'University Name';
-          const faculty = document.getElementById('onboard-faculty').value.trim() || 'Faculty Name';
-          const year = document.getElementById('onboard-year').value.trim();
-          const semester = document.getElementById('onboard-semester').value;
+    // Auth is already validated before init() reaches here — just populate UI
+    const userId = Auth.getCurrentUserId();
 
-          if (name) {
-            const profile = {
-              id: 'profile',
-              name,
-              university,
-              faculty,
-              degree: 'Undergraduate Profile',
-              admissionYear: year || '2024',
-              currentSemester: semester
-            };
-            await Database.put('students', profile);
+    try {
+      const allUsers = await Database.getAll('users');
+      const user = allUsers.find(u => u.userId === userId);
 
-            // Default target Settings
-            await Database.put('settings', { key: 'currentSemester', value: semester });
-            await Database.put('settings', { key: 'gpaTarget', value: 3.70 });
-            await Database.put('settings', { key: 'themeMode', value: 'dark' });
+      if (user) {
+        const userBadge = document.getElementById('user-profile-badge');
+        if (userBadge) userBadge.innerText = user.name;
 
-            onboarding.classList.remove('active');
-            NotificationService.show('Welcome Onboard!', `Welcome to Campus Life, ${name}!`, 'success');
+        const studentIdEl = document.getElementById('user-profile-studentid');
+        if (studentIdEl) studentIdEl.innerText = user.studentId || '';
 
-            // Reload
-            window.location.reload();
-          }
-        });
+        const courseEl = document.getElementById('user-profile-course');
+        if (courseEl) courseEl.innerText = user.course || 'B.Sc. Biological Science';
+
+        const facultyEl = document.getElementById('user-profile-faculty');
+        if (facultyEl) facultyEl.innerText = user.faculty || 'Faculty of Applied Sciences';
+
+        const universityEl = document.getElementById('user-profile-university');
+        if (universityEl) universityEl.innerText = user.university || 'Rajarata University';
+
+        // Persist semester + GPA target to settings for module access
+        await Database.put('settings', { key: 'currentSemester', value: user.currentSemester });
+        await Database.put('settings', { key: 'gpaTarget', value: 3.70 });
+        this.updateSemesterChip(user.currentSemester);
+      } else {
+        // Fallback: check legacy students store
+        const student = await Database.get('students', 'profile');
+        if (student) {
+          const userBadge = document.getElementById('user-profile-badge');
+          if (userBadge) userBadge.innerText = student.name || 'Student';
+          const facultyEl = document.getElementById('user-profile-faculty');
+          if (facultyEl) facultyEl.innerText = student.faculty || 'Faculty of Applied Sciences';
+          const universityEl = document.getElementById('user-profile-university');
+          if (universityEl) universityEl.innerText = student.university || 'Rajarata University';
+        }
       }
-    } else {
-      // Update sidebar footer details
-      const userBadge = document.getElementById('user-profile-badge');
-      if (userBadge) {
-        userBadge.innerText = student.name;
-      }
-      const facultyEl = document.getElementById('user-profile-faculty');
-      if (facultyEl) {
-        facultyEl.innerText = student.faculty || 'Faculty Name';
-      }
-      const universityEl = document.getElementById('user-profile-university');
-      if (universityEl) {
-        universityEl.innerText = student.university || 'University Name';
-      }
+    } catch (err) {
+      console.error('setupProfileOnboarding failed:', err);
+    }
+
+    // Bind Sign Out button in sidebar footer
+    const logoutBtn = document.getElementById('btn-logout');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        if (confirm('Sign out? Your data is saved locally and will sync when you return.')) {
+          Auth.clearSession();
+          window.location.reload();
+        }
+      });
     }
   },
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // SEMESTER CHIP — update the top-bar pill with a human-readable label
+  // ────────────────────────────────────────────────────────────────────────────
+
+  updateSemesterChip(semCode) {
+    const chipLabel = document.getElementById('semester-chip-label');
+    if (!chipLabel) return;
+    if (!semCode) { chipLabel.innerText = 'Sem —'; return; }
+
+    // Convert e.g. '1-2'  →  'Year 1 · Sem 2'
+    const MAP = {
+      '1-1': 'Year 1 · Sem 1', '1-2': 'Year 1 · Sem 2',
+      '2-1': 'Year 2 · Sem 1', '2-2': 'Year 2 · Sem 2',
+      '3-1': 'Year 3 · Sem 1', '3-2': 'Year 3 · Sem 2',
+      '4-1': 'Year 4 · Sem 1', '4-2': 'Year 4 · Sem 2',
+    };
+    chipLabel.innerText = MAP[semCode] || `Sem ${semCode}`;
+  },
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // THEME SETUP
+  // ────────────────────────────────────────────────────────────────────────────
 
   async setupTheme() {
     let themeSetting = await Database.get('settings', 'themeMode');
@@ -231,25 +468,23 @@ const App = {
     const fontSizeValue = sizeMap[size] || sizeMap['medium'];
     root.style.setProperty('--font-size-base', fontSizeValue);
 
-    // Sync elements
     const fontSelect = document.getElementById('settings-font-family');
     const sizeSelect = document.getElementById('settings-font-size');
     if (fontSelect) fontSelect.value = family;
     if (sizeSelect) sizeSelect.value = size;
-
   },
 
   async setupThemeStudio() {
-    let activeTheme = await Database.get('settings', 'studioTheme');
-    let glow = await Database.get('settings', 'studioGlow');
-    let hover = await Database.get('settings', 'studioHover');
-    let reflections = await Database.get('settings', 'studioReflections');
+    let activeTheme    = await Database.get('settings', 'studioTheme');
+    let glow           = await Database.get('settings', 'studioGlow');
+    let hover          = await Database.get('settings', 'studioHover');
+    let reflections    = await Database.get('settings', 'studioReflections');
     let accentLighting = await Database.get('settings', 'studioAccentLighting');
 
-    if (!activeTheme) activeTheme = { key: 'studioTheme', value: 'space-gravity' };
-    if (!glow) glow = { key: 'studioGlow', value: true };
-    if (!hover) hover = { key: 'studioHover', value: true };
-    if (!reflections) reflections = { key: 'studioReflections', value: true };
+    if (!activeTheme)    activeTheme    = { key: 'studioTheme', value: 'space-gravity' };
+    if (!glow)           glow           = { key: 'studioGlow', value: true };
+    if (!hover)          hover          = { key: 'studioHover', value: true };
+    if (!reflections)    reflections    = { key: 'studioReflections', value: true };
     if (!accentLighting) accentLighting = { key: 'studioAccentLighting', value: true };
 
     this.applyThemeStudio(
@@ -264,37 +499,33 @@ const App = {
   applyThemeStudio(theme, glow, hover, reflections, accentLighting) {
     const body = document.body;
 
-    // Apply active theme attribute
     if (theme === 'space-gravity') {
       body.removeAttribute('data-studio-theme');
     } else {
       body.setAttribute('data-studio-theme', theme);
     }
 
-    // Apply engine override classes
     body.classList.toggle('no-glows', !glow);
     body.classList.toggle('no-hover-animations', !hover);
     body.classList.toggle('no-reflections', !reflections);
     body.classList.toggle('no-accent-lighting', !accentLighting);
 
-    // Sync input selectors if on settings page
     const swatches = document.querySelectorAll('.theme-swatch');
     swatches.forEach(swatch => {
       const match = swatch.getAttribute('data-theme-id') === theme;
       swatch.classList.toggle('active', match);
     });
 
-    const toggleGlow = document.getElementById('toggle-glow');
-    const toggleHover = document.getElementById('toggle-hover-anims');
+    const toggleGlow        = document.getElementById('toggle-glow');
+    const toggleHover       = document.getElementById('toggle-hover-anims');
     const toggleReflections = document.getElementById('toggle-reflections');
-    const toggleAccent = document.getElementById('toggle-accent-lighting');
+    const toggleAccent      = document.getElementById('toggle-accent-lighting');
 
-    if (toggleGlow) toggleGlow.checked = glow;
-    if (toggleHover) toggleHover.checked = hover;
+    if (toggleGlow)        toggleGlow.checked        = glow;
+    if (toggleHover)       toggleHover.checked       = hover;
     if (toggleReflections) toggleReflections.checked = reflections;
-    if (toggleAccent) toggleAccent.checked = accentLighting;
+    if (toggleAccent)      toggleAccent.checked      = accentLighting;
 
-    // Sync preview panel
     this.updatePreviewPanel(theme, glow, hover, reflections, accentLighting);
   },
 
@@ -302,7 +533,6 @@ const App = {
     const previewBox = document.getElementById('theme-preview-box');
     if (!previewBox) return;
 
-    // Theme Variables Mapping
     const themeVars = {
       'space-gravity': {
         '--bg-app': '#0a0f1d',
@@ -371,15 +601,18 @@ const App = {
       previewBox.style.setProperty(key, value);
     }
 
-    // Apply preview class overrides
     previewBox.classList.toggle('no-glows', !glow);
     previewBox.classList.toggle('no-hover-animations', !hover);
     previewBox.classList.toggle('no-reflections', !reflections);
     previewBox.classList.toggle('no-accent-lighting', !accentLighting);
   },
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // EVENT BINDINGS
+  // ────────────────────────────────────────────────────────────────────────────
+
   bindEvents() {
-    // Navigation routing bindings
+    // Navigation routing
     const links = document.querySelectorAll('.nav-link');
     links.forEach(link => {
       link.addEventListener('click', (e) => {
@@ -389,20 +622,20 @@ const App = {
       });
     });
 
-    // Theme toggle button
+    // Theme toggle
     const themeBtn = document.getElementById('theme-toggle-btn');
     if (themeBtn) {
       themeBtn.addEventListener('click', () => this.toggleTheme());
     }
 
-    // Modal Close Triggers
+    // Modal close triggers
     document.querySelectorAll('.modal-close-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         btn.closest('.modal-overlay').classList.remove('visible');
       });
     });
 
-    // Command Palette shortcut keys
+    // Command Palette shortcut
     window.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
@@ -415,7 +648,6 @@ const App = {
       searchTrigger.addEventListener('click', () => this.toggleCommandPalette());
     }
 
-    // Command palette form logic
     const paletteOverlay = document.getElementById('command-palette-overlay');
     if (paletteOverlay) {
       paletteOverlay.addEventListener('click', (e) => {
@@ -431,28 +663,28 @@ const App = {
       }
     }
 
-    // Calendar refresh events listener
+    // Calendar refresh listener
     window.addEventListener('calendarItemsUpdated', () => this.renderCalendar());
 
-    // Settings Profile save bindings
+    // Settings Profile save
     const settingsForm = document.getElementById('settings-profile-form');
     if (settingsForm) {
       settingsForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const name = document.getElementById('settings-name').value.trim();
+        const name       = document.getElementById('settings-name').value.trim();
         const university = document.getElementById('settings-university').value.trim();
-        const faculty = document.getElementById('settings-faculty').value.trim();
-        const year = document.getElementById('settings-year').value;
-        const sem = document.getElementById('settings-semester').value;
-        const target = parseFloat(document.getElementById('settings-target-gpa').value) || 3.70;
+        const faculty    = document.getElementById('settings-faculty').value.trim();
+        const year       = document.getElementById('settings-year').value;
+        const sem        = document.getElementById('settings-semester').value;
+        const target     = parseFloat(document.getElementById('settings-target-gpa').value) || 3.70;
 
         try {
           const profile = await Database.get('students', 'profile') || { id: 'profile' };
-          profile.name = name;
+          profile.name       = name;
           profile.university = university;
-          profile.faculty = faculty;
-          profile.admissionYear = year;
-          profile.currentSemester = sem;
+          profile.faculty    = faculty;
+          profile.admissionYear    = year;
+          profile.currentSemester  = sem;
           await Database.put('students', profile);
 
           await Database.put('settings', { key: 'currentSemester', value: sem });
@@ -460,13 +692,15 @@ const App = {
 
           NotificationService.show('Settings Saved', 'Profile configuration updated successfully.', 'success');
 
-          // Sync badges
-          const userBadge = document.getElementById('user-profile-badge');
+          const userBadge    = document.getElementById('user-profile-badge');
           if (userBadge) userBadge.innerText = name;
-          const facultyEl = document.getElementById('user-profile-faculty');
+          const facultyEl    = document.getElementById('user-profile-faculty');
           if (facultyEl) facultyEl.innerText = faculty;
           const universityEl = document.getElementById('user-profile-university');
           if (universityEl) universityEl.innerText = university;
+
+          // Update top-bar semester chip live
+          this.updateSemesterChip(sem);
 
           window.dispatchEvent(new CustomEvent('subjectsUpdated'));
         } catch (err) {
@@ -475,7 +709,18 @@ const App = {
       });
     }
 
-    // Import/Export bindings
+    // Settings page Sign Out button (B9)
+    const settingsLogoutBtn = document.getElementById('btn-settings-logout');
+    if (settingsLogoutBtn) {
+      settingsLogoutBtn.addEventListener('click', () => {
+        if (confirm('Sign out? Your data is saved and will sync when you return.')) {
+          Auth.clearSession();
+          window.location.reload();
+        }
+      });
+    }
+
+    // Import/Export
     const exportBtn = document.getElementById('btn-backup-export');
     if (exportBtn) {
       exportBtn.addEventListener('click', async () => {
@@ -528,26 +773,19 @@ const App = {
       });
     }
 
-    // Theme Studio event bindings
+    // Theme Studio
     let selectedThemeId = 'space-gravity';
     const activeSwatch = document.querySelector('.theme-swatch.active');
     if (activeSwatch) {
       selectedThemeId = activeSwatch.getAttribute('data-theme-id');
     }
 
-    const getActiveToggles = () => {
-      const toggleGlow = document.getElementById('toggle-glow');
-      const toggleHover = document.getElementById('toggle-hover-anims');
-      const toggleReflections = document.getElementById('toggle-reflections');
-      const toggleAccent = document.getElementById('toggle-accent-lighting');
-
-      return {
-        glow: toggleGlow ? toggleGlow.checked : true,
-        hover: toggleHover ? toggleHover.checked : true,
-        reflections: toggleReflections ? toggleReflections.checked : true,
-        accentLighting: toggleAccent ? toggleAccent.checked : true
-      };
-    };
+    const getActiveToggles = () => ({
+      glow:           (document.getElementById('toggle-glow')?.checked           ?? true),
+      hover:          (document.getElementById('toggle-hover-anims')?.checked    ?? true),
+      reflections:    (document.getElementById('toggle-reflections')?.checked    ?? true),
+      accentLighting: (document.getElementById('toggle-accent-lighting')?.checked ?? true)
+    });
 
     const updatePreview = () => {
       const toggles = getActiveToggles();
@@ -564,8 +802,7 @@ const App = {
       });
     });
 
-    const checkboxes = ['toggle-glow', 'toggle-hover-anims', 'toggle-reflections', 'toggle-accent-lighting'];
-    checkboxes.forEach(id => {
+    ['toggle-glow', 'toggle-hover-anims', 'toggle-reflections', 'toggle-accent-lighting'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('change', updatePreview);
     });
@@ -582,10 +819,10 @@ const App = {
           await Database.put('settings', { key: 'studioAccentLighting', value: toggles.accentLighting });
 
           this.applyThemeStudio(selectedThemeId, toggles.glow, toggles.hover, toggles.reflections, toggles.accentLighting);
-          NotificationService.show('Theme Applied', `Theme Studio settings updated.`, 'success');
-          
-          // Refresh chart colors
-          AnalyticsModule.render();
+          NotificationService.show('Theme Applied', 'Theme Studio settings updated.', 'success');
+          // Wait one animation frame so the browser commits the new
+          // data-studio-theme CSS variables before charts sample getColor().
+          requestAnimationFrame(() => AnalyticsModule.render());
         } catch (err) {
           console.error('Save Theme Studio settings error:', err);
         }
@@ -604,8 +841,9 @@ const App = {
           await Database.put('settings', { key: 'studioAccentLighting', value: true });
 
           this.applyThemeStudio('space-gravity', true, true, true, true);
-          NotificationService.show('Theme Reset', `Default Space Gravity theme restored.`, 'info');
-          AnalyticsModule.render();
+          NotificationService.show('Theme Reset', 'Default Space Gravity theme restored.', 'info');
+          // Wait one frame so CSS variable reset propagates before charts recolor.
+          requestAnimationFrame(() => AnalyticsModule.render());
         } catch (err) {
           console.error(err);
         }
@@ -613,21 +851,44 @@ const App = {
     }
   },
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // THEME TOGGLE
+  // ────────────────────────────────────────────────────────────────────────────
+
   async toggleTheme() {
     const themeSetting = await Database.get('settings', 'themeMode');
-    const newTheme = themeSetting.value === 'dark' ? 'light' : 'dark';
-    themeSetting.value = newTheme;
-    await Database.put('settings', themeSetting);
+    const newTheme = (themeSetting?.value === 'dark') ? 'light' : 'dark';
+    await Database.put('settings', { key: 'themeMode', value: newTheme });
     document.body.setAttribute('data-theme', newTheme);
-    NotificationService.show('Theme Altered', `Interface theme set to ${newTheme} mode.`, 'info');
+
+    // Update aria-label for accessibility
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    if (themeBtn) {
+      themeBtn.setAttribute('aria-label', newTheme === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
+    }
+
+    const label = newTheme === 'light' ? '☀️ Light Mode' : '🌙 Dark Mode';
+    NotificationService.show('Theme Changed', `Switched to ${label}`, 'info');
+
+    // Force redraw of active views and charts with new colors
+    this.renderActiveView();
+    if (this.currentView === 'dashboard' || this.currentView === 'analytics') {
+      requestAnimationFrame(() => {
+        AnalyticsModule.render();
+      });
+    }
   },
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // NAVIGATION
+  // ────────────────────────────────────────────────────────────────────────────
 
   navigateTo(viewId) {
     this.currentView = viewId;
 
-    // Toggle active link highlights
-    const links = document.querySelectorAll('.nav-link');
-    links.forEach(l => {
+    // Use cached NodeList — avoids re-querying the DOM on every nav click
+    if (!this._navLinks) this._navLinks = document.querySelectorAll('.nav-link');
+    this._navLinks.forEach(l => {
       const match = l.getAttribute('data-target') === viewId;
       l.classList.toggle('active', match);
     });
@@ -636,76 +897,64 @@ const App = {
   },
 
   renderActiveView() {
-    const views = document.querySelectorAll('.page-view');
-    views.forEach(v => {
+    if (!this._pageViews) this._pageViews = document.querySelectorAll('.page-view');
+    this._pageViews.forEach(v => {
       const isActive = v.id === `view-${this.currentView}`;
       v.classList.toggle('active', isActive);
     });
 
-    // Fire rendering controllers hooks
-    if (this.currentView === 'dashboard') {
-      this.renderDashboard();
-    } else if (this.currentView === 'academic') {
-      AcademicModule.render();
-    } else if (this.currentView === 'exams') {
-      ExamsModule.render();
-    } else if (this.currentView === 'practicals') {
-      PracticalsModule.render();
-    } else if (this.currentView === 'assignments') {
-      AssignmentsModule.render();
-    } else if (this.currentView === 'gpa') {
-      GPAModule.render();
-    } else if (this.currentView === 'attendance') {
-      AttendanceModule.render();
-    } else if (this.currentView === 'sports') {
-      SportsModule.render();
-    } else if (this.currentView === 'study') {
-      StudyModule.render();
-    } else if (this.currentView === 'notes') {
-      NotesModule.render();
-    } else if (this.currentView === 'analytics') {
-      AnalyticsModule.render();
-    } else if (this.currentView === 'calendar') {
-      this.renderCalendar();
-    } else if (this.currentView === 'settings') {
-      this.renderSettings();
-    }
+    if      (this.currentView === 'dashboard')   { this.renderDashboard(); }
+    else if (this.currentView === 'academic')    { AcademicModule.render(); }
+    else if (this.currentView === 'exams')       { ExamsModule.render(); }
+    else if (this.currentView === 'practicals')  { PracticalsModule.render(); }
+    else if (this.currentView === 'assignments') { AssignmentsModule.render(); }
+    else if (this.currentView === 'gpa')         { GPAModule.render(); }
+    else if (this.currentView === 'attendance')  { AttendanceModule.render(); }
+    else if (this.currentView === 'sports')      { SportsModule.render(); }
+    else if (this.currentView === 'study')       { StudyModule.render(); }
+    else if (this.currentView === 'notes')       { NotesModule.render(); }
+    else if (this.currentView === 'analytics')   { AnalyticsModule.render(); }
+    else if (this.currentView === 'calendar')    { this.renderCalendar(); }
+    else if (this.currentView === 'settings')    { this.renderSettings(); }
   },
 
-  async renderDashboard() {
-    // Dynamic metrics calculators
-    const subjects = await Database.getAll('subjects');
-    const attendance = await Database.getAll('attendance');
-    const exams = await Database.getAll('exams');
-    const assignments = await Database.getAll('assignments');
-    const practicals = await Database.getAll('practicals');
-    const sports = await Database.getAll('sports');
+  // ────────────────────────────────────────────────────────────────────────────
+  // DASHBOARD
+  // ────────────────────────────────────────────────────────────────────────────
 
-    // GPA calculations
+  async renderDashboard() {
+    // Fetch all stores in parallel — saves ~5 sequential round-trips
+    const [
+      subjects, attendance, exams, assignments, practicals
+    ] = await Promise.all([
+      Database.getAll('subjects'),
+      Database.getAll('attendance'),
+      Database.getAll('exams'),
+      Database.getAll('assignments'),
+      Database.getAll('practicals'),
+    ]);
+
     const gpaStats = await GPAModule.calculateGPAs(subjects);
-    document.getElementById('dash-metric-gpa').innerText = gpaStats.overall.toFixed(2);
+    document.getElementById('dash-metric-gpa').innerText    = gpaStats.overall.toFixed(2);
     document.getElementById('dash-metric-sem-gpa').innerText = gpaStats.currentSemester.toFixed(2);
 
-    // Attendance percentages
     let totalAttended = 0;
     let totalSessions = 0;
     attendance.forEach(a => {
       totalAttended += (a.lecturesAttended || 0) + (a.practicalsAttended || 0);
-      totalSessions += (a.lecturesTotal || 0) + (a.practicalsTotal || 0);
+      totalSessions += (a.lecturesTotal   || 0) + (a.practicalsTotal   || 0);
     });
     const attPct = totalSessions > 0 ? (totalAttended / totalSessions) * 100 : 0;
     document.getElementById('dash-metric-att').innerText = `${attPct.toFixed(0)}%`;
 
-    // Tasks checklists upcoming numbers
-    const pendingEx = exams.length;
-    const pendingPrac = practicals.length;
+    const pendingEx     = exams.length;
+    const pendingPrac   = practicals.length;
     const pendingAssign = assignments.filter(a => a.status !== 'Completed').length;
 
-    document.getElementById('dash-pending-exams').innerText = pendingEx;
-    document.getElementById('dash-pending-pracs').innerText = pendingPrac;
+    document.getElementById('dash-pending-exams').innerText   = pendingEx;
+    document.getElementById('dash-pending-pracs').innerText   = pendingPrac;
     document.getElementById('dash-pending-assigns').innerText = pendingAssign;
 
-    // Weekly scheduler list
     const scheduleBox = document.getElementById('dash-weekly-schedule-list');
     if (scheduleBox) {
       const allUpcoming = [];
@@ -728,25 +977,53 @@ const App = {
       `).join('') || '<div style="color:var(--text-muted); font-size:0.8rem;">No academic events scheduled.</div>';
     }
 
-    // Dynamic charts bindings
-    AnalyticsModule.render();
+    // NOTE: AnalyticsModule already listens to 'subjectsUpdated' itself, so
+    // calling render() here would cause a double draw. It is intentionally
+    // NOT called here — the shared event drives it once, cleanly.
   },
 
-  async renderSettings() {
-    const student = await Database.get('students', 'profile');
-    const targetGpaSetting = await Database.get('settings', 'gpaTarget');
-    const fontSizeSetting = await Database.get('settings', 'fontSize');
-    const fontFamilySetting = await Database.get('settings', 'fontFamily');
-    const activeTheme = await Database.get('settings', 'studioTheme');
-    const glowSetting = await Database.get('settings', 'studioGlow');
-    const hoverSetting = await Database.get('settings', 'studioHover');
-    const reflectionsSetting = await Database.get('settings', 'studioReflections');
-    const accentSetting = await Database.get('settings', 'studioAccentLighting');
+  // ────────────────────────────────────────────────────────────────────────────
+  // SETTINGS (B9 — Account Information card)
+  // ────────────────────────────────────────────────────────────────────────────
 
+  async renderSettings() {
+    const student          = await Database.get('students', 'profile');
+    const targetGpaSetting = await Database.get('settings', 'gpaTarget');
+    const fontSizeSetting  = await Database.get('settings', 'fontSize');
+    const fontFamilySetting= await Database.get('settings', 'fontFamily');
+    const activeTheme      = await Database.get('settings', 'studioTheme');
+    const glowSetting      = await Database.get('settings', 'studioGlow');
+    const hoverSetting     = await Database.get('settings', 'studioHover');
+    const reflectionsSetting = await Database.get('settings', 'studioReflections');
+    const accentSetting    = await Database.get('settings', 'studioAccentLighting');
+
+    // ── Populate Account Information card (B9) ────────────────────────────────
+    try {
+      const userId  = Auth.getCurrentUserId();
+      const allUsers = await Database.getAll('users');
+      const user    = allUsers.find(u => u.userId === userId);
+
+      if (user) {
+        const set = (id, val) => {
+          const el = document.getElementById(id);
+          if (el) el.innerText = val || '—';
+        };
+        set('settings-display-name',       user.name);
+        set('settings-display-studentid',  user.studentId);
+        set('settings-display-course',     user.course);
+        set('settings-display-faculty',    user.faculty);
+        set('settings-display-university', user.university);
+        set('settings-display-admyear',    user.admissionYear);
+      }
+    } catch (err) {
+      console.warn('Could not populate account info:', err);
+    }
+
+    // ── Profile form ──────────────────────────────────────────────────────────
     if (student) {
-      document.getElementById('settings-name').value = student.name;
-      document.getElementById('settings-year').value = student.admissionYear;
-      document.getElementById('settings-semester').value = student.currentSemester;
+      document.getElementById('settings-name').value     = student.name || '';
+      document.getElementById('settings-year').value     = student.admissionYear || '';
+      document.getElementById('settings-semester').value = student.currentSemester || '1-1';
       const univEl = document.getElementById('settings-university');
       if (univEl) univEl.value = student.university || '';
       const facEl = document.getElementById('settings-faculty');
@@ -756,7 +1033,7 @@ const App = {
       document.getElementById('settings-target-gpa').value = targetGpaSetting.value;
     }
 
-    const sizeVal = fontSizeSetting ? fontSizeSetting.value : 'medium';
+    const sizeVal   = fontSizeSetting   ? fontSizeSetting.value   : 'medium';
     const familyVal = fontFamilySetting ? fontFamilySetting.value : 'Inter';
 
     const fontSelect = document.getElementById('settings-font-family');
@@ -766,21 +1043,21 @@ const App = {
 
     this.applyTypography(familyVal, sizeVal);
 
-    const themeVal = activeTheme ? activeTheme.value : 'space-gravity';
-    const glowVal = glowSetting ? glowSetting.value : true;
-    const hoverVal = hoverSetting ? hoverSetting.value : true;
-    const reflectionsVal = reflectionsSetting ? reflectionsSetting.value : true;
-    const accentVal = accentSetting ? accentSetting.value : true;
+    const themeVal       = activeTheme       ? activeTheme.value       : 'space-gravity';
+    const glowVal        = glowSetting       ? glowSetting.value       : true;
+    const hoverVal       = hoverSetting      ? hoverSetting.value      : true;
+    const reflectionsVal = reflectionsSetting? reflectionsSetting.value: true;
+    const accentVal      = accentSetting     ? accentSetting.value     : true;
 
-    const toggleGlow = document.getElementById('toggle-glow');
-    const toggleHover = document.getElementById('toggle-hover-anims');
+    const toggleGlow        = document.getElementById('toggle-glow');
+    const toggleHover       = document.getElementById('toggle-hover-anims');
     const toggleReflections = document.getElementById('toggle-reflections');
-    const toggleAccent = document.getElementById('toggle-accent-lighting');
+    const toggleAccent      = document.getElementById('toggle-accent-lighting');
 
-    if (toggleGlow) toggleGlow.checked = glowVal;
-    if (toggleHover) toggleHover.checked = hoverVal;
+    if (toggleGlow)        toggleGlow.checked        = glowVal;
+    if (toggleHover)       toggleHover.checked       = hoverVal;
     if (toggleReflections) toggleReflections.checked = reflectionsVal;
-    if (toggleAccent) toggleAccent.checked = accentVal;
+    if (toggleAccent)      toggleAccent.checked      = accentVal;
 
     const swatches = document.querySelectorAll('.theme-swatch');
     swatches.forEach(swatch => {
@@ -791,26 +1068,26 @@ const App = {
     this.updatePreviewPanel(themeVal, glowVal, hoverVal, reflectionsVal, accentVal);
   },
 
-  /**
-   * Calendar Page Renderer
-   */
+  // ────────────────────────────────────────────────────────────────────────────
+  // CALENDAR
+  // ────────────────────────────────────────────────────────────────────────────
+
   async renderCalendar() {
-    const grid = document.getElementById('calendar-grid-container');
+    const grid        = document.getElementById('calendar-grid-container');
     const headerTitle = document.getElementById('calendar-month-year-label');
     if (!grid || !headerTitle) return;
 
     grid.innerHTML = '';
-    const year = this.currentDate.getFullYear();
+    const year  = this.currentDate.getFullYear();
     const month = this.currentDate.getMonth();
 
     const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January','February','March','April','May','June',
+      'July','August','September','October','November','December'
     ];
     headerTitle.innerText = `${monthNames[month]} ${year}`;
 
-    // Static week day labels row
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     days.forEach(day => {
       const headerCell = document.createElement('div');
       headerCell.className = 'calendar-day-header';
@@ -818,38 +1095,33 @@ const App = {
       grid.appendChild(headerCell);
     });
 
-    // Map month offsets
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const prevMonthDays = new Date(year, month, 0).getDate();
+    const firstDay       = new Date(year, month, 1).getDay();
+    const daysInMonth    = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays  = new Date(year, month, 0).getDate();
 
-    // Pull events database keys to overlay
-    const exams = await Database.getAll('exams');
-    const practicals = await Database.getAll('practicals');
+    const exams       = await Database.getAll('exams');
+    const practicals  = await Database.getAll('practicals');
     const assignments = await Database.getAll('assignments');
-    const sports = await Database.getAll('sports');
-    const studyplans = await Database.getAll('studyplans');
+    const sports      = await Database.getAll('sports');
+    const studyplans  = await Database.getAll('studyplans');
 
     const getEventsForDate = (dateStr) => {
       const list = [];
-      exams.forEach(x => { if (x.date === dateStr) list.push({ text: `📝 ${x.name}`, color: 'var(--danger)', bg: 'rgba(239, 68, 68, 0.15)' }); });
-      practicals.forEach(p => { if (p.date === dateStr) list.push({ text: `🔬 ${p.name}`, color: 'var(--accent)', bg: 'var(--accent-glow)' }); });
-      assignments.forEach(a => { if (a.date === dateStr) list.push({ text: `📬 ${a.title}`, color: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.15)' }); });
-      sports.forEach(s => { if (s.scheduleDate === dateStr) list.push({ text: `🏆 ${s.goalText}`, color: 'var(--success)', bg: 'rgba(16, 185, 129, 0.15)' }); });
-      studyplans.forEach(pl => { if (pl.date === dateStr) list.push({ text: `📚 ${pl.title}`, color: 'var(--accent)', bg: 'var(--accent-glow)' }); });
+      exams.forEach(x       => { if (x.date === dateStr)         list.push({ text: `📝 ${x.name}`,    color: 'var(--danger)',  bg: 'rgba(239, 68, 68, 0.15)' }); });
+      practicals.forEach(p  => { if (p.date === dateStr)         list.push({ text: `🔬 ${p.name}`,    color: 'var(--accent)',  bg: 'var(--accent-glow)' }); });
+      assignments.forEach(a => { if (a.date === dateStr)         list.push({ text: `📬 ${a.title}`,   color: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.15)' }); });
+      sports.forEach(s      => { if (s.scheduleDate === dateStr) list.push({ text: `🏆 ${s.goalText}`,color: 'var(--success)', bg: 'rgba(16, 185, 129, 0.15)' }); });
+      studyplans.forEach(pl => { if (pl.date === dateStr)        list.push({ text: `📚 ${pl.title}`,  color: 'var(--accent)',  bg: 'var(--accent-glow)' }); });
       return list;
     };
 
-    // 1. Draw trailing previous month cells
     for (let i = firstDay - 1; i >= 0; i--) {
       const cell = document.createElement('div');
       cell.className = 'calendar-cell other-month';
-      const dayNum = prevMonthDays - i;
-      cell.innerHTML = `<span class="calendar-date-number">${dayNum}</span>`;
+      cell.innerHTML = `<span class="calendar-date-number">${prevMonthDays - i}</span>`;
       grid.appendChild(cell);
     }
 
-    // 2. Draw current month cells
     const today = new Date();
     for (let d = 1; d <= daysInMonth; d++) {
       const cell = document.createElement('div');
@@ -861,9 +1133,7 @@ const App = {
       const dateString = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
       cell.innerHTML = `<span class="calendar-date-number">${d}</span>`;
 
-      // Render event highlights
-      const cellEvents = getEventsForDate(dateString);
-      cellEvents.forEach(evt => {
+      getEventsForDate(dateString).forEach(evt => {
         const pill = document.createElement('div');
         pill.className = 'calendar-event-pill';
         pill.innerText = evt.text;
@@ -875,9 +1145,8 @@ const App = {
       grid.appendChild(cell);
     }
 
-    // 3. Draw remaining leading next month cells
-    const totalCellsUsed = firstDay + daysInMonth;
-    const nextCellsNeeded = 42 - totalCellsUsed; // standard 6 row calendar container grid count
+    const totalCellsUsed  = firstDay + daysInMonth;
+    const nextCellsNeeded = 42 - totalCellsUsed;
     for (let n = 1; n <= nextCellsNeeded; n++) {
       const cell = document.createElement('div');
       cell.className = 'calendar-cell other-month';
@@ -886,9 +1155,10 @@ const App = {
     }
   },
 
-  /**
-   * Command Palette Search Engine
-   */
+  // ────────────────────────────────────────────────────────────────────────────
+  // COMMAND PALETTE
+  // ────────────────────────────────────────────────────────────────────────────
+
   toggleCommandPalette() {
     const palette = document.getElementById('command-palette-overlay');
     if (!palette) return;
@@ -906,22 +1176,21 @@ const App = {
     const list = document.getElementById('command-palette-list-container');
     if (!list) return;
 
-    // Static routing paths mappings
     const commands = [
-      { text: 'Go to Dashboard', action: () => this.navigateTo('dashboard'), shortcut: 'G + D' },
-      { text: 'Manage Course Units (Subjects)', action: () => this.navigateTo('academic'), shortcut: 'G + A' },
-      { text: 'Check Exams Schedules', action: () => this.navigateTo('exams'), shortcut: 'G + E' },
-      { text: 'Review Practical Classes', action: () => this.navigateTo('practicals'), shortcut: 'G + P' },
-      { text: 'Track Assignment Submissions', action: () => this.navigateTo('assignments'), shortcut: 'G + T' },
-      { text: 'Open GPA Calculator', action: () => this.navigateTo('gpa'), shortcut: 'G + G' },
-      { text: 'Log Subject Attendance', action: () => this.navigateTo('attendance'), shortcut: 'G + L' },
-      { text: 'Sports & Training Schedules', action: () => this.navigateTo('sports'), shortcut: 'G + S' },
-      { text: 'Enter Study Focus Planner', action: () => this.navigateTo('study'), shortcut: 'G + F' },
-      { text: 'Read Subject Notes Pages', action: () => this.navigateTo('notes'), shortcut: 'G + N' },
-      { text: 'View Performance Analytics Charts', action: () => this.navigateTo('analytics'), shortcut: 'G + C' },
-      { text: 'Toggle Application Theme Mode', action: () => this.toggleTheme(), shortcut: 'T + T' },
-      { text: 'Unified Calendar Planner', action: () => this.navigateTo('calendar'), shortcut: 'G + Y' },
-      { text: 'System Configuration Settings', action: () => this.navigateTo('settings'), shortcut: 'G + O' }
+      { text: 'Go to Dashboard',                  action: () => this.navigateTo('dashboard'),   shortcut: 'G + D' },
+      { text: 'Manage Course Units (Subjects)',    action: () => this.navigateTo('academic'),    shortcut: 'G + A' },
+      { text: 'Check Exams Schedules',             action: () => this.navigateTo('exams'),       shortcut: 'G + E' },
+      { text: 'Review Practical Classes',          action: () => this.navigateTo('practicals'),  shortcut: 'G + P' },
+      { text: 'Track Assignment Submissions',      action: () => this.navigateTo('assignments'), shortcut: 'G + T' },
+      { text: 'Open GPA Calculator',               action: () => this.navigateTo('gpa'),         shortcut: 'G + G' },
+      { text: 'Log Subject Attendance',            action: () => this.navigateTo('attendance'),  shortcut: 'G + L' },
+      { text: 'Sports & Training Schedules',       action: () => this.navigateTo('sports'),      shortcut: 'G + S' },
+      { text: 'Enter Study Focus Planner',         action: () => this.navigateTo('study'),       shortcut: 'G + F' },
+      { text: 'Read Subject Notes Pages',          action: () => this.navigateTo('notes'),       shortcut: 'G + N' },
+      { text: 'View Performance Analytics Charts', action: () => this.navigateTo('analytics'),   shortcut: 'G + C' },
+      { text: 'Toggle Application Theme Mode',     action: () => this.toggleTheme(),             shortcut: 'T + T' },
+      { text: 'Unified Calendar Planner',          action: () => this.navigateTo('calendar'),    shortcut: 'G + Y' },
+      { text: 'System Configuration Settings',     action: () => this.navigateTo('settings'),    shortcut: 'G + O' }
     ];
 
     const match = commands.filter(c => c.text.toLowerCase().includes(query.toLowerCase()));
@@ -933,10 +1202,8 @@ const App = {
       </div>
     `).join('');
 
-    // Save functions arrays temporarily to trigger on Enter keypress
     this.paletteFilteredActions = match.map(c => c.action);
 
-    // Bind item click
     list.querySelectorAll('.command-palette-item').forEach(el => {
       el.addEventListener('click', () => {
         const idx = parseInt(el.getAttribute('data-index'));
@@ -950,9 +1217,9 @@ const App = {
   },
 
   handleCommandPaletteKey(e) {
-    const items = document.querySelectorAll('.command-palette-item');
-    let selected = document.querySelector('.command-palette-item.selected');
-    let index = selected ? parseInt(selected.getAttribute('data-index')) : 0;
+    const items   = document.querySelectorAll('.command-palette-item');
+    let selected  = document.querySelector('.command-palette-item.selected');
+    let index     = selected ? parseInt(selected.getAttribute('data-index')) : 0;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();

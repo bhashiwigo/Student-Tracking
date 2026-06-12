@@ -70,10 +70,18 @@ export const NotesModule = {
       const notes = await Database.getAll('notes');
       
       const filtered = notes.filter(n => {
-        const titleMatch = n.title.toLowerCase().includes(searchVal);
-        const bodyMatch = n.content?.toLowerCase().includes(searchVal);
-        const tagMatch = n.tags?.some(t => t.toLowerCase().includes(searchVal));
-        return titleMatch || bodyMatch || tagMatch;
+        const titleMatch = (n.title || '').toLowerCase().includes(searchVal);
+        const bodyMatch = (n.content || '').toLowerCase().includes(searchVal);
+        const subjectMatch = (n.subjectCode || '').toLowerCase().includes(searchVal);
+        
+        let tagMatch = false;
+        if (Array.isArray(n.tags)) {
+          tagMatch = n.tags.some(t => t && String(t).toLowerCase().includes(searchVal));
+        } else if (typeof n.tags === 'string') {
+          tagMatch = n.tags.toLowerCase().includes(searchVal);
+        }
+        
+        return titleMatch || bodyMatch || subjectMatch || tagMatch;
       });
 
       if (filtered.length === 0) {
@@ -83,14 +91,17 @@ export const NotesModule = {
         return;
       }
 
-      sidebar.innerHTML = filtered.map(n => `
-        <div class="note-item-link ${n.id === this.activeNoteId ? 'active' : ''}" data-id="${n.id}">
-          <div style="font-weight:600; text-overflow:ellipsis; overflow:hidden;">${n.title || 'Untitled Note'}</div>
-          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">
-            ${n.subjectCode ? n.subjectCode : 'General'} • ${n.date}
+      sidebar.innerHTML = filtered.map(n => {
+        const displayTitle = n.title ? n.title.trim() : (n.subjectCode ? n.subjectCode + ' Note' : 'Untitled Note');
+        return `
+          <div class="note-item-link ${n.id === this.activeNoteId ? 'active' : ''}" data-id="${n.id}">
+            <div style="font-weight:600; text-overflow:ellipsis; overflow:hidden;">${displayTitle}</div>
+            <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">
+              ${n.subjectCode ? n.subjectCode : 'General'} • ${n.date}
+            </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
 
       // Bind select triggers
       sidebar.querySelectorAll('.note-item-link').forEach(link => {
@@ -124,7 +135,7 @@ export const NotesModule = {
     try {
       const note = await Database.get('notes', id);
       if (note) {
-        document.getElementById('note-title').value = note.title;
+        document.getElementById('note-title').value = note.title || '';
         document.getElementById('note-subject-select').value = note.subjectCode || '';
         document.getElementById('note-body').value = note.content || '';
         document.getElementById('note-tags').value = note.tags ? note.tags.join(', ') : '';
@@ -144,7 +155,7 @@ export const NotesModule = {
   },
 
   async handleSaveNote() {
-    const title = document.getElementById('note-title').value.trim() || 'Untitled Note';
+    const title = document.getElementById('note-title').value.trim();
     const subjectCode = document.getElementById('note-subject-select').value;
     const content = document.getElementById('note-body').value;
     

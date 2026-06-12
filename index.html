@@ -17,6 +17,37 @@
   <link rel="stylesheet" href="css/style.css?v=9">
   <!-- Chart.js via CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Firebase SDK v10 (modular CDN) — exposes __firestore and __firebaseSDK on window -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import {
+      getFirestore, collection, doc, setDoc, getDoc, getDocs,
+      deleteDoc, writeBatch, serverTimestamp, query, where, limit
+    } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB_nhE7dhy1gYPJxRuScPZ9khXnPT5te_E",
+      authDomain: "student-tracking-app-f4570.firebaseapp.com",
+      projectId: "student-tracking-app-f4570",
+      storageBucket: "student-tracking-app-f4570.firebasestorage.app",
+      messagingSenderId: "878719441575",
+      appId: "1:878719441575:web:c37c72c27423e250909982"
+    };
+
+    try {
+      const firebaseApp = initializeApp(firebaseConfig);
+      window.__firestore = getFirestore(firebaseApp);
+      // Expose all needed Firestore functions so firestore-sync.js can access them
+      window.__firebaseSDK = {
+        collection, doc, setDoc, getDoc, getDocs, deleteDoc,
+        writeBatch, serverTimestamp, query, where, limit
+      };
+      console.log('[Firebase] Firestore initialized.');
+    } catch (e) {
+      console.warn('[Firebase] Initialization failed — running in offline-only mode.', e.message);
+    }
+  </script>
 </head>
 
 <body>
@@ -32,48 +63,200 @@
     </div>
   </div>
 
-  <!-- Onboarding Profile Screen overlay -->
-  <div class="onboarding-overlay" id="onboarding-overlay">
+  <!-- Legacy onboarding overlay (kept hidden — superseded by auth overlay) -->
+  <div class="onboarding-overlay" id="onboarding-overlay" style="display:none;">
     <div class="onboarding-box">
-      <div style="text-align: center;">
-        <img src="assets/logo.png" alt="Logo" class="logo-img-large"
-          style="margin: 0 auto 16px; display: block; height: 48px; width: auto; object-fit: contain;">
-        <h2 style="font-size: 1.6rem; font-weight: 800;">Campus Life</h2>
-        <p style="color: var(--text-secondary); margin-top: 8px; font-size: 0.9rem;">Setup your local profile to start
-          tracking your academic gravity.</p>
+      <p style="color:var(--text-secondary);">Please use the sign-in screen to access the app.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       AUTH OVERLAY — Sign In / Create Account
+       Shown before any app content; removed from DOM once logged in
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="auth-overlay" id="auth-overlay">
+    <div class="auth-box">
+
+      <!-- Logo & App Name -->
+      <div class="auth-logo-row">
+        <img src="assets/logo.png" alt="Campus Life Logo" class="logo-img-large"
+          style="height:44px; width:auto; object-fit:contain;">
+        <div>
+          <div style="font-size:1.4rem; font-weight:800; letter-spacing:-0.5px;">Uni Life</div>
+          <div style="font-size:0.75rem; color:var(--text-secondary);">Rajarata University Academic Manager</div>
+        </div>
       </div>
-      <form id="onboarding-form" style="display: flex; flex-direction: column; gap: 16px;">
+
+      <!-- ── PANEL A: SIGN IN ─────────────────────────────────────────────── -->
+      <div id="auth-panel-signin" style="display:flex; flex-direction:column; gap:18px;">
+        <div class="auth-panel-heading">Sign In</div>
+
         <div class="form-group">
-          <label class="form-label">Full Name</label>
-          <input type="text" id="onboard-name" class="input-text" placeholder="e.g. Ruwan Silva" required>
+          <label class="form-label">Full Name or Registration Number</label>
+          <input type="text" id="auth-signin-identifier" class="input-text"
+            placeholder="e.g. Ruwan Silva or 2022/AS/001" autocomplete="username">
         </div>
+
         <div class="form-group">
-          <label class="form-label">University</label>
-          <input type="text" id="onboard-university" class="input-text" placeholder="e.g. Rajarata University" required>
+          <label class="form-label">4-Digit PIN</label>
+          <input type="password" id="auth-signin-pin" class="input-text" maxlength="4" placeholder="••••"
+            autocomplete="current-password" style="letter-spacing:6px; font-size:1.2rem; text-align:center;">
         </div>
-        <div class="form-group">
-          <label class="form-label">Faculty</label>
-          <input type="text" id="onboard-faculty" class="input-text" placeholder="e.g. Faculty of Applied Sciences" required>
+
+        <label class="auth-remember-label">
+          <input type="checkbox" id="auth-remember-me" checked>
+          <span>Remember me for 7 days</span>
+        </label>
+
+        <button class="btn-solid" id="btn-auth-signin" style="padding:12px; font-size:0.95rem; font-weight:700;">Sign
+          In</button>
+
+        <div class="auth-switch-text">
+          Don't have an account?
+          <a href="#" data-switch-to="register" class="auth-link">Create Account</a>
         </div>
-        <div class="form-group">
-          <label class="form-label">Admission Year</label>
-          <input type="number" id="onboard-year" class="input-text" value="2024" required>
+      </div>
+
+      <!-- ── PANEL B: CREATE ACCOUNT (3-step) ────────────────────────────── -->
+      <div id="auth-panel-register" style="display:none; flex-direction:column; gap:16px;">
+        <div class="auth-panel-heading">Create Account</div>
+
+        <!-- Step progress indicator -->
+        <div class="auth-steps-indicator">
+          <div class="auth-step-dot active" data-step="1">1</div>
+          <div class="auth-step-connector"></div>
+          <div class="auth-step-dot" data-step="2">2</div>
+          <div class="auth-step-connector"></div>
+          <div class="auth-step-dot" data-step="3">3</div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Current Year / Semester</label>
-          <select id="onboard-semester" class="select-input">
-            <option value="1-1">Year 1 - Semester I</option>
-            <option value="1-2">Year 1 - Semester II</option>
-            <option value="2-1">Year 2 - Semester I</option>
-            <option value="2-2">Year 2 - Semester II</option>
-            <option value="3-1">Year 3 - Semester I</option>
-            <option value="3-2">Year 3 - Semester II</option>
-            <option value="4-1">Year 4 - Semester I</option>
-            <option value="4-2">Year 4 - Semester II</option>
-          </select>
+
+        <!-- STEP 1: Personal Information -->
+        <div id="auth-reg-step-1" style="display:flex; flex-direction:column; gap:14px;">
+          <div class="auth-step-heading">Personal Information</div>
+
+          <div class="form-group">
+            <label class="form-label">Full Name <span class="auth-required">*</span></label>
+            <input type="text" id="auth-reg-name" class="input-text" placeholder="e.g. Ruwan Silva" required
+              autocomplete="name">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Student Registration Number <span class="auth-required">*</span></label>
+            <input type="text" id="auth-reg-studentid" class="input-text" placeholder="e.g. 2022/AS/001" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Date of Birth <span
+                style="color:var(--text-secondary); font-size:0.75rem;">(optional)</span></label>
+            <input type="date" id="auth-reg-dob" class="input-text">
+          </div>
+
+          <button class="btn-solid" id="btn-reg-next-1" style="padding:10px; margin-top:4px;">Next →</button>
         </div>
-        <button type="submit" class="btn-solid" style="padding: 12px; margin-top: 12px;">Initialize Logbook</button>
-      </form>
+
+        <!-- STEP 2: Academic Information -->
+        <div id="auth-reg-step-2" style="display:none; flex-direction:column; gap:14px;">
+          <div class="auth-step-heading">Academic Information</div>
+
+          <div class="form-group">
+            <label class="form-label">University</label>
+            <input type="text" id="auth-reg-university" class="input-text" value="Rajarata University of Sri Lanka">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Faculty</label>
+            <input type="text" id="auth-reg-faculty" class="input-text" value="Faculty of Applied Sciences">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Course / Degree Programme <span class="auth-required">*</span></label>
+            <select id="auth-reg-course" class="select-input">
+              <option value="Bachelor of Science in Biological Science" selected>Bachelor of Science in Biological
+                Science</option>
+              <option value="Bachelor of Science in Chemistry">Bachelor of Science in Chemistry</option>
+              <option value="Bachelor of Science in Physics">Bachelor of Science in Physics</option>
+              <option value="Bachelor of Science in Mathematics &amp; Statistics">Bachelor of Science in Mathematics
+                &amp; Statistics</option>
+              <option value="Bachelor of Science in Computer Science">Bachelor of Science in Computer Science</option>
+              <option value="Bachelor of Science in Food Science &amp; Technology">Bachelor of Science in Food Science
+                &amp; Technology</option>
+              <option value="Bachelor of Science in Environmental Science">Bachelor of Science in Environmental Science
+              </option>
+              <option value="Other">Other (specify below)</option>
+            </select>
+          </div>
+
+          <div id="auth-reg-course-other-group" class="form-group" style="display:none;">
+            <label class="form-label">Specify Course Name</label>
+            <input type="text" id="auth-reg-course-other" class="input-text" placeholder="Enter your degree programme">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Specialization / Major <span
+                style="color:var(--text-secondary); font-size:0.75rem;">(optional)</span></label>
+            <input type="text" id="auth-reg-specialization" class="input-text"
+              placeholder="e.g. Plant Biology, Zoology">
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label class="form-label">Admission Year</label>
+              <input type="number" id="auth-reg-admyear" class="input-text" value="2024" min="2000" max="2030">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Current Year / Semester</label>
+              <select id="auth-reg-semester" class="select-input">
+                <option value="1-1">Year 1 Semester I</option>
+                <option value="1-2">Year 1 Semester II</option>
+                <option value="2-1">Year 2 Semester I</option>
+                <option value="2-2">Year 2 Semester II</option>
+                <option value="3-1">Year 3 Semester I</option>
+                <option value="3-2">Year 3 Semester II</option>
+                <option value="4-1">Year 4 Semester I</option>
+                <option value="4-2">Year 4 Semester II</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px; margin-top:4px;">
+            <button class="btn-outline" id="btn-reg-back-2" style="flex:1; padding:10px;">← Back</button>
+            <button class="btn-solid" id="btn-reg-next-2" style="flex:2; padding:10px;">Next →</button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Set PIN -->
+        <div id="auth-reg-step-3" style="display:none; flex-direction:column; gap:14px;">
+          <div class="auth-step-heading">Set Your PIN</div>
+
+          <div class="form-group">
+            <label class="form-label">4-Digit PIN <span class="auth-required">*</span></label>
+            <input type="password" id="auth-reg-pin" class="input-text" maxlength="4" placeholder="••••"
+              style="letter-spacing:6px; font-size:1.2rem; text-align:center;" autocomplete="new-password">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Confirm PIN <span class="auth-required">*</span></label>
+            <input type="password" id="auth-reg-pin-confirm" class="input-text" maxlength="4" placeholder="••••"
+              style="letter-spacing:6px; font-size:1.2rem; text-align:center;" autocomplete="new-password">
+          </div>
+
+          <div class="auth-pin-hint">
+            🔒 Your PIN keeps your data private on shared devices
+          </div>
+
+          <div style="display:flex; gap:10px; margin-top:4px;">
+            <button class="btn-outline" id="btn-reg-back-3" style="flex:1; padding:10px;">← Back</button>
+            <button class="btn-solid" id="btn-auth-register" style="flex:2; padding:10px; font-weight:700;">Create My
+              Account</button>
+          </div>
+        </div>
+
+        <div class="auth-switch-text">
+          Already have an account?
+          <a href="#" data-switch-to="signin" class="auth-link">Sign In</a>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -95,7 +278,7 @@
     <aside class="sidebar">
       <div class="logo-section">
         <img src="assets/logo.png" alt="Logo" class="logo-img">
-        <span style="font-size: 30px;">Uni Life</span>
+        <span style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">UNI LIFE</span>
       </div>
 
       <nav class="nav-group">
@@ -114,10 +297,24 @@
         <a href="#" class="nav-link" data-target="settings">Settings</a>
       </nav>
 
+      <!-- Glowing Animated DNA Canvas (B) -->
+      <div class="bio-nanotech-nav-container">
+        <canvas id="dna-canvas" class="dna-canvas"></canvas>
+        <div class="bio-nav-text">BIO-NANOTECH NAV</div>
+      </div>
+
       <div class="sidebar-footer">
-        <div style="font-weight: 600; font-size: 0.8rem; color: var(--text-primary);" id="user-profile-badge">Student Profile</div>
+        <div style="font-weight: 600; font-size: 0.8rem; color: var(--text-primary);" id="user-profile-badge">Student
+          Name</div>
+        <span id="user-profile-studentid" style="font-size: 0.7rem; color: var(--accent);">Reg. No.</span>
+        <span id="user-profile-course" style="font-size: 0.7rem; color: var(--text-secondary);">B.Sc. Biological
+          Science</span>
         <span id="user-profile-faculty">Faculty of Applied Sciences</span>
         <span id="user-profile-university">Rajarata University</span>
+        <button class="btn-outline btn-sm" id="btn-logout"
+          style="margin-top: 8px; font-size: 0.7rem; padding: 4px 8px; border-color: var(--danger); color: var(--danger);">
+          Sign Out
+        </button>
       </div>
     </aside>
 
@@ -130,12 +327,43 @@
           <span>Search views...</span>
           <span style="margin-left: auto; font-size: 0.7rem;">Ctrl+K</span>
         </button>
+
+        <!-- Current Semester Chip -->
+        <div class="semester-chip" id="current-semester-chip" title="Current Active Semester">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span id="semester-chip-label">Sem —</span>
+        </div>
+
         <div class="user-controls">
           <div class="sync-indicator state-offline" id="cloud-sync-indicator" title="Cloud Database Sync Status">
             <span class="sync-dot"></span>
             <span class="sync-text">Offline Mode</span>
           </div>
-          <button class="btn-icon" id="theme-toggle-btn" title="Toggle Theme">🌓</button>
+          <!-- Animated Dark/Light Theme Toggle Switch -->
+          <button class="theme-toggle-switch" id="theme-toggle-btn" title="Toggle Dark / Light Theme"
+            aria-label="Toggle theme">
+            <span class="theme-toggle-track">
+              <span class="theme-toggle-thumb">
+                <!-- Moon icon (dark mode) -->
+                <svg class="theme-icon theme-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                  fill="currentColor">
+                  <path
+                    d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                </svg>
+                <!-- Sun icon (light mode) -->
+                <svg class="theme-icon theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                  fill="currentColor">
+                  <path
+                    d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z" />
+                </svg>
+              </span>
+            </span>
+          </button>
         </div>
       </header>
 
@@ -143,70 +371,205 @@
       <div class="page-view active" id="view-dashboard">
         <div class="page-header">
           <div>
-            <h1>Dashboard</h1>
-            <p>Undergraduate status summary, upcoming events, and weekly focus logs.</p>
+            <h1 style="font-size: 1.5rem; font-weight: 800;">Biological Science Portfolio Hub</h1>
+            <p>Rajarata University Biological Science student tracking application</p>
           </div>
         </div>
 
         <div class="grid-layout">
-          <!-- GPA metrics -->
-          <div class="card col-4">
-            <div class="card-title">Cumulative GPA</div>
-            <div class="metric-value" id="dash-metric-gpa">0.00</div>
-            <span style="font-size: 0.75rem; color: var(--text-muted);">Current overall GPA trajectory</span>
-          </div>
-          <div class="card col-4">
-            <div class="card-title">Semester GPA</div>
-            <div class="metric-value" id="dash-metric-sem-gpa">0.00</div>
-            <span style="font-size: 0.75rem; color: var(--text-muted);">Current active semester progress</span>
-          </div>
-          <!-- Attendance circular doughnut metric -->
-          <div class="card col-4" style="flex-direction: row; align-items: center; justify-content: space-around;">
-            <div>
-              <div class="card-title">Attendance</div>
-              <div class="metric-value" id="dash-metric-att">0%</div>
-              <span style="font-size: 0.75rem; color: var(--text-muted);">Eligibility average</span>
+          <!-- C: Overall GPA Forecast -->
+          <div class="card col-3" style="align-items: center; justify-content: center;">
+            <div class="card-title">Overall GPA Forecast</div>
+            <div class="radial-ring-container">
+              <svg class="radial-ring" viewBox="0 0 100 100">
+                <circle class="ring-bg" cx="50" cy="50" r="40" />
+                <circle class="ring-fill" cx="50" cy="50" r="40" id="dash-metric-gpa-ring" stroke-dasharray="251.2"
+                  stroke-dashoffset="251.2" />
+              </svg>
+              <div class="radial-ring-value" id="dash-metric-gpa">0.00</div>
             </div>
-            <div style="position: relative; width: 70px; height: 70px;">
-              <canvas id="chart-dashboard-attendance"></canvas>
-              <div id="dashboard-attendance-text-val"
-                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 0.85rem; font-weight: 700;">
-                0%</div>
+            <span style="font-size: 0.72rem; color: var(--text-secondary); text-align: center;">Progress Ring: <span
+                id="dash-metric-gpa-sub">0.00</span></span>
+            <span id="dash-metric-sem-gpa" style="display: none;">0.00</span>
+          </div>
+
+          <!-- D: RUSL Attendance Status -->
+          <div class="card col-3" style="align-items: center; justify-content: center;">
+            <div class="card-title">RUSL Attendance Status</div>
+            <div class="radial-ring-container">
+              <svg class="radial-ring" viewBox="0 0 100 100">
+                <circle class="ring-bg" cx="50" cy="50" r="40" />
+                <circle class="ring-fill att-ring-fill" cx="50" cy="50" r="40" id="dash-metric-att-ring"
+                  stroke-dasharray="251.2" stroke-dashoffset="251.2" />
+              </svg>
+              <div class="radial-ring-value" id="dashboard-attendance-text-val">0%</div>
+            </div>
+            <span style="font-size: 0.72rem; color: var(--text-secondary); text-align: center;">Progress Ring: <span
+                id="dash-metric-att-sub">0%</span></span>
+            <div id="dash-metric-att" style="display: none;">0%</div>
+          </div>
+
+          <!-- E: Current Academic Balance -->
+          <div class="card col-3" style="justify-content: flex-start;">
+            <div class="card-title">Current Academic Balance</div>
+            <div class="balance-progress-group">
+              <div class="balance-item">
+                <div class="balance-header">
+                  <span>Botany</span>
+                  <span>60%</span>
+                </div>
+                <div class="balance-bar-bg">
+                  <div class="balance-bar-fill" style="width: 60%;"></div>
+                </div>
+              </div>
+              <div class="balance-item">
+                <div class="balance-header">
+                  <span>Zoology</span>
+                  <span>35%</span>
+                </div>
+                <div class="balance-bar-bg">
+                  <div class="balance-bar-fill" style="width: 35%;"></div>
+                </div>
+              </div>
+              <div class="balance-item">
+                <div class="balance-header">
+                  <span>Chemistry</span>
+                  <span>25%</span>
+                </div>
+                <div class="balance-bar-bg">
+                  <div class="balance-bar-fill" style="width: 25%;"></div>
+                </div>
+              </div>
+            </div>
+            <span
+              style="font-size: 0.65rem; color: var(--text-secondary); text-align: center; margin-top: auto;">Botany/Zoology/Chemistry</span>
+          </div>
+
+          <!-- F: GPA Predictor HUD -->
+          <div class="card col-3">
+            <div class="card-title">GPA Predictor HUD</div>
+            <div class="predictor-compact">
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.55rem;">Component Weights</label>
+                <select class="select-input" id="predictor-subject-select"
+                  style="width: 100%; height: 28px; padding: 2px 8px; font-size: 0.75rem;"></select>
+              </div>
+              <div class="form-group" style="margin-top: -4px;">
+                <select class="select-input" id="predictor-grade-select"
+                  style="width: 100%; height: 28px; padding: 2px 8px; font-size: 0.75rem;">
+                  <option value="A+">A+ (90%)</option>
+                  <option value="A" selected>A (85%)</option>
+                  <option value="A-">A- (80%)</option>
+                  <option value="B+">B+ (75%)</option>
+                  <option value="B">B (70%)</option>
+                  <option value="B-">B- (65%)</option>
+                  <option value="C+">C+ (60%)</option>
+                  <option value="C">C (55%)</option>
+                  <option value="C-">C- (50%)</option>
+                  <option value="D+">D+ (45%)</option>
+                  <option value="D">D (40%)</option>
+                </select>
+              </div>
+              <div class="predictor-stats-row">
+                <div class="predictor-stat-box">
+                  <label>Theory</label>
+                  <span><span id="predictor-theory-weight">70</span>%</span>
+                </div>
+                <div class="predictor-stat-box">
+                  <label>Prac</label>
+                  <span><span id="predictor-practical-weight">30</span>%</span>
+                </div>
+                <div class="predictor-stat-box">
+                  <label>CA</label>
+                  <span><span id="predictor-ca-val">0</span></span>
+                </div>
+              </div>
+              <div class="predictor-stats-row" style="margin-top: -6px;">
+                <div class="predictor-stat-box">
+                  <label>Quiz</label>
+                  <span><span id="predictor-quiz-val">0</span></span>
+                </div>
+                <div class="predictor-stat-box">
+                  <label>Lab</label>
+                  <span><span id="predictor-lab-val">0</span></span>
+                </div>
+                <div class="predictor-stat-box">
+                  <label>Grade</label>
+                  <span id="predictor-result-grade">A</span>
+                </div>
+              </div>
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; background: rgba(0, 229, 255, 0.08); border: 1px solid rgba(0, 229, 255, 0.15); border-radius: 6px; padding: 4px 8px; margin-top: 2px;">
+                <span style="font-size: 0.65rem; color: #ffffff; font-weight: 700;">Req Exam:</span>
+                <span style="font-size: 0.78rem; font-weight: 800; color: #ffffff;"
+                  id="predictor-result-required">0%</span>
+              </div>
+              <div id="predictor-breakdown-list" style="display: none;"></div>
             </div>
           </div>
 
-          <!-- Pending counters HUD -->
-          <div class="card col-6">
-            <div class="card-title">Academic Load Highlights</div>
-            <div style="display: flex; justify-content: space-around; text-align: center; padding: 10px 0;">
-              <div>
-                <h4 style="font-size: 1.8rem; font-weight: 800; color: var(--danger);" id="dash-pending-exams">0</h4>
-                <span style="font-size: 0.75rem; color: var(--text-secondary);">Upcoming Exams</span>
-              </div>
-              <div>
-                <h4 style="font-size: 1.8rem; font-weight: 800; color: var(--accent);" id="dash-pending-pracs">0</h4>
-                <span style="font-size: 0.75rem; color: var(--text-secondary);">Upcoming Labs</span>
-              </div>
-              <div>
-                <h4 style="font-size: 1.8rem; font-weight: 800; color: var(--warning);" id="dash-pending-assigns">0</h4>
-                <span style="font-size: 0.75rem; color: var(--text-secondary);">Assignments Pending</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Weekly Schedule events -->
-          <div class="card col-6">
-            <div class="card-title">Next 7 Days Schedule</div>
-            <div class="task-list" id="dash-weekly-schedule-list">
-              <!-- Dyn populated -->
-            </div>
-          </div>
-
-          <!-- Quick GPA Trend chart -->
+          <!-- G: Botany Component Tracking (65% Theory / 35% Practical) -->
           <div class="card col-12">
-            <div class="card-title">Academic Performance Progression</div>
-            <div style="height: 200px; position: relative;">
+            <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Botany Component Tracking (65% Theory / 35% Practical)</span>
+              <span style="font-size: 0.72rem; color: var(--accent);">Target Exam: 78% for A</span>
+            </div>
+            <div style="height: 180px; position: relative;">
               <canvas id="chart-dashboard-gpa"></canvas>
+            </div>
+          </div>
+
+          <!-- H: Lab Report Completion -->
+          <div class="card col-6">
+            <div class="card-title">Lab Report Completion</div>
+            <div class="lab-completion-container">
+              <div class="lab-item">
+                <div class="lab-header">
+                  <span>Botany 1</span>
+                  <span>100%</span>
+                </div>
+                <div class="lab-bar-bg">
+                  <div class="lab-bar-fill" style="width: 100%;"></div>
+                </div>
+              </div>
+              <div class="lab-item">
+                <div class="lab-header">
+                  <span>Report 2</span>
+                  <span>90%</span>
+                </div>
+                <div class="lab-bar-bg">
+                  <div class="lab-bar-fill" style="width: 90%;"></div>
+                </div>
+              </div>
+              <div class="lab-item">
+                <div class="lab-header">
+                  <span>Zoology</span>
+                  <span>86%</span>
+                </div>
+                <div class="lab-bar-bg">
+                  <div class="lab-bar-fill" style="width: 86%;"></div>
+                </div>
+              </div>
+              <div class="lab-item">
+                <div class="lab-header">
+                  <span>Lab</span>
+                  <span>78%</span>
+                </div>
+                <div class="lab-bar-bg">
+                  <div class="lab-bar-fill" style="width: 78%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- I: Research Project Roadmap -->
+          <div class="card col-6">
+            <div class="card-title">Research Project Roadmap</div>
+            <div class="roadmap-flowchart">
+              <div class="roadmap-node">Common Project 1</div>
+              <div class="roadmap-node">Lamarck Project</div>
+              <div class="roadmap-node">Research Project 2</div>
+              <div class="roadmap-node">Research Project</div>
             </div>
           </div>
         </div>
@@ -348,65 +711,7 @@
             </table>
           </div>
 
-          <!-- Exam Mark Predictor HUD Card -->
-          <div class="card col-12" id="exam-predictor-hud" style="margin-top: 16px;">
-            <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
-              <span>🔬 Exam Mark Predictor HUD</span>
-              <span class="badge" style="background-color: var(--accent-glow); color: var(--accent); font-size: 0.7rem; font-weight: 700;">RUSL Biological Science</span>
-            </div>
-            <div style="display: flex; gap: 24px; flex-wrap: wrap; width: 100%; margin-top: 8px;">
-              <!-- Left side: selectors -->
-              <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 14px;">
-                <div class="form-group">
-                  <label class="form-label">Select Course Unit</label>
-                  <select class="select-input" id="predictor-subject-select" style="width: 100%;"></select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Target Letter Grade</label>
-                  <select class="select-input" id="predictor-grade-select" style="width: 100%;">
-                    <option value="A+">A+ (90%)</option>
-                    <option value="A" selected>A (85%)</option>
-                    <option value="A-">A- (80%)</option>
-                    <option value="B+">B+ (75%)</option>
-                    <option value="B">B (70%)</option>
-                    <option value="B-">B- (65%)</option>
-                    <option value="C+">C+ (60%)</option>
-                    <option value="C">C (55%)</option>
-                    <option value="C-">C- (50%)</option>
-                    <option value="D+">D+ (45%)</option>
-                    <option value="D">D (40%)</option>
-                  </select>
-                </div>
-                <!-- Mini HUD specs display -->
-                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; font-size: 0.8rem; line-height: 1.6; display: flex; flex-direction: column; gap: 4px;">
-                  <div><strong>Theory Weight:</strong> <span id="predictor-theory-weight">70</span>%</div>
-                  <div><strong>Practical Weight:</strong> <span id="predictor-practical-weight">30</span>%</div>
-                  <div style="margin-top: 4px; border-top: 1px solid var(--border-color); padding-top: 4px;"><strong>Continuous Internals:</strong></div>
-                  <div>CA: <span id="predictor-ca-val">0</span> | Quiz: <span id="predictor-quiz-val">0</span> | Lab: <span id="predictor-lab-val">0</span></div>
-                </div>
-              </div>
-              
-              <!-- Right side: large display + grade breakdown table -->
-              <div style="flex: 1.5; min-width: 320px; display: flex; flex-direction: column; gap: 16px;">
-                <div style="display: flex; gap: 16px; align-items: center; background: rgba(0, 229, 255, 0.05); border: 1px solid rgba(0, 229, 255, 0.15); border-radius: 10px; padding: 16px; min-height: 100px;">
-                  <div style="font-size: 2.2rem; font-weight: 800; color: var(--accent); min-width: 80px; text-align: center; border-right: 1px solid var(--border-color); padding-right: 16px;" id="predictor-result-grade">A</div>
-                  <div style="flex: 1;">
-                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Required Final Exam Score</div>
-                    <div style="font-size: 1.5rem; font-weight: 800; color: #ffffff; margin-top: 2px;" id="predictor-result-required">75.5%</div>
-                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; line-height: 1.3;">Assumes theory CA & Quiz count for 20% and final exam for 80% of Theory component.</div>
-                  </div>
-                </div>
-                
-                <!-- Grade list breakdown -->
-                <div>
-                  <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Minimum Final Exam marks required per letter grade:</div>
-                  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px;" id="predictor-breakdown-list">
-                    <!-- populated dynamically -->
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- Predictor HUD Moved to Dashboard Section 1 -->
         </div>
       </div>
 
@@ -589,6 +894,30 @@
         </div>
 
         <div class="grid-layout">
+
+          <!-- Account Information Card (B9) -->
+          <div class="card col-12">
+            <div class="card-title">Account Information</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.85rem;">
+              <div><span style="color: var(--text-secondary);">Name:</span> <strong
+                  id="settings-display-name">—</strong></div>
+              <div><span style="color: var(--text-secondary);">Reg. No.:</span> <strong
+                  id="settings-display-studentid">—</strong></div>
+              <div><span style="color: var(--text-secondary);">Course:</span> <strong
+                  id="settings-display-course">—</strong></div>
+              <div><span style="color: var(--text-secondary);">Faculty:</span> <strong
+                  id="settings-display-faculty">—</strong></div>
+              <div><span style="color: var(--text-secondary);">University:</span> <strong
+                  id="settings-display-university">—</strong></div>
+              <div><span style="color: var(--text-secondary);">Admitted:</span> <strong
+                  id="settings-display-admyear">—</strong></div>
+            </div>
+            <button class="btn-outline btn-sm" id="btn-settings-logout"
+              style="margin-top: 12px; border-color: var(--danger); color: var(--danger); align-self: flex-start;">
+              Sign Out of Account
+            </button>
+          </div>
+
           <!-- Profile Card -->
           <div class="card col-6">
             <div class="card-title">Profile Configuration</div>
@@ -694,35 +1023,42 @@
           <div class="card col-6" style="justify-content: flex-start;">
             <div class="card-title">Theme Studio</div>
             <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">
-              Customize your Academic OS. Select a theme variant derived from visual palette parameters and configure visual engine toggles.
+              Customize your Academic OS. Select a theme variant derived from visual palette parameters and configure
+              visual engine toggles.
             </p>
-            
+
             <!-- Visual Theme Grid -->
             <div style="margin-top: 8px;">
               <label class="form-label" style="margin-bottom: 8px; display: block;">Select Theme Palette</label>
               <div class="theme-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
                 <div class="theme-swatch active" data-theme-id="space-gravity">
-                  <div class="swatch-colors" style="background: linear-gradient(135deg, #0a0f1d 0%, #00e5ff 100%);"></div>
+                  <div class="swatch-colors" style="background: linear-gradient(135deg, #0a0f1d 0%, #00e5ff 100%);">
+                  </div>
                   <span>Space Gravity</span>
                 </div>
                 <div class="theme-swatch" data-theme-id="emerald-aurora">
-                  <div class="swatch-colors" style="background: linear-gradient(135deg, #0e1d20 0%, #45dfb1 100%);"></div>
+                  <div class="swatch-colors" style="background: linear-gradient(135deg, #0e1d20 0%, #45dfb1 100%);">
+                  </div>
                   <span>Emerald Aurora</span>
                 </div>
                 <div class="theme-swatch" data-theme-id="sunset-amethyst">
-                  <div class="swatch-colors" style="background: linear-gradient(135deg, #0f0714 0%, #e3b6b1 100%);"></div>
+                  <div class="swatch-colors" style="background: linear-gradient(135deg, #0f0714 0%, #e3b6b1 100%);">
+                  </div>
                   <span>Sunset Amethyst</span>
                 </div>
                 <div class="theme-swatch" data-theme-id="deep-indigo">
-                  <div class="swatch-colors" style="background: linear-gradient(135deg, #030430 0%, #00b4d8 100%);"></div>
+                  <div class="swatch-colors" style="background: linear-gradient(135deg, #030430 0%, #00b4d8 100%);">
+                  </div>
                   <span>Deep Indigo</span>
                 </div>
                 <div class="theme-swatch" data-theme-id="steel-slate">
-                  <div class="swatch-colors" style="background: linear-gradient(135deg, #121a24 0%, #aab7b7 100%);"></div>
+                  <div class="swatch-colors" style="background: linear-gradient(135deg, #121a24 0%, #aab7b7 100%);">
+                  </div>
                   <span>Steel Slate</span>
                 </div>
                 <div class="theme-swatch" data-theme-id="crimson-obsidian">
-                  <div class="swatch-colors" style="background: linear-gradient(135deg, #080002 0%, #d00018 100%);"></div>
+                  <div class="swatch-colors" style="background: linear-gradient(135deg, #080002 0%, #d00018 100%);">
+                  </div>
                   <span>Crimson Obsidian</span>
                 </div>
               </div>
@@ -731,19 +1067,23 @@
             <!-- Visual Toggles -->
             <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;">
               <label class="form-label">Engine Configurations</label>
-              <label class="toggle-container" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
+              <label class="toggle-container"
+                style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
                 <input type="checkbox" id="toggle-glow" checked style="cursor: pointer;">
                 <span>Enable Glow Effects</span>
               </label>
-              <label class="toggle-container" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
+              <label class="toggle-container"
+                style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
                 <input type="checkbox" id="toggle-hover-anims" checked style="cursor: pointer;">
                 <span>Enable Animated Hover Effects</span>
               </label>
-              <label class="toggle-container" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
+              <label class="toggle-container"
+                style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
                 <input type="checkbox" id="toggle-reflections" checked style="cursor: pointer;">
                 <span>Enable Glass Reflections</span>
               </label>
-              <label class="toggle-container" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
+              <label class="toggle-container"
+                style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
                 <input type="checkbox" id="toggle-accent-lighting" checked style="cursor: pointer;">
                 <span>Enable Dynamic Accent Lighting</span>
               </label>
@@ -759,45 +1099,66 @@
           <!-- Theme Live Preview Card -->
           <div class="card col-6" style="justify-content: flex-start;">
             <div class="card-title">Live Preview Panel</div>
-            
+
             <!-- Mock Container applying local CSS variables reflecting selection -->
-            <div id="theme-preview-box" class="preview-box-container" style="border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px; background: var(--bg-app); position: relative; overflow: hidden; height: 100%; transition: all 0.3s ease;">
-              
+            <div id="theme-preview-box" class="preview-box-container"
+              style="border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px; background: var(--bg-app); position: relative; overflow: hidden; height: 100%; transition: all 0.3s ease;">
+
               <!-- Ambient background lighting indicators in preview -->
-              <div class="preview-glow-1" style="position: absolute; top: -20px; left: -20px; width: 80px; height: 80px; background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%); pointer-events: none; border-radius: 50%;"></div>
-              <div class="preview-glow-2" style="position: absolute; bottom: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, var(--accent-secondary-glow) 0%, transparent 70%); pointer-events: none; border-radius: 50%;"></div>
-              
+              <div class="preview-glow-1"
+                style="position: absolute; top: -20px; left: -20px; width: 80px; height: 80px; background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%); pointer-events: none; border-radius: 50%;">
+              </div>
+              <div class="preview-glow-2"
+                style="position: absolute; bottom: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, var(--accent-secondary-glow) 0%, transparent 70%); pointer-events: none; border-radius: 50%;">
+              </div>
+
               <!-- Mini Navigation Header -->
-              <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
                 <div style="display: flex; align-items: center; gap: 6px;">
-                  <div class="preview-logo-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent);"></div>
+                  <div class="preview-logo-dot"
+                    style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent);">
+                  </div>
                   <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-primary);">Preview OS</span>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                  <span class="preview-nav-item active" style="font-size: 0.65rem; padding: 4px 8px; border-radius: 4px; background: var(--accent-glow); color: var(--accent); font-weight: 700; border: 1px solid var(--border-color); box-shadow: var(--shadow-glow);">Dash</span>
-                  <span class="preview-nav-item" style="font-size: 0.65rem; color: var(--text-secondary); padding: 4px 8px;">Logs</span>
+                  <span class="preview-nav-item active"
+                    style="font-size: 0.65rem; padding: 4px 8px; border-radius: 4px; background: var(--accent-glow); color: var(--accent); font-weight: 700; border: 1px solid var(--border-color); box-shadow: var(--shadow-glow);">Dash</span>
+                  <span class="preview-nav-item"
+                    style="font-size: 0.65rem; color: var(--text-secondary); padding: 4px 8px;">Logs</span>
                 </div>
               </div>
 
               <!-- Mini Dashboard Widget Card -->
-              <div class="preview-card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; box-shadow: var(--shadow-sm); position: relative; transition: all 0.3s ease;">
-                <div class="preview-reflection" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(255, 255, 255, 0.015) 0%, rgba(255, 255, 255, 0) 100%); pointer-events: none;"></div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">
+              <div class="preview-card"
+                style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; box-shadow: var(--shadow-sm); position: relative; transition: all 0.3s ease;">
+                <div class="preview-reflection"
+                  style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(255, 255, 255, 0.015) 0%, rgba(255, 255, 255, 0) 100%); pointer-events: none;">
+                </div>
+                <div
+                  style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">
                   <span>Academic Gravity</span>
                   <span style="color: var(--accent); font-weight: 700;">Active</span>
                 </div>
-                <div style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin-top: 6px;">3.84 GPA</div>
-                
+                <div style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin-top: 6px;">3.84 GPA
+                </div>
+
                 <!-- Mini Progress Bar -->
-                <div style="width: 100%; height: 5px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; margin-top: 8px; overflow: hidden;">
-                  <div class="preview-progress-bar" style="width: 82%; height: 100%; background: linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%); box-shadow: 0 0 6px var(--accent);"></div>
+                <div
+                  style="width: 100%; height: 5px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; margin-top: 8px; overflow: hidden;">
+                  <div class="preview-progress-bar"
+                    style="width: 82%; height: 100%; background: linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%); box-shadow: 0 0 6px var(--accent);">
+                  </div>
                 </div>
               </div>
 
               <!-- Interactive Controls (Mock Button & Input) -->
               <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
-                <input type="text" value="Text Field Input" readonly style="flex: 1; font-size: 0.7rem; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-secondary); pointer-events: none; outline: none;">
-                <button class="preview-btn-solid" style="font-size: 0.7rem; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: none; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%); color: #050608; cursor: default; box-shadow: 0 0 8px var(--accent-glow);">Trigger Action</button>
+                <input type="text" value="Text Field Input" readonly
+                  style="flex: 1; font-size: 0.7rem; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-secondary); pointer-events: none; outline: none;">
+                <button class="preview-btn-solid"
+                  style="font-size: 0.7rem; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: none; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%); color: #050608; cursor: default; box-shadow: 0 0 8px var(--accent-glow);">Trigger
+                  Action</button>
               </div>
 
             </div>
@@ -806,6 +1167,92 @@
       </div>
 
     </main>
+
+    <!-- Right Panel (Announcements & Focus Hub Column) -->
+    <aside class="right-panel">
+      <div class="right-panel-title">Right Panel</div>
+
+      <!-- J: RUSL Announcements -->
+      <div class="card" style="padding: 16px; background: transparent; border: none; box-shadow: none; gap: 12px;">
+        <div class="card-title">RUSL Announcements</div>
+        <div class="announcement-list">
+          <div class="announcement-item">
+            <div class="announcement-title">Rajams Ipsum Altseutamet</div>
+            <div class="announcement-body">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+              tempor incididunt ut labore magna aliqua.</div>
+            <div class="announcement-time">31 hours ago</div>
+          </div>
+          <div class="announcement-item">
+            <div class="announcement-title">Balagwta Science Camners</div>
+            <div class="announcement-body">Lorem ipsum dolor sit amet, consectetur student axd sed les.</div>
+            <div class="announcement-time">25 hours ago</div>
+          </div>
+          <div class="announcement-item">
+            <div class="announcement-title">Ballagata Science Nothfoaming</div>
+            <div class="announcement-body">Lorem ipsum dolor sit amet, consectetur.</div>
+            <div class="announcement-time">7 hours ago</div>
+          </div>
+          <a href="#" class="announcement-showall">Show info</a>
+        </div>
+      </div>
+
+      <!-- K: Study Buddy Focus Hub -->
+      <div class="card" style="padding: 16px; background: transparent; border: none; box-shadow: none; gap: 12px;">
+        <div class="card-title">Study Buddy Focus Hub</div>
+        <div class="focus-hub-toggles">
+          <div class="focus-hub-pill active">Study Buddy</div>
+          <div class="focus-hub-pill">Focusing</div>
+        </div>
+        <div class="focus-hub-list">
+          <div class="focus-hub-item">
+            <div class="focus-hub-info">
+              <span class="focus-hub-icon">👥</span>
+              <div>
+                <div class="focus-hub-name">Mainscanner</div>
+                <div class="focus-hub-count">785 members online</div>
+              </div>
+            </div>
+            <span class="focus-hub-arrow">❯</span>
+          </div>
+          <div class="focus-hub-item">
+            <div class="focus-hub-info">
+              <span class="focus-hub-icon">👥</span>
+              <div>
+                <div class="focus-hub-name">Gepalitities</div>
+                <div class="focus-hub-count">282 members online</div>
+              </div>
+            </div>
+            <span class="focus-hub-arrow">❯</span>
+          </div>
+          <div class="focus-hub-item">
+            <div class="focus-hub-info">
+              <span class="focus-hub-icon">🔬</span>
+              <div>
+                <div class="focus-hub-name">Research Developments</div>
+                <div class="focus-hub-count">Study online</div>
+              </div>
+            </div>
+            <span class="focus-hub-arrow">❯</span>
+          </div>
+        </div>
+        <div class="sparkle-shape">✦</div>
+      </div>
+
+      <!-- Unified Weekly Schedule & Counters for JS bindings -->
+      <div class="card" style="padding: 16px; background: transparent; border: none; box-shadow: none; gap: 8px;">
+        <div class="card-title">Weekly Schedule</div>
+        <div class="task-list" id="dash-weekly-schedule-list">
+          <!-- Dyn populated -->
+        </div>
+        <!-- Keep academic counters with their IDs hidden for JS modules -->
+        <div style="display: none;">
+          <span id="dash-pending-exams">0</span>
+          <span id="dash-pending-pracs">0</span>
+          <span id="dash-pending-assigns">0</span>
+        </div>
+      </div>
+    </aside>
+
   </div>
 
   <!-- Dynamic Modals Markup Overlays -->
@@ -853,7 +1300,9 @@
             <label class="form-label">Lecturer Office / Contact Info</label>
             <input type="text" id="sub-info" class="input-text" placeholder="e.g. Lab A, Ext. 431">
           </div>
-          <div style="margin: 16px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent); border-top: 1px solid var(--border-color); padding-top: 16px;">🔬 Theory/Practical Component Weights</div>
+          <div
+            style="margin: 16px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent); border-top: 1px solid var(--border-color); padding-top: 16px;">
+            🔬 Theory/Practical Component Weights</div>
           <div style="display: flex; gap: 12px;">
             <div class="form-group" style="flex: 1;">
               <label class="form-label">Theory Weight %</label>
@@ -864,8 +1313,9 @@
               <input type="number" id="sub-practical-weight" class="input-text" value="30" min="0" max="100" required>
             </div>
           </div>
-          
-          <div style="margin: 12px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent);">📊 Continuous Assessments / Internal Marks</div>
+
+          <div style="margin: 12px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent);">📊 Continuous
+            Assessments / Internal Marks</div>
           <div style="display: flex; gap: 10px;">
             <div class="form-group" style="flex: 1;">
               <label class="form-label">CA Marks (out of 100)</label>
@@ -1122,6 +1572,97 @@
 
   <!-- Bootstrapping scripts loaded as ES6 modules -->
   <script type="module" src="js/app.js?v=9"></script>
+
+  <!-- Futuristic Visual Engine scripts: DNA Helix canvas & GPA Radial Ring Sync -->
+  <script>
+    (function () {
+      // 1. DNA Canvas Animation (B)
+      const canvas = document.getElementById('dna-canvas');
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let angle = 0;
+
+        function resize() {
+          width = canvas.width = canvas.parentElement.clientWidth - 24;
+          height = canvas.height = 120;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function draw() {
+          ctx.clearRect(0, 0, width, height);
+          const centerX = width / 2;
+          const numNodes = 10;
+
+          const isLight = document.body.getAttribute('data-theme') === 'light';
+          const nodeColor = isLight ? '#111111' : '#00e5ff';
+          const nodeGlowColor = isLight ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 229, 255, 0.35)';
+          const lineColor = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 229, 255, 0.15)';
+
+          for (let i = 0; i < numNodes; i++) {
+            const y = 15 + (i / numNodes) * (height - 30);
+            const factor = (i / numNodes) * Math.PI * 2.0;
+            const xOffset1 = Math.sin(angle + factor) * 35;
+            const xOffset2 = Math.sin(angle + factor + Math.PI) * 35;
+
+            const x1 = centerX + xOffset1;
+            const x2 = centerX + xOffset2;
+
+            // Connecting line
+            ctx.strokeStyle = lineColor;
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(x1, y);
+            ctx.lineTo(x2, y);
+            ctx.stroke();
+
+            // Node 1
+            ctx.fillStyle = xOffset1 > 0 ? nodeColor : nodeGlowColor;
+            ctx.beginPath();
+            ctx.arc(x1, y, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Node 2
+            ctx.fillStyle = xOffset2 > 0 ? nodeColor : nodeGlowColor;
+            ctx.beginPath();
+            ctx.arc(x2, y, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          angle += 0.02;
+          requestAnimationFrame(draw);
+        }
+
+        draw();
+      }
+
+      // 2. GPA Radial Ring MutationObserver Sync (C)
+      const gpaValEl = document.getElementById('dash-metric-gpa');
+      const gpaSubEl = document.getElementById('dash-metric-gpa-sub');
+      const ringFill = document.getElementById('dash-metric-gpa-ring');
+
+      if (gpaValEl) {
+        const updateGpaRing = () => {
+          const val = parseFloat(gpaValEl.textContent) || 0.0;
+          if (gpaSubEl) gpaSubEl.textContent = val.toFixed(2);
+          if (ringFill) {
+            // max GPA is 4.0
+            const percent = Math.min((val / 4.0) * 100, 100);
+            const dashOffset = 251.2 - (percent / 100) * 251.2;
+            ringFill.style.strokeDashoffset = dashOffset;
+          }
+        };
+
+        const observer = new MutationObserver(updateGpaRing);
+        observer.observe(gpaValEl, { childList: true, characterData: true, subtree: true });
+
+        // Initial delayed execution to capture dynamic content load
+        setTimeout(updateGpaRing, 500);
+        setTimeout(updateGpaRing, 1500);
+      }
+    })();
+  </script>
 </body>
 
 </html>

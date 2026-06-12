@@ -1,14 +1,19 @@
 /**
  * Rajarata Campus Life Manager - Database Services
  * Promise-based IndexedDB Wrapper supporting CRUD transactions
+ * v2: Added 'users' store for multi-account auth support
  */
 
-
+import { Auth } from '../auth.js';
+import { FirestoreSync } from './firestore-sync.js';
 
 const DB_NAME = 'RajarataCampusLifeDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Bumped from 1 → 2 to add 'users' store
 
 let dbInstance = null;
+
+// Cross-module boolean lock: prevents nested background sync execution waves.
+let isSyncingActive = false;
 
 export const initDB = () => {
   return new Promise((resolve, reject) => {
@@ -19,7 +24,12 @@ export const initDB = () => {
     request.onupgradeneeded = (e) => {
       const db = e.target.result;
 
-      // Students Profile Store
+      // Users Authentication Store (NEW in v2)
+      if (!db.objectStoreNames.contains('users')) {
+        db.createObjectStore('users', { keyPath: 'userId' });
+      }
+
+      // Students Profile Store (legacy — kept for backward compatibility)
       if (!db.objectStoreNames.contains('students')) {
         db.createObjectStore('students', { keyPath: 'id' });
       }
@@ -89,7 +99,7 @@ export const dbOperation = (storeName, mode, callback) => {
   return initDB().then((db) => {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(storeName, mode);
-      const store = transaction.objectStore(requestStoreName(transaction, storeName));
+      const store = transaction.objectStore(storeName);
       let request;
       
       try {
@@ -115,16 +125,84 @@ export const dbOperation = (storeName, mode, callback) => {
   });
 };
 
-// Helper because Safari / Chrome handle multiple stores mapping differently occasionally
-const requestStoreName = (transaction, name) => {
-  return name;
-};
-
+/**
+ * Trigger background Firestore sync.
+ * - Dispatches 'offline' if the browser has no network connection.
+ * - Dispatches 'syncing' → then 'synced' or 'error' based on FirestoreSync.pushAllToCloud().
+ * - Falls back to 'synced' (local-only mode) when FirestoreSync is not ready.
+ */
 export const triggerBackgroundSync = async () => {
-  window.dispatchEvent(new CustomEvent('syncStatusChanged', { detail: 'offline' }));
+  const dispatch = (status) =>
+    window.dispatchEvent(new CustomEvent('syncStatusChanged', { detail: status }));
+
+  // State guard: abort immediately if a sync wave is already in flight
+  // to prevent thread flooding and infinite settings-store write cascades.
+  // Must check BEFORE dispatching 'syncing' to avoid false status flicker.
+  if (isSyncingActive) return;
+
+  // If the device is completely offline, reflect that immediately.
+  if (!navigator.onLine) {
+    dispatch('offline');
+    return;
+  }
+
+  // If FirestoreSync isn't initialised yet (SDK not loaded / not logged in),
+  // show 'synced' to indicate local data is intact.
+  if (!FirestoreSync.isReady()) {
+    dispatch('synced');
+    return;
+  }
+
+  // Announce sync attempt only once all guards pass.
+  dispatch('syncing');
+
+  // Full cloud push wrapped in the mutex lock.
+  isSyncingActive = true;
+  try {
+    const result = await FirestoreSync.pushAllToCloud();
+    if (result.success) {
+      dispatch('synced');
+    } else {
+      console.warn('[DB] Background sync incomplete:', result.reason);
+      dispatch('error');
+    }
+  } catch (err) {
+    console.error('[DB] Background sync threw:', err);
+    dispatch('error');
+  } finally {
+    // Always release the lock so subsequent writes can trigger sync again.
+    isSyncingActive = false;
+  }
 };
 
+/**
+ * Check Firestore for existing cloud data and restore to IndexedDB if found.
+ * Only runs when the user has no local data yet (first login on new device).
+ * @returns {Promise<boolean>} true if data was restored (app should reload)
+ */
 export const checkAndRestoreFromCloud = async () => {
+  const userId = Auth.getCurrentUserId();
+  if (!userId) return false;
+
+  try {
+    // Only restore if local subjects store is empty for this user
+    const localSubjects = await Database.getAll('subjects');
+    const userLocalSubjects = localSubjects.filter(s => s.userId === userId);
+    if (userLocalSubjects.length > 0) return false;
+
+    // Check cloud
+    const hasCloud = await FirestoreSync.hasCloudData(userId);
+    if (!hasCloud) return false;
+
+    // Pull from cloud into IndexedDB
+    const result = await FirestoreSync.pullFromCloud();
+    if (result.success && result.restored > 0) {
+      console.log(`[DB] Restored ${result.restored} records from Firestore`);
+      return true; // Caller should reload
+    }
+  } catch (err) {
+    console.warn('[DB] Cloud restore check failed:', err.message);
+  }
   return false;
 };
 
@@ -139,24 +217,68 @@ export const Database = {
 
   add(storeName, data) {
     return dbOperation(storeName, 'readwrite', (store) => store.add(data))
-      .then((result) => {
-        triggerBackgroundSync();
+      .then(async (result) => {
+        // Explicitly invoke Firestore sync for this record and surface the outcome.
+        window.dispatchEvent(new CustomEvent('syncStatusChanged', { detail: 'syncing' }));
+        try {
+          await FirestoreSync.syncRecord(storeName, data);
+          window.dispatchEvent(new CustomEvent('syncStatusChanged', { detail: 'synced' }));
+        } catch (err) {
+          console.warn('[DB] add() cloud sync failed:', err.message);
+          window.dispatchEvent(new CustomEvent('syncStatusChanged', {
+            detail: navigator.onLine ? 'error' : 'offline'
+          }));
+        }
+        // Force immediate UI module refresh for all stores except 'settings'
+        // (settings writes must not cascade into another subjectsUpdated loop).
+        if (storeName !== 'settings') {
+          window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+        }
         return result;
       });
   },
 
   put(storeName, data) {
     return dbOperation(storeName, 'readwrite', (store) => store.put(data))
-      .then((result) => {
-        triggerBackgroundSync();
+      .then(async (result) => {
+        // Explicitly invoke Firestore sync for this record and surface the outcome.
+        window.dispatchEvent(new CustomEvent('syncStatusChanged', { detail: 'syncing' }));
+        try {
+          await FirestoreSync.syncRecord(storeName, data);
+          window.dispatchEvent(new CustomEvent('syncStatusChanged', { detail: 'synced' }));
+        } catch (err) {
+          console.warn('[DB] put() cloud sync failed:', err.message);
+          window.dispatchEvent(new CustomEvent('syncStatusChanged', {
+            detail: navigator.onLine ? 'error' : 'offline'
+          }));
+        }
+        // Force immediate UI module refresh for all stores except 'settings'
+        // (settings writes must not cascade into another subjectsUpdated loop).
+        if (storeName !== 'settings') {
+          window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+        }
         return result;
       });
   },
 
   delete(storeName, key) {
     return dbOperation(storeName, 'readwrite', (store) => store.delete(key))
-      .then((result) => {
-        triggerBackgroundSync();
+      .then(async (result) => {
+        // Explicitly invoke Firestore delete and surface the outcome.
+        window.dispatchEvent(new CustomEvent('syncStatusChanged', { detail: 'syncing' }));
+        try {
+          await FirestoreSync.deleteRecord(storeName, key);
+          window.dispatchEvent(new CustomEvent('syncStatusChanged', { detail: 'synced' }));
+        } catch (err) {
+          console.warn('[DB] delete() cloud sync failed:', err.message);
+          window.dispatchEvent(new CustomEvent('syncStatusChanged', {
+            detail: navigator.onLine ? 'error' : 'offline'
+          }));
+        }
+        // Force immediate UI module refresh for all stores except 'settings'.
+        if (storeName !== 'settings') {
+          window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+        }
         return result;
       });
   },

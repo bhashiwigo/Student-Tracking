@@ -1,71 +1,93 @@
 /**
  * Rajarata Campus Life Manager - PWA Service Worker
- * Implements offline caching of frontend assets
+ * Network-first strategy: always fetch fresh, fallback to cache when offline.
  */
 
-const CACHE_NAME = 'campus-life-cache-v10';
+// Version bump කරන්නකෝ app update කරද්දී (v11, v12, ...)
+const CACHE_NAME = 'campus-life-cache-v11';
+
+// Core shell assets only — dynamic JS modules auto-cached on request
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/css/style.css',
   '/manifest.json',
-  '/assets/logo.png',
-  '/js/app.js',
-  '/js/database/db.js',
-  '/js/services/backup.js',
-  '/js/services/notifications.js',
-  '/js/modules/academic.js',
-  '/js/modules/exams.js',
-  '/js/modules/practicals.js',
-  '/js/modules/assignments.js',
-  '/js/modules/gpa.js',
-  '/js/modules/attendance.js',
-  '/js/modules/sports.js',
-  '/js/modules/study.js',
-  '/js/modules/notes.js',
-  '/js/modules/analytics.js'
 ];
 
+// ── Install: core assets pre-cache (fail-safe) ──────────────────────────────
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('SW: Pre-caching static assets');
-      return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+      console.log('SW: Pre-caching core assets');
+      // addAll ව්‍යර්ථ වෙලා SW install break නොකරන්න Promise.allSettled use කරනවා
+      return Promise.allSettled(
+        ASSETS_TO_CACHE.map((url) =>
+          cache.add(url).catch((err) =>
+            console.warn(`SW: Failed to cache ${url}:`, err)
+          )
+        )
+      );
+    }).then(() => {
+      console.log('SW: Install complete, skipping waiting');
+      return self.skipWaiting(); // නව SW එක ඕනෑම් activate වෙන්න
+    })
   );
 });
 
+// ── Activate: purge old caches ───────────────────────────────────────────────
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
+    caches.keys().then((keys) =>
+      Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
             console.log('SW: Purging old cache:', key);
             return caches.delete(key);
           }
         })
-      );
-    }).then(() => self.clients.claim())
-  );
-});
-
-self.addEventListener('fetch', (e) => {
-  // Offline-first strategy: serve from cache, fallback to network
-  e.respondWith(
-    caches.match(e.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(e.request).then((networkResponse) => {
-        // Return resource or dynamic caching can occur here if desired
-        return networkResponse;
-      });
-    }).catch(() => {
-      // Fallback for HTML index if offline
-      if (e.request.mode === 'navigate') {
-        return caches.match('/index.html');
-      }
+      )
+    ).then(() => {
+      console.log('SW: Activated, claiming clients');
+      return self.clients.claim(); // open tabs ද නව SW ෙලා switch කරනවා
     })
   );
 });
+
+// ── Fetch: Network-first, cache fallback ────────────────────────────────────
+self.addEventListener('fetch', (e) => {
+  // Chrome extensions හා non-GET requests skip කරනවා
+  if (
+    e.request.method !== 'GET' ||
+    e.request.url.startsWith('chrome-extension://')
+  ) {
+    return;
+  }
+
+  e.respondWith(
+    fetch(e.request)
+      .then((networkResponse) => {
+        // Network සාර්ථකනම් — cache update කරලා return කරනවා
+        if (networkResponse && networkResponse.status === 200) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(e.request, responseClone);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        // Offline — cache ෙලා fallback
+        return caches.match(e.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            console.log('SW: Offline fallback for:', e.request.url);
+            return cachedResponse;
+          }
+          // Navigate requests ට index.html fallback
+          if (e.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+        });
+      })
+  );
+});
+

@@ -1,55 +1,130 @@
 /**
  * Rajarata Campus Life Manager - Academic Analytics
  * Coordinates Chart.js rendering on Dashboard & Analytics views
+ *
+ * THEME ENGINE: getColor() queries document.body so body[data-studio-theme]
+ * CSS variable overrides take precedence over :root defaults.
  */
 
 import { Database } from '../database/db.js';
 import { GPAModule } from './gpa.js';
 
-let dashboardGPATrendChart = null;
-let dashboardAttendanceChart = null;
+let dashboardGPATrendChart    = null;
 let dashboardAssignmentsChart = null;
-let dashboardBalanceChart = null;
-let dashboardRadarChart = null;
-let analyticsDetailedChart = null;
-let studySessionStatsChart = null;
+let dashboardBalanceChart     = null;
+let dashboardRadarChart       = null;
+let analyticsDetailedChart    = null;
+let studySessionStatsChart    = null;
 
+// Default RUSL Grade boundary thresholds (minimum raw marks out of 100)
+const RUSL_GRADE_BOUNDARIES = {
+  'A+': 90, 'A': 85, 'A-': 80,
+  'B+': 75, 'B': 70, 'B-': 65,
+  'C+': 60, 'C': 55, 'C-': 50,
+  'D+': 45, 'D': 40
+};
+
+/**
+ * Reads a CSS custom property from the active theme scope (document.body),
+ * so body[data-studio-theme] overrides take precedence over :root defaults.
+ * @param {string} varName  CSS custom property, e.g. '--accent'
+ * @param {number} opacity  0-1 opacity blending (1 = return raw value)
+ * @returns {string}
+ */
 const getColor = (varName, opacity = 1) => {
-  let val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  // Query body first to capture data-studio-theme overrides
+  let val = getComputedStyle(document.body).getPropertyValue(varName).trim();
+  // Fallback to :root
   if (!val) {
-    if (varName === '--accent') val = '#00e5ff';
-    else if (varName === '--accent-secondary') val = '#ff5252';
-    else if (varName === '--success') val = '#00e676';
-    else val = '#ffffff';
+    val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
   }
+  // Safety fallbacks
+  if (!val) {
+    const fallbacks = {
+      '--accent':           '#00e5ff',
+      '--accent-secondary': '#00e676',
+      '--accent-glow':      'rgba(0,229,255,0.2)',
+      '--success':          '#00e676',
+    };
+    val = fallbacks[varName] ?? '#ffffff';
+  }
+
   if (opacity === 1) return val;
-  if (val.startsWith('#')) {
-    const r = parseInt(val.slice(1, 3), 16);
-    const g = parseInt(val.slice(3, 5), 16);
-    const b = parseInt(val.slice(5, 7), 16);
+
+  // Convert hex to rgba
+  if (/^#([0-9a-f]{3,8})$/i.test(val)) {
+    const hex  = val.slice(1);
+    const full = hex.length <= 4 ? hex.split('').map(c => c + c).join('') : hex;
+    const r    = parseInt(full.slice(0, 2), 16);
+    const g    = parseInt(full.slice(2, 4), 16);
+    const b    = parseInt(full.slice(4, 6), 16);
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   }
+  // Convert rgb()/rgba() to new opacity
   if (val.startsWith('rgb')) {
-    const match = val.match(/\d+/g);
-    if (match && match.length >= 3) {
-      return `rgba(${match[0]}, ${match[1]}, ${match[2]}, ${opacity})`;
+    const nums = val.match(/[\d.]+/g);
+    if (nums && nums.length >= 3) {
+      return `rgba(${nums[0]}, ${nums[1]}, ${nums[2]}, ${opacity})`;
     }
   }
   return val;
 };
 
+/**
+ * Destroys every active Chart.js instance so the next render() starts clean,
+ * ensuring fresh color tokens are applied on every theme switch.
+ */
+const destroyAllCharts = () => {
+  const charts = [
+    dashboardGPATrendChart, dashboardAssignmentsChart,
+    dashboardBalanceChart,  dashboardRadarChart,
+    analyticsDetailedChart, studySessionStatsChart,
+  ];
+  charts.forEach(c => { if (c) c.destroy(); });
+  dashboardGPATrendChart    = null;
+  dashboardAssignmentsChart = null;
+  dashboardBalanceChart     = null;
+  dashboardRadarChart       = null;
+  analyticsDetailedChart    = null;
+  studySessionStatsChart    = null;
+};
+
 export const AnalyticsModule = {
   init() {
-    window.addEventListener('subjectsUpdated', () => this.render());
+    // Debounce all data-change events to 120 ms so rapid sequential IndexedDB
+    // writes collapse into a single chart redraw instead of destroy+recreate
+    // multiple times per second.
+    let _analyticsDebounce = null;
+    const scheduleRender = () => {
+      clearTimeout(_analyticsDebounce);
+      _analyticsDebounce = setTimeout(() => this.render(), 120);
+    };
+
+    window.addEventListener('subjectsUpdated',      scheduleRender);
+    window.addEventListener('attendanceUpdated',    scheduleRender);
+    window.addEventListener('calendarItemsUpdated', scheduleRender);
+
+    // Intercept predictor dropdown changes
+    const selectPredictor = document.getElementById('predictor-subject-select');
+    const gradePredictor = document.getElementById('predictor-grade-select');
+    if (selectPredictor) {
+      selectPredictor.addEventListener('change', () => this.updatePredictorHUD());
+    }
+    if (gradePredictor) {
+      gradePredictor.addEventListener('change', () => this.updatePredictorHUD());
+    }
   },
 
   async render() {
-    const dashboardTrendCanvas = document.getElementById('chart-dashboard-gpa');
-    const dashboardAttCanvas = document.getElementById('chart-dashboard-attendance');
+    const dashboardTrendCanvas    = document.getElementById('chart-dashboard-gpa');
     const analyticsDetailedCanvas = document.getElementById('chart-analytics-detailed');
-    const studyStatsCanvas = document.getElementById('chart-analytics-study');
+    const studyStatsCanvas        = document.getElementById('chart-analytics-study');
+
+    // Destroy all existing chart instances before rebuilding.
+    destroyAllCharts();
 
     try {
+      // 1. Setup Runtime Dynamic Accumulators
       const subjects = await Database.getAll('subjects');
       const attendance = await Database.getAll('attendance');
       const assignments = await Database.getAll('assignments');
@@ -60,7 +135,7 @@ export const AnalyticsModule = {
       const targetSetting = await Database.get('settings', 'gpaTarget');
       const targetGpa = targetSetting ? parseFloat(targetSetting.value) : 3.70;
       const gpaStats = await GPAModule.calculateGPAs(subjects);
-      const currentCumGpa = parseFloat(gpaStats.cumulative) || 0.00;
+      const currentCumGpa = gpaStats.overall || 0.00;
       const progressPct = targetGpa > 0 ? Math.min((currentCumGpa / targetGpa) * 100, 100) : 0;
       
       const pctEl = document.getElementById('dash-gpa-progress-pct');
@@ -68,94 +143,246 @@ export const AnalyticsModule = {
       if (pctEl) pctEl.innerText = `${progressPct.toFixed(0)}%`;
       if (barEl) barEl.style.width = `${progressPct}%`;
 
-      // 1. Dashboard GPA Semester Comparison Chart
-      if (dashboardTrendCanvas) {
-        const semestersList = ['1-1', '1-2', '2-1', '2-2', '3-1', '3-2', '4-1', '4-2'];
-        const semesterGPAs = [];
+      // C: Overall GPA Forecast Ring & text sync
+      const gpaForecastEl = document.getElementById('dash-metric-gpa');
+      if (gpaForecastEl) {
+        gpaForecastEl.innerText = currentCumGpa.toFixed(2);
+      }
+      const gpaSubEl = document.getElementById('dash-metric-gpa-sub');
+      if (gpaSubEl) {
+        gpaSubEl.innerText = currentCumGpa.toFixed(2);
+      }
+      const gpaRingFill = document.getElementById('dash-metric-gpa-ring');
+      if (gpaRingFill) {
+        const percent = Math.min((currentCumGpa / 4.0) * 100, 100);
+        const dashOffset = 251.2 - (percent / 100) * 251.2;
+        gpaRingFill.style.strokeDashoffset = dashOffset;
+      }
+
+      // D: Dashboard Attendance SVG Ring
+      let totalLectAttended = 0;
+      let totalLectTotal = 0;
+      let totalPracAttended = 0;
+      let totalPracTotal = 0;
+
+      attendance.forEach(a => {
+        totalLectAttended += a.lecturesAttended || 0;
+        totalLectTotal += a.lecturesTotal || 0;
+        totalPracAttended += a.practicalsAttended || 0;
+        totalPracTotal += a.practicalsTotal || 0;
+      });
+
+      const totalAttended = totalLectAttended + totalPracAttended;
+      const totalSessions = totalLectTotal + totalPracTotal;
+      const pct = totalSessions > 0 ? (totalAttended / totalSessions) * 100 : 0;
+
+      const attRingFill = document.getElementById('dash-metric-att-ring');
+      if (attRingFill) {
+        const dashOffset = 251.2 - (Math.min(pct, 100) / 100) * 251.2;
+        attRingFill.style.strokeDashoffset = dashOffset;
+
+        attRingFill.classList.remove('att-warn', 'att-danger');
+        if (pct < 60) {
+          attRingFill.classList.add('att-danger');
+        } else if (pct < 80) {
+          attRingFill.classList.add('att-warn');
+        }
+      }
+
+      const valEl = document.getElementById('dashboard-attendance-text-val');
+      if (valEl) valEl.innerText = `${pct.toFixed(0)}%`;
+
+      const attSubEl = document.getElementById('dash-metric-att-sub');
+      if (attSubEl) attSubEl.innerText = `${pct.toFixed(0)}%`;
+
+      const attMetricEl = document.getElementById('dash-metric-att');
+      if (attMetricEl) attMetricEl.innerText = `${pct.toFixed(0)}%`;
+
+      // 2. Bind Section E: "Current Academic Balance"
+      const getGroupAvg = (markers) => {
+        const groupSubs = subjects.filter(s => {
+          const code = (s.code || '').toUpperCase();
+          const name = (s.name || '').toUpperCase();
+          return markers.some(m => code.includes(m) || name.includes(m));
+        });
+        if (groupSubs.length === 0) return 0;
+        let sum = 0;
+        groupSubs.forEach(s => {
+          const ca = (s.internalMarks && s.internalMarks.ca) !== undefined ? parseFloat(s.internalMarks.ca) : 0;
+          const quiz = (s.internalMarks && s.internalMarks.quiz) !== undefined ? parseFloat(s.internalMarks.quiz) : 0;
+          const lab = (s.internalMarks && s.internalMarks.lab) !== undefined ? parseFloat(s.internalMarks.lab) : 0;
+          sum += (ca + quiz + lab) / 3;
+        });
+        return sum / groupSubs.length;
+      };
+
+      const botanyProgress = getGroupAvg(['BOT']);
+      const zoologyProgress = getGroupAvg(['ZOO']);
+      const chemistryProgress = getGroupAvg(['CHM', 'CHE']);
+
+      const balanceContainer = document.querySelector('.balance-progress-group');
+      if (balanceContainer) {
+        balanceContainer.innerHTML = `
+          <div class="balance-item">
+            <div class="balance-header">
+              <span>Botany</span>
+              <span>${botanyProgress.toFixed(0)}%</span>
+            </div>
+            <div class="balance-bar-bg">
+              <div class="balance-bar-fill" style="width: ${botanyProgress}%;"></div>
+            </div>
+          </div>
+          <div class="balance-item">
+            <div class="balance-header">
+              <span>Zoology</span>
+              <span>${zoologyProgress.toFixed(0)}%</span>
+            </div>
+            <div class="balance-bar-bg">
+              <div class="balance-bar-fill" style="width: ${zoologyProgress}%;"></div>
+            </div>
+          </div>
+          <div class="balance-item">
+            <div class="balance-header">
+              <span>Chemistry</span>
+              <span>${chemistryProgress.toFixed(0)}%</span>
+            </div>
+            <div class="balance-bar-bg">
+              <div class="balance-bar-fill" style="width: ${chemistryProgress}%;"></div>
+            </div>
+          </div>
+        `;
+      }
+
+      // 3. Bind Section F: "GPA Predictor HUD"
+      const selectPredictor = document.getElementById('predictor-subject-select');
+      if (selectPredictor) {
+        // Sync items if select is empty or out of sync with subjects
+        const prevVal = selectPredictor.value;
+        const currentOptions = Array.from(selectPredictor.options).map(o => o.value);
+        const subjectsCodes = subjects.map(s => s.code);
+        const listsMatch = currentOptions.length === subjectsCodes.length && currentOptions.every((v, i) => v === subjectsCodes[i]);
         
-        for (const sem of semestersList) {
-          const semSubs = subjects.filter(s => s.semester === sem && s.grade);
-          if (semSubs.length > 0) {
-            const stats = await GPAModule.calculateGPAs(subjects);
-            let totalCredits = 0;
-            let weightedGP = 0;
-            for (const sub of semSubs) {
-              const gp = await GPAModule.getGradePoints(sub.grade);
-              totalCredits += sub.credits;
-              weightedGP += (gp * sub.credits);
-            }
-            const semGPA = totalCredits > 0 ? (weightedGP / totalCredits) : 0.00;
-            semesterGPAs.push({ label: `Y${sem.replace('-', ' S')}`, gpa: semGPA });
+        if (!listsMatch) {
+          selectPredictor.innerHTML = subjects.map(s => `
+            <option value="${s.code}">${s.code} - ${s.name}</option>
+          `).join('') || '<option value="">No course units added</option>';
+          
+          if (prevVal && subjects.some(s => s.code === prevVal)) {
+            selectPredictor.value = prevVal;
+          } else if (subjects.length > 0) {
+            selectPredictor.value = subjects[0].code;
           }
         }
+      }
+      await this.updatePredictorHUD();
 
-        const labels = semesterGPAs.map(x => x.label);
-        const dataValues = semesterGPAs.map(x => x.gpa);
-
-        if (dashboardGPATrendChart) dashboardGPATrendChart.destroy();
+      // 4. Bind Section G: "Botany Component Tracking"
+      if (dashboardTrendCanvas) {
+        const botanySubjects = subjects
+          .filter(s => (s.code || '').toUpperCase().includes('BOT'))
+          .sort((a, b) => (a.code || '').localeCompare(b.code || ''));
         
+        const labels = botanySubjects.map(s => s.code);
+        const theoryData = botanySubjects.map(s => {
+          const ca = s.internalMarks?.ca !== undefined ? parseFloat(s.internalMarks.ca) : 0;
+          const quiz = s.internalMarks?.quiz !== undefined ? parseFloat(s.internalMarks.quiz) : 0;
+          return (ca + quiz) / 2;
+        });
+        const practicalData = botanySubjects.map(s => {
+          const lab = s.internalMarks?.lab !== undefined ? parseFloat(s.internalMarks.lab) : 0;
+          return lab;
+        });
+
         dashboardGPATrendChart = new Chart(dashboardTrendCanvas.getContext('2d'), {
           type: 'line',
           data: {
-            labels: labels.length > 0 ? labels : ['No Data'],
-            datasets: [{
-              label: 'GPA',
-              data: dataValues.length > 0 ? dataValues : [0],
-              borderColor: getColor('--accent'),
-              backgroundColor: getColor('--accent', 0.03),
-              tension: 0.35,
-              borderWidth: 2,
-              fill: true,
-              pointBackgroundColor: getColor('--accent')
-            }]
+            labels: labels,
+            datasets: [
+              {
+                label: 'Theory Internals',
+                data: theoryData,
+                borderColor: getColor('--accent-secondary') || '#00e676',
+                backgroundColor: getColor('--accent-secondary', 0.02) || 'rgba(0, 230, 118, 0.02)',
+                tension: 0.35,
+                borderWidth: 2,
+                fill: true,
+                pointBackgroundColor: getColor('--accent-secondary') || '#00e676'
+              },
+              {
+                label: 'Practical Score',
+                data: practicalData,
+                borderColor: getColor('--accent'),
+                backgroundColor: getColor('--accent', 0.05),
+                tension: 0.35,
+                borderWidth: 2,
+                fill: true,
+                pointBackgroundColor: getColor('--accent')
+              }
+            ]
           },
-          options: this.getChartOptions(4.0)
+          options: this.getChartOptions(100.0)
         });
       }
 
-      // 2. Dashboard Attendance Summary Chart
-      if (dashboardAttCanvas) {
-        let totalLectAttended = 0;
-        let totalLectTotal = 0;
-        let totalPracAttended = 0;
-        let totalPracTotal = 0;
+      // 5. Bind Section H: "Lab Report Completion"
+      const labContainer = document.querySelector('.lab-completion-container');
+      if (labContainer) {
+        const firstFourSubjects = subjects.slice(0, 4);
+        if (firstFourSubjects.length === 0) {
+          labContainer.innerHTML = `
+            <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 20px;">
+              No subjects added to track lab reports.
+            </div>
+          `;
+        } else {
+          labContainer.innerHTML = firstFourSubjects.map(s => {
+            const labMark = s.internalMarks?.lab !== undefined ? parseFloat(s.internalMarks.lab) : 0;
+            return `
+              <div class="lab-item">
+                <div class="lab-header">
+                  <span>${s.code} - ${s.name}</span>
+                  <span>${labMark.toFixed(0)}%</span>
+                </div>
+                <div class="lab-bar-bg">
+                  <div class="lab-bar-fill" style="width: ${labMark}%;"></div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
 
-        attendance.forEach(a => {
-          totalLectAttended += a.lecturesAttended || 0;
-          totalLectTotal += a.lecturesTotal || 0;
-          totalPracAttended += a.practicalsAttended || 0;
-          totalPracTotal += a.practicalsTotal || 0;
-        });
-
-        const totalAttended = totalLectAttended + totalPracAttended;
-        const totalSessions = totalLectTotal + totalPracTotal;
-        const pct = totalSessions > 0 ? (totalAttended / totalSessions) * 100 : 0;
-
-        if (dashboardAttendanceChart) dashboardAttendanceChart.destroy();
-
-        dashboardAttendanceChart = new Chart(dashboardAttCanvas.getContext('2d'), {
-          type: 'doughnut',
-          data: {
-            labels: ['Attended', 'Absent'],
-            datasets: [{
-              data: totalSessions > 0 ? [totalAttended, totalSessions - totalAttended] : [0, 100],
-              backgroundColor: [getColor('--success'), 'rgba(128, 128, 128, 0.08)'],
-              borderWidth: 1,
-              borderColor: 'var(--border-color)'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '75%',
-            plugins: {
-              legend: { display: false }
+      // 6. Bind Section I: "Research Project Roadmap"
+      const roadmapContainer = document.querySelector('.roadmap-flowchart');
+      if (roadmapContainer) {
+        const milestones = ["Common Project 1", "Lamarck Project", "Research Project 2", "Research Project"];
+        roadmapContainer.innerHTML = milestones.map(m => {
+          const found = assignments.find(a => 
+            (a.title || '').toLowerCase().includes(m.toLowerCase())
+          );
+          
+          let detailsText = 'Pending';
+          let style = '';
+          
+          if (found) {
+            detailsText = `${found.status} (Due: ${found.date})`;
+            if (found.status === 'Completed') {
+              style = `background: ${getColor('--success', 0.15)}; border-color: ${getColor('--success')}; box-shadow: 0 0 10px ${getColor('--success', 0.4)};`;
+            } else if (found.status === 'In Progress') {
+              style = `background: ${getColor('--accent', 0.15)}; border-color: ${getColor('--accent')}; box-shadow: 0 0 10px ${getColor('--accent-glow', 0.8) || getColor('--accent', 0.4)};`;
+            } else {
+              style = `background: rgba(255, 255, 255, 0.05); border-color: var(--border-color);`;
             }
+          } else {
+            style = `background: rgba(6, 21, 29, 0.55); border-color: var(--border-color);`;
           }
-        });
-        
-        const valEl = document.getElementById('dashboard-attendance-text-val');
-        if (valEl) valEl.innerText = `${pct.toFixed(0)}%`;
+
+          return `
+            <div class="roadmap-node" style="${style}">
+              ${m} <span style="font-size: 0.6rem; opacity: 0.8; font-weight: 500; display: block;">${detailsText}</span>
+            </div>
+          `;
+        }).join('');
       }
 
       // 2b. Assignments status doughnut
@@ -168,8 +395,6 @@ export const AnalyticsModule = {
         document.getElementById('dash-assign-pending-count').innerText = `${pendingCount} Pending`;
         document.getElementById('dash-assign-progress-count').innerText = `${progressCount} Active`;
         document.getElementById('dash-assign-completed-count').innerText = `${completedCount} Done`;
-        
-        if (dashboardAssignmentsChart) dashboardAssignmentsChart.destroy();
         
         dashboardAssignmentsChart = new Chart(dashAssignCanvas.getContext('2d'), {
           type: 'doughnut',
@@ -215,8 +440,6 @@ export const AnalyticsModule = {
           const totalSports = daySports.reduce((sum, s) => sum + (parseFloat(s.trainingHours) || 0), 0);
           sportsData.push(totalSports);
         }
-        
-        if (dashboardBalanceChart) dashboardBalanceChart.destroy();
         
         dashboardBalanceChart = new Chart(dashBalanceCanvas.getContext('2d'), {
           type: 'bar',
@@ -278,8 +501,6 @@ export const AnalyticsModule = {
           return 0;
         });
         
-        if (dashboardRadarChart) dashboardRadarChart.destroy();
-        
         dashboardRadarChart = new Chart(dashRadarCanvas.getContext('2d'), {
           type: 'radar',
           data: {
@@ -339,12 +560,10 @@ export const AnalyticsModule = {
         const subGrades = await Promise.all(subjects.map(async (sub) => {
           if (sub.grade) {
             const gp = await GPAModule.getGradePoints(sub.grade);
-            return (gp / 4.0) * 100; // Map grade GP (0-4) to a percentage (0-100) for visual overlay
+            return (gp / 4.0) * 100;
           }
           return 0;
         }));
-
-        if (analyticsDetailedChart) analyticsDetailedChart.destroy();
 
         analyticsDetailedChart = new Chart(analyticsDetailedCanvas.getContext('2d'), {
           type: 'bar',
@@ -400,8 +619,6 @@ export const AnalyticsModule = {
         const dates = Object.keys(datesMap).sort();
         const hours = dates.map(d => datesMap[d]);
 
-        if (studySessionStatsChart) studySessionStatsChart.destroy();
-
         studySessionStatsChart = new Chart(studyStatsCanvas.getContext('2d'), {
           type: 'bar',
           data: {
@@ -437,6 +654,124 @@ export const AnalyticsModule = {
     } catch (err) {
       console.error('Analytics render error:', err);
     }
+  },
+
+  async updatePredictorHUD() {
+    const subSelect = document.getElementById('predictor-subject-select');
+    const gradeSelect = document.getElementById('predictor-grade-select');
+    if (!subSelect || !gradeSelect) return;
+
+    const code = subSelect.value;
+    if (!code) return;
+
+    try {
+      const sub = await Database.get('subjects', code);
+      if (!sub) return;
+
+      const theoryWeight = sub.theoryWeight !== undefined ? parseFloat(sub.theoryWeight) : 70;
+      const practicalWeight = sub.practicalWeight !== undefined ? parseFloat(sub.practicalWeight) : 30;
+      const ca = (sub.internalMarks && sub.internalMarks.ca) !== undefined ? parseFloat(sub.internalMarks.ca) : 0;
+      const quiz = (sub.internalMarks && sub.internalMarks.quiz) !== undefined ? parseFloat(sub.internalMarks.quiz) : 0;
+      const lab = (sub.internalMarks && sub.internalMarks.lab) !== undefined ? parseFloat(sub.internalMarks.lab) : 0;
+
+      // Update HUD elements
+      const theoryWeightEl = document.getElementById('predictor-theory-weight');
+      const practicalWeightEl = document.getElementById('predictor-practical-weight');
+      const caValEl = document.getElementById('predictor-ca-val');
+      const quizValEl = document.getElementById('predictor-quiz-val');
+      const labValEl = document.getElementById('predictor-lab-val');
+      const resGradeEl = document.getElementById('predictor-result-grade');
+      const resReqEl = document.getElementById('predictor-result-required');
+
+      if (theoryWeightEl) theoryWeightEl.innerText = theoryWeight;
+      if (practicalWeightEl) practicalWeightEl.innerText = practicalWeight;
+      if (caValEl) caValEl.innerText = ca;
+      if (quizValEl) quizValEl.innerText = quiz;
+      if (labValEl) labValEl.innerText = lab;
+
+      const targetGrade = gradeSelect.value || 'A';
+      if (resGradeEl) resGradeEl.innerText = targetGrade;
+
+      const targetThreshold = RUSL_GRADE_BOUNDARIES[targetGrade] || 85;
+      const requiredExamScore = this.calculateRequiredExam(targetThreshold, theoryWeight, practicalWeight, ca, quiz, lab);
+
+      if (resReqEl) {
+        if (requiredExamScore === 'Impossible') {
+          resReqEl.innerText = 'Impossible 🚫';
+          resReqEl.style.color = '#f43f5e';
+        } else if (requiredExamScore === 'Already Achieved') {
+          resReqEl.innerText = 'Achieved 🎉';
+          resReqEl.style.color = getColor('--success') || '#00e676';
+        } else {
+          resReqEl.innerText = `${requiredExamScore.toFixed(1)}%`;
+          resReqEl.style.color = '#ffffff';
+        }
+      }
+
+      // Render the list breakdown
+      const breakdownList = document.getElementById('predictor-breakdown-list');
+      if (breakdownList) {
+        const grades = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-'];
+        breakdownList.innerHTML = grades.map(g => {
+          const threshold = RUSL_GRADE_BOUNDARIES[g];
+          const req = this.calculateRequiredExam(threshold, theoryWeight, practicalWeight, ca, quiz, lab);
+          let text = 'N/A';
+          let textColor = 'var(--text-secondary)';
+          if (req === 'Impossible') {
+            text = 'N/A';
+            textColor = 'rgba(255,255,255,0.2)';
+          } else if (req === 'Already Achieved') {
+            text = '0.0%';
+            textColor = getColor('--success') || '#00e676';
+          } else {
+            text = `${req.toFixed(1)}%`;
+            textColor = 'var(--accent)';
+          }
+          return `
+            <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px; text-align: center;">
+              <div style="font-size: 0.7rem; font-weight: 700; color: ${textColor};">${g}</div>
+              <div style="font-size: 0.75rem; margin-top: 2px; color: var(--text-primary); font-weight: 600;">${text}</div>
+            </div>
+          `;
+        }).join('');
+      }
+    } catch (err) {
+      console.error('Failed to update predictor HUD in analytics.js:', err);
+    }
+  },
+
+  calculateRequiredExam(targetThreshold, theoryWeight, practicalWeight, ca, quiz, lab) {
+    const W_T = theoryWeight / 100;
+    const W_P = practicalWeight / 100;
+    
+    // Theory continuous assessment is average of CA and Quiz
+    const theoryInternal = (ca + quiz) / 2;
+    const practicalScore = lab; // Lab marks are the practical continuous mark
+
+    // S = W_T * (0.2 * theoryInternal + 0.8 * FinalExam) + W_P * practicalScore
+    // FinalExam = (targetThreshold - W_T * 0.2 * theoryInternal - W_P * practicalScore) / (W_T * 0.8)
+    
+    if (W_T === 0) {
+      // 100% Practical course
+      const currentEarned = W_P * practicalScore;
+      if (currentEarned >= targetThreshold) return 'Already Achieved';
+      return 'Impossible';
+    }
+
+    const currentEarnedInternal = (W_T * 0.2 * theoryInternal) + (W_P * practicalScore);
+    const neededFromExamComponent = targetThreshold - currentEarnedInternal;
+    
+    if (neededFromExamComponent <= 0) {
+      return 'Already Achieved';
+    }
+
+    const requiredExam = neededFromExamComponent / (W_T * 0.8);
+    
+    if (requiredExam > 100) {
+      return 'Impossible';
+    }
+
+    return requiredExam;
   },
 
   getChartOptions(suggestedMax) {
