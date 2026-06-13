@@ -2329,3 +2329,128 @@ body[data-theme="light"] .badge.high {
 body[data-theme="light"] .radial-ring-value {
   color: #000000;
 }
+
+/* Future Module Cards on Dashboard */
+.future-module-card {
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-width: 1.5px !important;
+}
+
+/* Botany Focus Card styling */
+.future-module-card.botany-focus {
+  border-color: var(--accent) !important;
+  background: rgba(0, 229, 255, 0.05);
+}
+body[data-theme="light"] .future-module-card.botany-focus {
+  border-color: var(--accent) !important;
+  background: rgba(17, 17, 17, 0.04);
+}
+
+/* Zoology Focus Card styling */
+.future-module-card.zoology-focus {
+  border-color: var(--accent-secondary) !important;
+  background: rgba(0, 230, 118, 0.05);
+}
+body[data-theme="light"] .future-module-card.zoology-focus {
+  border-color: var(--accent-secondary) !important;
+  background: rgba(51, 51, 51, 0.04);
+}
+
+/* General Core Card styling */
+.future-module-card.general-focus {
+  border-color: var(--border-color) !important;
+  background: rgba(255, 255, 255, 0.02);
+}
+body[data-theme="light"] .future-module-card.general-focus {
+  border-color: var(--border-color) !important;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* Monochromatic Sleek Frosted Glass Modal override for Future Module Planner */
+#modal-future-module .modal-box {
+  background: rgba(227, 227, 227, 0.9) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
+  color: #000000 !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+#modal-future-module .modal-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15) !important;
+}
+
+#modal-future-module .modal-header h3 {
+  color: #000000 !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.5px !important;
+}
+
+#modal-future-module .modal-close-btn {
+  color: #000000 !important;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+#modal-future-module .modal-close-btn:hover {
+  opacity: 1;
+}
+
+#modal-future-module .modal-body {
+  color: #000000 !important;
+}
+
+#modal-future-module .form-label {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+#modal-future-module .input-text,
+#modal-future-module .select-input {
+  background: rgba(255, 255, 255, 0.8) !important;
+  color: #000000 !important;
+  border: 1px solid rgba(0, 0, 0, 0.25) !important;
+  font-family: inherit !important;
+}
+
+#modal-future-module .input-text:focus,
+#modal-future-module .select-input:focus {
+  background: #ffffff !important;
+  border-color: #000000 !important;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+#modal-future-module .modal-footer {
+  border-top: 1px solid rgba(0, 0, 0, 0.15) !important;
+}
+
+#modal-future-module .btn-outline {
+  border-color: #000000 !important;
+  color: #000000 !important;
+  background: transparent !important;
+}
+#modal-future-module .btn-outline:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+#modal-future-module .btn-solid {
+  background: #000000 !important;
+  color: #ffffff !important;
+  border: 1px solid #000000 !important;
+}
+#modal-future-module .btn-solid:hover {
+  background: #222222 !important;
+  border-color: #222222 !important;
+}
+
+#modal-future-module span {
+  color: #000000 !important;
+  font-weight: 500 !important;
+}
+
+#modal-future-module input[type="checkbox"] {
+  accent-color: #000000 !important;
+}

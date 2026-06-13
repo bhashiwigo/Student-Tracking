@@ -113,6 +113,12 @@ export const AnalyticsModule = {
     if (gradePredictor) {
       gradePredictor.addEventListener('change', () => this.updatePredictorHUD());
     }
+
+    // Intercept attendance dropdown changes
+    const selectAttendance = document.getElementById('dash-attendance-subject-select');
+    if (selectAttendance) {
+      selectAttendance.addEventListener('change', () => this.render());
+    }
   },
 
   async render() {
@@ -125,11 +131,22 @@ export const AnalyticsModule = {
 
     try {
       // 1. Setup Runtime Dynamic Accumulators
-      const subjects = await Database.getAll('subjects');
-      const attendance = await Database.getAll('attendance');
-      const assignments = await Database.getAll('assignments');
-      const studyPlans = await Database.getAll('studyplans');
-      const sports = await Database.getAll('sports');
+      const [
+        subjects, attendance, assignments, studyPlans, sports, futureModules, allSettings
+      ] = await Promise.all([
+        Database.getAll('subjects'),
+        Database.getAll('attendance'),
+        Database.getAll('assignments'),
+        Database.getAll('studyplans'),
+        Database.getAll('sports'),
+        Database.getAll('futureModules'),
+        Database.getAll('settings'),
+      ]);
+
+      const settingsMap = {};
+      (allSettings || []).forEach(s => {
+        settingsMap[s.key] = s.value;
+      });
       
       // GPA target progress updates
       const targetSetting = await Database.get('settings', 'gpaTarget');
@@ -160,21 +177,36 @@ export const AnalyticsModule = {
       }
 
       // D: Dashboard Attendance SVG Ring
-      let totalLectAttended = 0;
-      let totalLectTotal = 0;
-      let totalPracAttended = 0;
-      let totalPracTotal = 0;
+      const attSelect = document.getElementById('dash-attendance-subject-select');
+      if (attSelect) {
+        const prevVal = attSelect.value;
+        const currentOptions = Array.from(attSelect.options).map(o => o.value);
+        const subjectsCodes = subjects.map(s => s.code);
+        const listsMatch = currentOptions.length === subjectsCodes.length && currentOptions.every((v, i) => v === subjectsCodes[i]);
+        
+        if (!listsMatch) {
+          attSelect.innerHTML = subjects.map(s => `
+            <option value="${s.code}">${s.code} - ${s.name}</option>
+          `).join('');
+          
+          if (prevVal && subjects.some(s => s.code === prevVal)) {
+            attSelect.value = prevVal;
+          } else if (subjects.length > 0) {
+            attSelect.value = subjects[0].code;
+          }
+        }
+      }
 
-      attendance.forEach(a => {
-        totalLectAttended += a.lecturesAttended || 0;
-        totalLectTotal += a.lecturesTotal || 0;
-        totalPracAttended += a.practicalsAttended || 0;
-        totalPracTotal += a.practicalsTotal || 0;
-      });
-
-      const totalAttended = totalLectAttended + totalPracAttended;
-      const totalSessions = totalLectTotal + totalPracTotal;
-      const pct = totalSessions > 0 ? (totalAttended / totalSessions) * 100 : 0;
+      let pct = 0;
+      const selectedSubCode = attSelect ? attSelect.value : null;
+      if (selectedSubCode) {
+        const rec = attendance.find(a => a.subjectCode === selectedSubCode);
+        if (rec) {
+          const lecturesAttended = rec.lecturesAttended || 0;
+          const lecturesTotal = rec.lecturesTotal || 0;
+          pct = lecturesTotal > 0 ? (lecturesAttended / lecturesTotal) * 100 : 0;
+        }
+      }
 
       const attRingFill = document.getElementById('dash-metric-att-ring');
       if (attRingFill) {
@@ -199,58 +231,57 @@ export const AnalyticsModule = {
       if (attMetricEl) attMetricEl.innerText = `${pct.toFixed(0)}%`;
 
       // 2. Bind Section E: "Current Academic Balance"
-      const getGroupAvg = (markers) => {
-        const groupSubs = subjects.filter(s => {
-          const code = (s.code || '').toUpperCase();
-          const name = (s.name || '').toUpperCase();
-          return markers.some(m => code.includes(m) || name.includes(m));
-        });
-        if (groupSubs.length === 0) return 0;
-        let sum = 0;
-        groupSubs.forEach(s => {
-          const ca = (s.internalMarks && s.internalMarks.ca) !== undefined ? parseFloat(s.internalMarks.ca) : 0;
-          const quiz = (s.internalMarks && s.internalMarks.quiz) !== undefined ? parseFloat(s.internalMarks.quiz) : 0;
-          const lab = (s.internalMarks && s.internalMarks.lab) !== undefined ? parseFloat(s.internalMarks.lab) : 0;
-          sum += (ca + quiz + lab) / 3;
-        });
-        return sum / groupSubs.length;
-      };
-
-      const botanyProgress = getGroupAvg(['BOT']);
-      const zoologyProgress = getGroupAvg(['ZOO']);
-      const chemistryProgress = getGroupAvg(['CHM', 'CHE']);
-
       const balanceContainer = document.querySelector('.balance-progress-group');
       if (balanceContainer) {
-        balanceContainer.innerHTML = `
-          <div class="balance-item">
-            <div class="balance-header">
-              <span>Botany</span>
-              <span>${botanyProgress.toFixed(0)}%</span>
+        if (subjects.length === 0) {
+          balanceContainer.innerHTML = `
+            <div class="balance-item">
+              <div class="balance-header">
+                <span>Botany</span>
+                <span>0%</span>
+              </div>
+              <div class="balance-bar-bg">
+                <div class="balance-bar-fill" style="width: 0%;"></div>
+              </div>
             </div>
-            <div class="balance-bar-bg">
-              <div class="balance-bar-fill" style="width: ${botanyProgress}%;"></div>
+            <div class="balance-item">
+              <div class="balance-header">
+                <span>Zoology</span>
+                <span>0%</span>
+              </div>
+              <div class="balance-bar-bg">
+                <div class="balance-bar-fill" style="width: 0%;"></div>
+              </div>
             </div>
-          </div>
-          <div class="balance-item">
-            <div class="balance-header">
-              <span>Zoology</span>
-              <span>${zoologyProgress.toFixed(0)}%</span>
+            <div class="balance-item">
+              <div class="balance-header">
+                <span>Chemistry</span>
+                <span>0%</span>
+              </div>
+              <div class="balance-bar-bg">
+                <div class="balance-bar-fill" style="width: 0%;"></div>
+              </div>
             </div>
-            <div class="balance-bar-bg">
-              <div class="balance-bar-fill" style="width: ${zoologyProgress}%;"></div>
-            </div>
-          </div>
-          <div class="balance-item">
-            <div class="balance-header">
-              <span>Chemistry</span>
-              <span>${chemistryProgress.toFixed(0)}%</span>
-            </div>
-            <div class="balance-bar-bg">
-              <div class="balance-bar-fill" style="width: ${chemistryProgress}%;"></div>
-            </div>
-          </div>
-        `;
+          `;
+        } else {
+          balanceContainer.innerHTML = subjects.map(s => {
+            const ca = (s.internalMarks && s.internalMarks.ca) !== undefined ? parseFloat(s.internalMarks.ca) : 0;
+            const quiz = (s.internalMarks && s.internalMarks.quiz) !== undefined ? parseFloat(s.internalMarks.quiz) : 0;
+            const lab = (s.internalMarks && s.internalMarks.lab) !== undefined ? parseFloat(s.internalMarks.lab) : 0;
+            const progress = (ca + quiz + lab) / 3;
+            return `
+              <div class="balance-item">
+                <div class="balance-header">
+                  <span>${s.code} - ${s.name}</span>
+                  <span>${progress.toFixed(0)}%</span>
+                </div>
+                <div class="balance-bar-bg">
+                  <div class="balance-bar-fill" style="width: ${progress}%;"></div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
       }
 
       // 3. Bind Section F: "GPA Predictor HUD"
@@ -327,21 +358,58 @@ export const AnalyticsModule = {
       // 5. Bind Section H: "Lab Report Completion"
       const labContainer = document.querySelector('.lab-completion-container');
       if (labContainer) {
-        const firstFourSubjects = subjects.slice(0, 4);
-        if (firstFourSubjects.length === 0) {
+        const practicalSubjects = subjects.filter(s => {
+          const pWeight = s.practicalWeight !== undefined ? parseFloat(s.practicalWeight) : 0;
+          return pWeight > 0;
+        });
+
+        if (practicalSubjects.length === 0) {
           labContainer.innerHTML = `
-            <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 20px;">
-              No subjects added to track lab reports.
+            <div class="lab-item">
+              <div class="lab-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Botany 1</span>
+                <span style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 2px 8px; color: #000000; font-weight: 800; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">0%</span>
+              </div>
+              <div class="lab-bar-bg">
+                <div class="lab-bar-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+            <div class="lab-item">
+              <div class="lab-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Report 2</span>
+                <span style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 2px 8px; color: #000000; font-weight: 800; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">0%</span>
+              </div>
+              <div class="lab-bar-bg">
+                <div class="lab-bar-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+            <div class="lab-item">
+              <div class="lab-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Zoology</span>
+                <span style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 2px 8px; color: #000000; font-weight: 800; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">0%</span>
+              </div>
+              <div class="lab-bar-bg">
+                <div class="lab-bar-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+            <div class="lab-item">
+              <div class="lab-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Lab</span>
+                <span style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 2px 8px; color: #000000; font-weight: 800; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">0%</span>
+              </div>
+              <div class="lab-bar-bg">
+                <div class="lab-bar-fill" style="width: 0%;"></div>
+              </div>
             </div>
           `;
         } else {
-          labContainer.innerHTML = firstFourSubjects.map(s => {
+          labContainer.innerHTML = practicalSubjects.map(s => {
             const labMark = s.internalMarks?.lab !== undefined ? parseFloat(s.internalMarks.lab) : 0;
             return `
               <div class="lab-item">
-                <div class="lab-header">
+                <div class="lab-header" style="display: flex; justify-content: space-between; align-items: center;">
                   <span>${s.code} - ${s.name}</span>
-                  <span>${labMark.toFixed(0)}%</span>
+                  <span style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 2px 8px; color: #000000; font-weight: 800; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">${labMark.toFixed(0)}%</span>
                 </div>
                 <div class="lab-bar-bg">
                   <div class="lab-bar-fill" style="width: ${labMark}%;"></div>
@@ -356,7 +424,17 @@ export const AnalyticsModule = {
       const roadmapContainer = document.querySelector('.roadmap-flowchart');
       if (roadmapContainer) {
         const milestones = ["Common Project 1", "Lamarck Project", "Research Project 2", "Research Project"];
+        
+        // Fetch verified states from settings
+        const verifiedStates = {};
+        for (const m of milestones) {
+          const settingKey = `roadmap_verified_${m.replace(/\s+/g, '_')}`;
+          const val = await Database.get('settings', settingKey);
+          verifiedStates[m] = val ? val.value : false;
+        }
+
         roadmapContainer.innerHTML = milestones.map(m => {
+          const isVerified = verifiedStates[m];
           const found = assignments.find(a => 
             (a.title || '').toLowerCase().includes(m.toLowerCase())
           );
@@ -364,25 +442,259 @@ export const AnalyticsModule = {
           let detailsText = 'Pending';
           let style = '';
           
-          if (found) {
-            detailsText = `${found.status} (Due: ${found.date})`;
-            if (found.status === 'Completed') {
-              style = `background: ${getColor('--success', 0.15)}; border-color: ${getColor('--success')}; box-shadow: 0 0 10px ${getColor('--success', 0.4)};`;
-            } else if (found.status === 'In Progress') {
-              style = `background: ${getColor('--accent', 0.15)}; border-color: ${getColor('--accent')}; box-shadow: 0 0 10px ${getColor('--accent-glow', 0.8) || getColor('--accent', 0.4)};`;
-            } else {
-              style = `background: rgba(255, 255, 255, 0.05); border-color: var(--border-color);`;
-            }
+          if (isVerified) {
+            style = `background: rgba(30, 30, 30, 0.65); border: 1px solid rgba(80, 80, 80, 0.5); box-shadow: 0 0 12px rgba(40, 40, 40, 0.8); color: #999999; text-shadow: none; cursor: pointer;`;
+            detailsText = 'Verified ✅';
           } else {
-            style = `background: rgba(6, 21, 29, 0.55); border-color: var(--border-color);`;
+            if (found) {
+              detailsText = `${found.status} (Due: ${new Date(found.date + 'T00:00:00Z').toLocaleDateString('en-US', { timeZone: 'Asia/Colombo' })})`;
+              if (found.status === 'Completed') {
+                style = `background: ${getColor('--success', 0.15)}; border-color: ${getColor('--success')}; box-shadow: 0 0 10px ${getColor('--success', 0.4)}; cursor: pointer;`;
+              } else if (found.status === 'In Progress') {
+                style = `background: ${getColor('--accent', 0.15)}; border-color: ${getColor('--accent')}; box-shadow: 0 0 10px ${getColor('--accent-glow', 0.8) || getColor('--accent', 0.4)}; cursor: pointer;`;
+              } else {
+                style = `background: rgba(255, 255, 255, 0.05); border-color: var(--border-color); cursor: pointer;`;
+              }
+            } else {
+              style = `background: rgba(6, 21, 29, 0.55); border-color: var(--border-color); cursor: pointer;`;
+            }
           }
 
           return `
-            <div class="roadmap-node" style="${style}">
+            <div class="roadmap-node" data-milestone="${m}" style="${style}">
               ${m} <span style="font-size: 0.6rem; opacity: 0.8; font-weight: 500; display: block;">${detailsText}</span>
             </div>
           `;
         }).join('');
+
+        // Bind click events
+        roadmapContainer.querySelectorAll('.roadmap-node').forEach(node => {
+          node.addEventListener('click', async () => {
+            const m = node.getAttribute('data-milestone');
+            const settingKey = `roadmap_verified_${m.replace(/\s+/g, '_')}`;
+            const currentVal = verifiedStates[m];
+            const newVal = !currentVal;
+            
+            await Database.put('settings', { key: settingKey, value: newVal });
+            this.render();
+          });
+        });
+      }
+
+      // 7. Bind Section J: "Future Module Customizer Tracker"
+      const futureCard = document.getElementById('future-module-tracker-card');
+      const futureContainer = document.getElementById('future-module-tracker-container');
+      if (futureCard && futureContainer) {
+        if (!futureModules || futureModules.length === 0) {
+          futureCard.style.display = 'none';
+          futureContainer.innerHTML = '';
+        } else {
+          futureCard.style.display = 'flex';
+          futureContainer.innerHTML = futureModules.map(m => {
+            let cardClass = 'future-module-card';
+            let labelType = '';
+            let accentColor = '';
+            
+            // Build checkpoints dynamically based on choices
+            const checkpoints = [];
+            if (m.focus === 'Botany Focus') {
+              cardClass += ' botany-focus';
+              accentColor = 'var(--accent)';
+              labelType = 'Future Botany Module';
+              if (m.enableLab) {
+                checkpoints.push({ key: 'bot_lab_1', label: 'Botany Slide Prep' });
+                checkpoints.push({ key: 'bot_lab_2', label: 'Herbarium Mount' });
+              }
+              if (m.enableField) {
+                checkpoints.push({ key: 'bot_field_1', label: 'Quadrat Plot Prep' });
+                checkpoints.push({ key: 'bot_field_2', label: 'Flora Field Log' });
+              }
+              if (m.enableCA) {
+                checkpoints.push({ key: 'bot_ca_1', label: 'CA Theory Quiz' });
+              }
+            } else if (m.focus === 'Zoology Focus') {
+              cardClass += ' zoology-focus';
+              accentColor = 'var(--accent-secondary)';
+              labelType = 'Future Zoology Module';
+              if (m.enableLab) {
+                checkpoints.push({ key: 'zoo_lab_1', label: 'Lab Anatomy Draw 1' });
+                checkpoints.push({ key: 'zoo_lab_2', label: 'Lab Anatomy Draw 2' });
+              }
+              if (m.enableField) {
+                checkpoints.push({ key: 'zoo_field_1', label: 'Specimen Anatomy Log' });
+                checkpoints.push({ key: 'zoo_field_2', label: 'Dissection Slide Chart' });
+              }
+              if (m.enableCA) {
+                checkpoints.push({ key: 'zoo_ca_1', label: 'Anatomy Spot Test' });
+              }
+            } else {
+              cardClass += ' general-focus';
+              accentColor = 'var(--text-muted)';
+              labelType = 'General Core Module';
+              if (m.enableLab) {
+                checkpoints.push({ key: 'gen_lab_1', label: 'Core Lab Experiment' });
+              }
+              if (m.enableField) {
+                checkpoints.push({ key: 'gen_field_1', label: 'Field Study Task' });
+              }
+              if (m.enableCA) {
+                checkpoints.push({ key: 'gen_ca_1', label: 'CA Test Paper' });
+              }
+            }
+
+            // Calculate completion percentage
+            let completedCount = 0;
+            checkpoints.forEach(cp => {
+              const cpKey = `future_cp_${m.id}_${cp.key}`;
+              cp.completed = settingsMap[cpKey] === true;
+              if (cp.completed) {
+                completedCount++;
+              }
+            });
+            const totalCount = checkpoints.length;
+            const completionPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+            // Render interactive UI nodes / badges based on type
+            let trackingAreaHTML = '';
+            if (m.focus === 'Botany Focus' && totalCount > 0) {
+              trackingAreaHTML = `
+                <div class="botany-timeline-container" style="margin-top: 8px; width: 100%;">
+                  <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">Botany Progress Timeline</div>
+                  <div class="botany-timeline" style="display: flex; align-items: center; justify-content: space-between; position: relative; padding: 0 10px;">
+                    <div style="position: absolute; top: 12px; left: 10px; right: 10px; height: 2px; background: rgba(255,255,255,0.08); z-index: 1;">
+                      <div style="width: ${completionPct}%; height: 100%; background: var(--accent); transition: width 0.4s ease;"></div>
+                    </div>
+                    ${checkpoints.map((cp, idx) => {
+                      const activeStyle = cp.completed 
+                        ? `background: var(--accent); border-color: var(--accent); color: #000000; box-shadow: 0 0 8px var(--accent);`
+                        : `background: var(--bg-card); border-color: var(--border-color); color: var(--text-muted);`;
+                      return `
+                        <div class="botany-node-btn" data-future-id="${m.id}" data-cp-key="${cp.key}" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 800; cursor: pointer; z-index: 2; transition: all 0.3s; ${activeStyle}" title="${cp.label} (${cp.completed ? 'Completed' : 'Pending'})">
+                          ${idx + 1}
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 0.6rem; color: var(--text-muted); margin-top: 6px; padding: 0 5px;">
+                    <span>Start</span>
+                    <span style="color: var(--text-secondary); font-weight: 600;">${completionPct}% Done</span>
+                    <span>Target</span>
+                  </div>
+                </div>
+              `;
+            } else if (m.focus === 'Zoology Focus' && totalCount > 0) {
+              trackingAreaHTML = `
+                <div style="margin-top: 8px;">
+                  <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px;">Practical Drawings Checkpoints</div>
+                  <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                    ${checkpoints.map(cp => {
+                      const badgeStyle = cp.completed
+                        ? `background: var(--accent-secondary); color: #000000; border-color: var(--accent-secondary); box-shadow: 0 0 6px var(--accent-secondary-glow);`
+                        : `background: rgba(255, 255, 255, 0.05); border-color: var(--border-color); color: var(--text-muted);`;
+                      return `
+                        <span class="badge zoology-node-btn" data-future-id="${m.id}" data-cp-key="${cp.key}" style="font-size: 0.65rem; padding: 3px 8px; border-radius: 4px; border: 1px solid; cursor: pointer; transition: all 0.2s; ${badgeStyle}">
+                          ${cp.label} ${cp.completed ? '✓' : '○'}
+                        </span>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+              `;
+            } else if (totalCount > 0) {
+              trackingAreaHTML = `
+                <div style="margin-top: 8px;">
+                  <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px;">Checkpoints</div>
+                  <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                    ${checkpoints.map(cp => {
+                      const badgeStyle = cp.completed
+                        ? `background: var(--text-primary); color: var(--bg-app); border-color: var(--text-primary);`
+                        : `background: rgba(255, 255, 255, 0.03); border-color: var(--border-color); color: var(--text-muted);`;
+                      return `
+                        <span class="badge general-node-btn" data-future-id="${m.id}" data-cp-key="${cp.key}" style="font-size: 0.65rem; padding: 3px 8px; border-radius: 4px; border: 1px solid; cursor: pointer; transition: all 0.2s; ${badgeStyle}">
+                          ${cp.label} ${cp.completed ? '✓' : '○'}
+                        </span>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+              `;
+            }
+
+            return `
+              <div class="card col-6 ${cardClass}">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                  <h3 style="font-size: 0.95rem; font-weight: 800; color: ${accentColor}; margin: 0;">${m.code} - ${labelType}</h3>
+                  <span style="font-size: 0.72rem; color: var(--text-muted);">Sem: ${m.semester}</span>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+                  ${m.enableCA ? `
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="radial-ring-container" style="width: 45px; height: 45px; flex-shrink: 0; min-height: auto; margin: 0;">
+                      <svg class="radial-ring" viewBox="0 0 100 100" style="width: 100%; height: 100%;">
+                        <circle class="ring-bg" cx="50" cy="50" r="40" />
+                        <circle class="ring-fill" cx="50" cy="50" r="40" style="stroke-dasharray: 251.2; stroke-dashoffset: ${251.2 - (251.2 * completionPct) / 100}; stroke: ${accentColor};" />
+                      </svg>
+                      <div class="radial-ring-value" style="font-size: 0.72rem; color: var(--text-primary);">${completionPct}%</div>
+                    </div>
+                    <div>
+                      <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-primary);">CA Target Ring</div>
+                      <div style="font-size: 0.65rem; color: var(--text-secondary);">Continuous Assessment</div>
+                    </div>
+                  </div>
+                  ` : ''}
+                  
+                  ${m.enableLab ? `
+                  <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                      <span style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">${m.focus === 'Zoology Focus' ? 'Practical Anatomy Completion' : 'Practical Labs'}</span>
+                      <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-primary);">${completionPct}%</span>
+                    </div>
+                    <div style="height: 6px; background: var(--border-color); border-radius: 4px; overflow: hidden;">
+                      <div style="width: ${completionPct}%; height: 100%; background: ${accentColor}; border-radius: 4px; transition: width 0.4s ease;"></div>
+                    </div>
+                  </div>
+                  ` : ''}
+
+                  ${trackingAreaHTML}
+                </div>
+                
+                <button type="button" class="btn-outline btn-sm delete-future-btn" data-id="${m.id}" style="margin-top: auto; border-color: var(--danger); color: var(--danger); font-size: 0.65rem; padding: 4px 8px; width: fit-content; align-self: flex-end;">
+                  Remove Card
+                </button>
+              </div>
+            `;
+          }).join('');
+
+          // Bind delete buttons
+          futureContainer.querySelectorAll('.delete-future-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const id = btn.getAttribute('data-id');
+              if (confirm('Remove this future module tracking card?')) {
+                try {
+                  await Database.delete('futureModules', id);
+                  this.render();
+                } catch (err) {
+                  console.error(err);
+                }
+              }
+            });
+          });
+
+          // Bind checkpoint buttons for botany, zoology, and general core
+          futureContainer.querySelectorAll('.botany-node-btn, .zoology-node-btn, .general-node-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const futureId = btn.getAttribute('data-future-id');
+              const cpKey = btn.getAttribute('data-cp-key');
+              const settingKey = `future_cp_${futureId}_${cpKey}`;
+              const currentVal = settingsMap[settingKey] === true;
+              const newVal = !currentVal;
+              
+              await Database.put('settings', { key: settingKey, value: newVal });
+              this.render();
+            });
+          });
+        }
       }
 
       // 2b. Assignments status doughnut
@@ -428,8 +740,12 @@ export const AnalyticsModule = {
         for (let i = 6; i >= 0; i--) {
           const d = new Date();
           d.setDate(d.getDate() - i);
-          const dateStr = d.toISOString().split('T')[0];
-          const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+          const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Colombo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(d);
+          const y = parts.find(p => p.type === 'year').value;
+          const m = parts.find(p => p.type === 'month').value;
+          const day = parts.find(p => p.type === 'day').value;
+          const dateStr = `${y}-${m}-${day}`;
+          const dayName = d.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'Asia/Colombo' });
           labels.push(dayName);
           
           const completedPlans = studyPlans.filter(p => p.date === dateStr && p.completed);
@@ -622,7 +938,7 @@ export const AnalyticsModule = {
         studySessionStatsChart = new Chart(studyStatsCanvas.getContext('2d'), {
           type: 'bar',
           data: {
-            labels: dates.length > 0 ? dates : ['No Study Session'],
+            labels: dates.length > 0 ? dates.map(dt => new Date(dt + 'T00:00:00Z').toLocaleDateString('en-US', { timeZone: 'Asia/Colombo' })) : ['No Study Session'],
             datasets: [{
               label: 'Study Hours',
               data: hours.length > 0 ? hours : [0],

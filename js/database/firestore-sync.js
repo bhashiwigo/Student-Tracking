@@ -13,10 +13,26 @@
 import { Database } from './db.js';
 import { Auth } from '../auth.js';
 
+/**
+ * Recursively sort keys of an object to perform deep JSON comparisons.
+ */
+const canonicalStringify = (obj) => {
+  if (obj === null || obj === undefined) return '';
+  if (typeof obj !== 'object') return JSON.stringify(obj);
+  if (Array.isArray(obj)) {
+    return '[' + obj.map(item => canonicalStringify(item)).join(',') + ']';
+  }
+  const keys = Object.keys(obj).sort();
+  const parts = keys.map(k => {
+    return JSON.stringify(k) + ':' + canonicalStringify(obj[k]);
+  });
+  return '{' + parts.join(',') + '}';
+};
+
 // Stores to sync (exclude 'students' — handled via users collection)
 const SYNC_STORES = [
   'subjects', 'exams', 'practicals', 'assignments',
-  'attendance', 'sports', 'studyplans', 'notes', 'settings'
+  'attendance', 'sports', 'studyplans', 'notes', 'settings', 'futureModules'
 ];
 
 // Primary key field for each store (used as Firestore document ID)
@@ -29,7 +45,8 @@ const STORE_KEYS = {
   studyplans:  'id',
   notes:       'id',
   attendance:  'subjectCode',
-  settings:    'key'
+  settings:    'key',
+  futureModules: 'id'
 };
 
 // Lazy-load Firestore SDK functions from window.__firestore context
@@ -130,39 +147,66 @@ export const FirestoreSync = {
 
     let restored = 0;
 
-    for (const storeName of SYNC_STORES) {
-      try {
-        const colPath = this.getUserCollectionPath(storeName);
-        if (!colPath) continue;
+    sessionStorage.setItem('is_app_syncing', 'true');
+    try {
+      for (const storeName of SYNC_STORES) {
+        try {
+          const colPath = this.getUserCollectionPath(storeName);
+          if (!colPath) continue;
 
-        const snapshot = await getDocs(collection(db, colPath));
-        for (const docSnap of snapshot.docs) {
-          const data = docSnap.data();
-          // Strip Firestore-only metadata before writing to IndexedDB
-          const { _syncedAt, ...cleanData } = data;
-          try {
-            await Database.put(storeName, cleanData);
+          const snapshot = await getDocs(collection(db, colPath));
+          for (const docSnap of snapshot.docs) {
+            const data = docSnap.data();
+            // Strip Firestore-only metadata before writing to IndexedDB
+            const { _syncedAt, ...cleanData } = data;
+            
+            // Perform deep comparison check
+            const keyField = STORE_KEYS[storeName];
+            const docId = cleanData[keyField];
+            if (docId) {
+              const localRecord = await Database.get(storeName, docId);
+              if (localRecord) {
+                if (canonicalStringify(localRecord) === canonicalStringify(cleanData)) {
+                  continue; // Abort local write, payloads match 100%
+                }
+              }
+            }
+
+            try {
+              await Database.put(storeName, cleanData);
+              restored++;
+            } catch (e) {
+              console.warn(`[FirestoreSync] IndexedDB put failed for ${storeName}:`, e.message);
+            }
+          }
+        } catch (err) {
+          console.warn(`[FirestoreSync] Pull failed for store "${storeName}":`, err.message);
+        }
+      }
+
+      // Pull user profile
+      try {
+        const { doc, getDoc } = fns;
+        const userDocSnap = await getDoc(doc(db, 'users', userId));
+        if (userDocSnap.exists()) {
+          const { _syncedAt, ...userData } = userDocSnap.data();
+          const localUser = await Database.get('users', userId);
+          let shouldUpdate = true;
+          if (localUser) {
+            if (canonicalStringify(localUser) === canonicalStringify(userData)) {
+              shouldUpdate = false;
+            }
+          }
+          if (shouldUpdate) {
+            await Database.put('users', userData);
             restored++;
-          } catch (e) {
-            console.warn(`[FirestoreSync] IndexedDB put failed for ${storeName}:`, e.message);
           }
         }
       } catch (err) {
-        console.warn(`[FirestoreSync] Pull failed for store "${storeName}":`, err.message);
+        console.warn('[FirestoreSync] User profile pull failed:', err.message);
       }
-    }
-
-    // Pull user profile
-    try {
-      const { doc, getDoc } = fns;
-      const userDocSnap = await getDoc(doc(db, 'users', userId));
-      if (userDocSnap.exists()) {
-        const { _syncedAt, ...userData } = userDocSnap.data();
-        await Database.put('users', userData);
-        restored++;
-      }
-    } catch (err) {
-      console.warn('[FirestoreSync] User profile pull failed:', err.message);
+    } finally {
+      sessionStorage.removeItem('is_app_syncing');
     }
 
     return { success: true, restored };

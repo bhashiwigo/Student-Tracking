@@ -22,7 +22,7 @@ import { AnalyticsModule } from './modules/analytics.js';
 
 const App = {
   currentView: 'dashboard',
-  currentDate: new Date(),
+  currentDate: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Colombo' })),
   _initialized: false, // Guard against double-bootstrap on re-init after login
 
   async init() {
@@ -82,6 +82,26 @@ const App = {
     StudyModule.init();
     NotesModule.init();
     AnalyticsModule.init();
+
+    // Trigger initial rendering pass instantly upon bootstrapping
+    await this.renderDashboard();
+
+    // If user has no active subject components in store, guarantee that all balance arrays and progress trackers default smoothly to 0%
+    const subjects = await Database.getAll('subjects');
+    if (subjects.length === 0) {
+      document.querySelectorAll('.balance-bar-fill').forEach(el => {
+        el.style.width = '0%';
+      });
+      document.querySelectorAll('.balance-header span:last-child').forEach(el => {
+        el.innerText = '0%';
+      });
+      document.querySelectorAll('.lab-bar-fill').forEach(el => {
+        el.style.width = '0%';
+      });
+      document.querySelectorAll('.lab-header span:last-child').forEach(el => {
+        el.innerText = '0%';
+      });
+    }
 
     this.bindEvents();
     this.renderActiveView();
@@ -145,19 +165,19 @@ const App = {
     const registerBtn = document.getElementById('btn-auth-register');
     if (registerBtn) {
       registerBtn.addEventListener('click', async () => {
-        const name         = (document.getElementById('auth-reg-name')?.value || '').trim();
-        const studentId    = (document.getElementById('auth-reg-studentid')?.value || '').trim();
-        const dob          = document.getElementById('auth-reg-dob')?.value || '';
-        const university   = (document.getElementById('auth-reg-university')?.value || '').trim();
-        const faculty      = (document.getElementById('auth-reg-faculty')?.value || '').trim();
+        const name = (document.getElementById('auth-reg-name')?.value || '').trim();
+        const studentId = (document.getElementById('auth-reg-studentid')?.value || '').trim();
+        const dob = document.getElementById('auth-reg-dob')?.value || '';
+        const university = (document.getElementById('auth-reg-university')?.value || '').trim();
+        const faculty = (document.getElementById('auth-reg-faculty')?.value || '').trim();
         const courseSelect = document.getElementById('auth-reg-course')?.value || '';
-        const courseOther  = (document.getElementById('auth-reg-course-other')?.value || '').trim();
-        const course       = courseSelect === 'Other' ? courseOther : courseSelect;
+        const courseOther = (document.getElementById('auth-reg-course-other')?.value || '').trim();
+        const course = courseSelect === 'Other' ? courseOther : courseSelect;
         const specialization = (document.getElementById('auth-reg-specialization')?.value || '').trim();
-        const admissionYear  = document.getElementById('auth-reg-admyear')?.value || '2024';
-        const semester       = document.getElementById('auth-reg-semester')?.value || '1-1';
-        const pin            = (document.getElementById('auth-reg-pin')?.value || '').trim();
-        const pinConfirm     = (document.getElementById('auth-reg-pin-confirm')?.value || '').trim();
+        const admissionYear = document.getElementById('auth-reg-admyear')?.value || '2024';
+        const semester = document.getElementById('auth-reg-semester')?.value || '1-1';
+        const pin = (document.getElementById('auth-reg-pin')?.value || '').trim();
+        const pinConfirm = (document.getElementById('auth-reg-pin-confirm')?.value || '').trim();
 
         if (!name || !studentId || !course || pin.length !== 4) {
           NotificationService.show('Validation Error', 'Fill all required fields and set a 4-digit PIN.', 'error');
@@ -241,9 +261,9 @@ const App = {
   },
 
   switchAuthPanel(panel) {
-    const signin   = document.getElementById('auth-panel-signin');
+    const signin = document.getElementById('auth-panel-signin');
     const register = document.getElementById('auth-panel-register');
-    if (signin)   signin.style.display   = panel === 'signin'   ? 'flex' : 'none';
+    if (signin) signin.style.display = panel === 'signin' ? 'flex' : 'none';
     if (register) register.style.display = panel === 'register' ? 'flex' : 'none';
   },
 
@@ -306,29 +326,33 @@ const App = {
   // ────────────────────────────────────────────────────────────────────────────
 
   setupSyncIndicatorListener() {
+    let debounceTimer = null;
     window.addEventListener('syncStatusChanged', (e) => {
       const status = e.detail;
-      const indicator = document.getElementById('cloud-sync-indicator');
-      if (!indicator) return;
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const indicator = document.getElementById('cloud-sync-indicator');
+        if (!indicator) return;
 
-      const text = indicator.querySelector('.sync-text');
+        const text = indicator.querySelector('.sync-text');
 
-      // Reset classes
-      indicator.className = 'sync-indicator';
+        // Reset classes
+        indicator.className = 'sync-indicator';
 
-      if (status === 'syncing') {
-        indicator.classList.add('state-syncing');
-        if (text) text.innerText = 'Syncing...';
-      } else if (status === 'synced') {
-        indicator.classList.add('state-synced');
-        if (text) text.innerText = 'Cloud Synced';
-      } else if (status === 'error') {
-        indicator.classList.add('state-error');
-        if (text) text.innerText = 'Sync Error';
-      } else {
-        indicator.classList.add('state-offline');
-        if (text) text.innerText = 'Offline Mode';
-      }
+        if (status === 'syncing') {
+          indicator.classList.add('state-syncing');
+          if (text) text.innerText = 'Syncing...';
+        } else if (status === 'synced') {
+          indicator.classList.add('state-synced');
+          if (text) text.innerText = 'Cloud Synced';
+        } else if (status === 'error') {
+          indicator.classList.add('state-error');
+          if (text) text.innerText = 'Sync Error';
+        } else {
+          indicator.classList.add('state-offline');
+          if (text) text.innerText = 'Offline Mode';
+        }
+      }, 300);
     });
 
     // Initial trigger
@@ -475,16 +499,16 @@ const App = {
   },
 
   async setupThemeStudio() {
-    let activeTheme    = await Database.get('settings', 'studioTheme');
-    let glow           = await Database.get('settings', 'studioGlow');
-    let hover          = await Database.get('settings', 'studioHover');
-    let reflections    = await Database.get('settings', 'studioReflections');
+    let activeTheme = await Database.get('settings', 'studioTheme');
+    let glow = await Database.get('settings', 'studioGlow');
+    let hover = await Database.get('settings', 'studioHover');
+    let reflections = await Database.get('settings', 'studioReflections');
     let accentLighting = await Database.get('settings', 'studioAccentLighting');
 
-    if (!activeTheme)    activeTheme    = { key: 'studioTheme', value: 'space-gravity' };
-    if (!glow)           glow           = { key: 'studioGlow', value: true };
-    if (!hover)          hover          = { key: 'studioHover', value: true };
-    if (!reflections)    reflections    = { key: 'studioReflections', value: true };
+    if (!activeTheme) activeTheme = { key: 'studioTheme', value: 'space-gravity' };
+    if (!glow) glow = { key: 'studioGlow', value: true };
+    if (!hover) hover = { key: 'studioHover', value: true };
+    if (!reflections) reflections = { key: 'studioReflections', value: true };
     if (!accentLighting) accentLighting = { key: 'studioAccentLighting', value: true };
 
     this.applyThemeStudio(
@@ -516,15 +540,15 @@ const App = {
       swatch.classList.toggle('active', match);
     });
 
-    const toggleGlow        = document.getElementById('toggle-glow');
-    const toggleHover       = document.getElementById('toggle-hover-anims');
+    const toggleGlow = document.getElementById('toggle-glow');
+    const toggleHover = document.getElementById('toggle-hover-anims');
     const toggleReflections = document.getElementById('toggle-reflections');
-    const toggleAccent      = document.getElementById('toggle-accent-lighting');
+    const toggleAccent = document.getElementById('toggle-accent-lighting');
 
-    if (toggleGlow)        toggleGlow.checked        = glow;
-    if (toggleHover)       toggleHover.checked       = hover;
+    if (toggleGlow) toggleGlow.checked = glow;
+    if (toggleHover) toggleHover.checked = hover;
     if (toggleReflections) toggleReflections.checked = reflections;
-    if (toggleAccent)      toggleAccent.checked      = accentLighting;
+    if (toggleAccent) toggleAccent.checked = accentLighting;
 
     this.updatePreviewPanel(theme, glow, hover, reflections, accentLighting);
   },
@@ -533,7 +557,93 @@ const App = {
     const previewBox = document.getElementById('theme-preview-box');
     if (!previewBox) return;
 
-    const themeVars = {
+    const isLight = document.body.getAttribute('data-theme') === 'light';
+    const themeVars = isLight ? {
+      'space-gravity': {
+        '--bg-app': '#e7e7e7',
+        '--bg-card': 'rgba(255, 255, 255, 0.75)',
+        '--bg-input': '#ffffff',
+        '--border-color': 'rgba(0, 229, 255, 0.15)',
+        '--accent': '#006064',
+        '--accent-glow': 'rgba(0, 96, 100, 0.08)',
+        '--accent-secondary': '#c62828',
+        '--accent-secondary-glow': 'rgba(198, 40, 40, 0.06)',
+        '--text-primary': '#000000',
+        '--text-secondary': '#222222',
+        '--text-muted': '#555555',
+        '--preview-btn-text': '#ffffff'
+      },
+      'emerald-aurora': {
+        '--bg-app': '#e8f5e9',
+        '--bg-card': 'rgba(255, 255, 255, 0.75)',
+        '--bg-input': '#ffffff',
+        '--border-color': 'rgba(46, 125, 50, 0.15)',
+        '--accent': '#2e7d32',
+        '--accent-glow': 'rgba(46, 125, 50, 0.08)',
+        '--accent-secondary': '#1565c0',
+        '--accent-secondary-glow': 'rgba(21, 101, 192, 0.06)',
+        '--text-primary': '#000000',
+        '--text-secondary': '#222222',
+        '--text-muted': '#555555',
+        '--preview-btn-text': '#ffffff'
+      },
+      'sunset-amethyst': {
+        '--bg-app': '#f3e5f5',
+        '--bg-card': 'rgba(255, 255, 255, 0.75)',
+        '--bg-input': '#ffffff',
+        '--border-color': 'rgba(106, 27, 154, 0.15)',
+        '--accent': '#6a1b9a',
+        '--accent-glow': 'rgba(106, 27, 154, 0.08)',
+        '--accent-secondary': '#ad1457',
+        '--accent-secondary-glow': 'rgba(173, 20, 87, 0.06)',
+        '--text-primary': '#000000',
+        '--text-secondary': '#222222',
+        '--text-muted': '#555555',
+        '--preview-btn-text': '#ffffff'
+      },
+      'deep-indigo': {
+        '--bg-app': '#e8eaf6',
+        '--bg-card': 'rgba(255, 255, 255, 0.75)',
+        '--bg-input': '#ffffff',
+        '--border-color': 'rgba(40, 53, 147, 0.15)',
+        '--accent': '#283593',
+        '--accent-glow': 'rgba(40, 53, 147, 0.08)',
+        '--accent-secondary': '#00838f',
+        '--accent-secondary-glow': 'rgba(0, 131, 143, 0.06)',
+        '--text-primary': '#000000',
+        '--text-secondary': '#222222',
+        '--text-muted': '#555555',
+        '--preview-btn-text': '#ffffff'
+      },
+      'steel-slate': {
+        '--bg-app': '#eceff1',
+        '--bg-card': 'rgba(255, 255, 255, 0.75)',
+        '--bg-input': '#ffffff',
+        '--border-color': 'rgba(55, 71, 79, 0.15)',
+        '--accent': '#37474f',
+        '--accent-glow': 'rgba(55, 71, 79, 0.08)',
+        '--accent-secondary': '#4e342e',
+        '--accent-secondary-glow': 'rgba(78, 52, 46, 0.06)',
+        '--text-primary': '#000000',
+        '--text-secondary': '#222222',
+        '--text-muted': '#555555',
+        '--preview-btn-text': '#ffffff'
+      },
+      'crimson-obsidian': {
+        '--bg-app': '#ffebee',
+        '--bg-card': 'rgba(255, 255, 255, 0.75)',
+        '--bg-input': '#ffffff',
+        '--border-color': 'rgba(198, 40, 40, 0.15)',
+        '--accent': '#c62828',
+        '--accent-glow': 'rgba(198, 40, 40, 0.08)',
+        '--accent-secondary': '#37474f',
+        '--accent-secondary-glow': 'rgba(55, 71, 79, 0.06)',
+        '--text-primary': '#000000',
+        '--text-secondary': '#222222',
+        '--text-muted': '#555555',
+        '--preview-btn-text': '#ffffff'
+      }
+    } : {
       'space-gravity': {
         '--bg-app': '#0a0f1d',
         '--bg-card': 'rgba(18, 30, 66, 0.48)',
@@ -542,7 +652,11 @@ const App = {
         '--accent': '#00e5ff',
         '--accent-glow': 'rgba(0, 229, 255, 0.16)',
         '--accent-secondary': '#ff5252',
-        '--accent-secondary-glow': 'rgba(255, 82, 82, 0.16)'
+        '--accent-secondary-glow': 'rgba(255, 82, 82, 0.16)',
+        '--text-primary': '#f8fafc',
+        '--text-secondary': '#94a3b8',
+        '--text-muted': '#475569',
+        '--preview-btn-text': '#050608'
       },
       'emerald-aurora': {
         '--bg-app': '#0e1d20',
@@ -552,7 +666,11 @@ const App = {
         '--accent': '#45dfb1',
         '--accent-glow': 'rgba(69, 223, 177, 0.2)',
         '--accent-secondary': '#80ed99',
-        '--accent-secondary-glow': 'rgba(128, 237, 153, 0.16)'
+        '--accent-secondary-glow': 'rgba(128, 237, 153, 0.16)',
+        '--text-primary': '#f8fafc',
+        '--text-secondary': '#94a3b8',
+        '--text-muted': '#475569',
+        '--preview-btn-text': '#050608'
       },
       'sunset-amethyst': {
         '--bg-app': '#0f0714',
@@ -562,7 +680,11 @@ const App = {
         '--accent': '#e3b6b1',
         '--accent-glow': 'rgba(227, 182, 177, 0.2)',
         '--accent-secondary': '#522c5d',
-        '--accent-secondary-glow': 'rgba(82, 44, 93, 0.2)'
+        '--accent-secondary-glow': 'rgba(82, 44, 93, 0.2)',
+        '--text-primary': '#f8fafc',
+        '--text-secondary': '#94a3b8',
+        '--text-muted': '#475569',
+        '--preview-btn-text': '#050608'
       },
       'deep-indigo': {
         '--bg-app': '#030430',
@@ -572,7 +694,11 @@ const App = {
         '--accent': '#00b4d8',
         '--accent-glow': 'rgba(0, 180, 216, 0.2)',
         '--accent-secondary': '#90e0ef',
-        '--accent-secondary-glow': 'rgba(144, 224, 239, 0.16)'
+        '--accent-secondary-glow': 'rgba(144, 224, 239, 0.16)',
+        '--text-primary': '#f8fafc',
+        '--text-secondary': '#94a3b8',
+        '--text-muted': '#475569',
+        '--preview-btn-text': '#050608'
       },
       'steel-slate': {
         '--bg-app': '#121a24',
@@ -582,7 +708,11 @@ const App = {
         '--accent': '#aab7b7',
         '--accent-glow': 'rgba(170, 183, 183, 0.22)',
         '--accent-secondary': '#d4d8dd',
-        '--accent-secondary-glow': 'rgba(212, 216, 221, 0.16)'
+        '--accent-secondary-glow': 'rgba(212, 216, 221, 0.16)',
+        '--text-primary': '#f8fafc',
+        '--text-secondary': '#94a3b8',
+        '--text-muted': '#475569',
+        '--preview-btn-text': '#050608'
       },
       'crimson-obsidian': {
         '--bg-app': '#080002',
@@ -592,7 +722,11 @@ const App = {
         '--accent': '#d00018',
         '--accent-glow': 'rgba(208, 0, 24, 0.25)',
         '--accent-secondary': '#ff5252',
-        '--accent-secondary-glow': 'rgba(255, 82, 82, 0.25)'
+        '--accent-secondary-glow': 'rgba(255, 82, 82, 0.25)',
+        '--text-primary': '#f8fafc',
+        '--text-secondary': '#94a3b8',
+        '--text-muted': '#475569',
+        '--preview-btn-text': '#050608'
       }
     };
 
@@ -635,6 +769,57 @@ const App = {
       });
     });
 
+    // Future Module Modal Trigger
+    const addFutureBtn = document.getElementById('btn-add-future-module');
+    if (addFutureBtn) {
+      addFutureBtn.addEventListener('click', () => {
+        const modal = document.getElementById('modal-future-module');
+        if (modal) modal.classList.add('visible');
+      });
+    }
+
+    // Future Module Form Submission
+    const futureForm = document.getElementById('future-module-form');
+    if (futureForm) {
+      futureForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const code = document.getElementById('future-sub-code').value.trim();
+        const semester = document.getElementById('future-sub-semester').value;
+        const focus = document.getElementById('future-sub-focus').value;
+        const enableLab = document.getElementById('future-toggle-lab-progress').checked;
+        const enableField = document.getElementById('future-toggle-field-nodes').checked;
+        const enableCA = document.getElementById('future-toggle-ca-ring').checked;
+
+        const userId = Auth.getCurrentUserId();
+
+        const newFutureModule = {
+          id: 'future_' + Date.now().toString(),
+          userId,
+          code,
+          semester,
+          focus,
+          enableLab,
+          enableField,
+          enableCA,
+          createdAt: new Date().toISOString()
+        };
+
+        try {
+          await Database.add('futureModules', newFutureModule);
+          NotificationService.show('Future Module Saved', `Configured future module ${code} successfully.`, 'success');
+          futureForm.reset();
+          const modal = document.getElementById('modal-future-module');
+          if (modal) modal.classList.remove('visible');
+          
+          // Force dashboard re-render
+          await this.renderDashboard();
+        } catch (err) {
+          console.error(err);
+          NotificationService.show('Save Failed', err.message, 'error');
+        }
+      });
+    }
+
     // Command Palette shortcut
     window.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -671,20 +856,20 @@ const App = {
     if (settingsForm) {
       settingsForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const name       = document.getElementById('settings-name').value.trim();
+        const name = document.getElementById('settings-name').value.trim();
         const university = document.getElementById('settings-university').value.trim();
-        const faculty    = document.getElementById('settings-faculty').value.trim();
-        const year       = document.getElementById('settings-year').value;
-        const sem        = document.getElementById('settings-semester').value;
-        const target     = parseFloat(document.getElementById('settings-target-gpa').value) || 3.70;
+        const faculty = document.getElementById('settings-faculty').value.trim();
+        const year = document.getElementById('settings-year').value;
+        const sem = document.getElementById('settings-semester').value;
+        const target = parseFloat(document.getElementById('settings-target-gpa').value) || 3.70;
 
         try {
           const profile = await Database.get('students', 'profile') || { id: 'profile' };
-          profile.name       = name;
+          profile.name = name;
           profile.university = university;
-          profile.faculty    = faculty;
-          profile.admissionYear    = year;
-          profile.currentSemester  = sem;
+          profile.faculty = faculty;
+          profile.admissionYear = year;
+          profile.currentSemester = sem;
           await Database.put('students', profile);
 
           await Database.put('settings', { key: 'currentSemester', value: sem });
@@ -692,9 +877,9 @@ const App = {
 
           NotificationService.show('Settings Saved', 'Profile configuration updated successfully.', 'success');
 
-          const userBadge    = document.getElementById('user-profile-badge');
+          const userBadge = document.getElementById('user-profile-badge');
           if (userBadge) userBadge.innerText = name;
-          const facultyEl    = document.getElementById('user-profile-faculty');
+          const facultyEl = document.getElementById('user-profile-faculty');
           if (facultyEl) facultyEl.innerText = faculty;
           const universityEl = document.getElementById('user-profile-university');
           if (universityEl) universityEl.innerText = university;
@@ -781,9 +966,9 @@ const App = {
     }
 
     const getActiveToggles = () => ({
-      glow:           (document.getElementById('toggle-glow')?.checked           ?? true),
-      hover:          (document.getElementById('toggle-hover-anims')?.checked    ?? true),
-      reflections:    (document.getElementById('toggle-reflections')?.checked    ?? true),
+      glow: (document.getElementById('toggle-glow')?.checked ?? true),
+      hover: (document.getElementById('toggle-hover-anims')?.checked ?? true),
+      reflections: (document.getElementById('toggle-reflections')?.checked ?? true),
       accentLighting: (document.getElementById('toggle-accent-lighting')?.checked ?? true)
     });
 
@@ -903,19 +1088,19 @@ const App = {
       v.classList.toggle('active', isActive);
     });
 
-    if      (this.currentView === 'dashboard')   { this.renderDashboard(); }
-    else if (this.currentView === 'academic')    { AcademicModule.render(); }
-    else if (this.currentView === 'exams')       { ExamsModule.render(); }
-    else if (this.currentView === 'practicals')  { PracticalsModule.render(); }
+    if (this.currentView === 'dashboard') { this.renderDashboard(); }
+    else if (this.currentView === 'academic') { AcademicModule.render(); }
+    else if (this.currentView === 'exams') { ExamsModule.render(); }
+    else if (this.currentView === 'practicals') { PracticalsModule.render(); }
     else if (this.currentView === 'assignments') { AssignmentsModule.render(); }
-    else if (this.currentView === 'gpa')         { GPAModule.render(); }
-    else if (this.currentView === 'attendance')  { AttendanceModule.render(); }
-    else if (this.currentView === 'sports')      { SportsModule.render(); }
-    else if (this.currentView === 'study')       { StudyModule.render(); }
-    else if (this.currentView === 'notes')       { NotesModule.render(); }
-    else if (this.currentView === 'analytics')   { AnalyticsModule.render(); }
-    else if (this.currentView === 'calendar')    { this.renderCalendar(); }
-    else if (this.currentView === 'settings')    { this.renderSettings(); }
+    else if (this.currentView === 'gpa') { GPAModule.render(); }
+    else if (this.currentView === 'attendance') { AttendanceModule.render(); }
+    else if (this.currentView === 'sports') { SportsModule.render(); }
+    else if (this.currentView === 'study') { StudyModule.render(); }
+    else if (this.currentView === 'notes') { NotesModule.render(); }
+    else if (this.currentView === 'analytics') { AnalyticsModule.render(); }
+    else if (this.currentView === 'calendar') { this.renderCalendar(); }
+    else if (this.currentView === 'settings') { this.renderSettings(); }
   },
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -935,24 +1120,24 @@ const App = {
     ]);
 
     const gpaStats = await GPAModule.calculateGPAs(subjects);
-    document.getElementById('dash-metric-gpa').innerText    = gpaStats.overall.toFixed(2);
+    document.getElementById('dash-metric-gpa').innerText = gpaStats.overall.toFixed(2);
     document.getElementById('dash-metric-sem-gpa').innerText = gpaStats.currentSemester.toFixed(2);
 
     let totalAttended = 0;
     let totalSessions = 0;
     attendance.forEach(a => {
       totalAttended += (a.lecturesAttended || 0) + (a.practicalsAttended || 0);
-      totalSessions += (a.lecturesTotal   || 0) + (a.practicalsTotal   || 0);
+      totalSessions += (a.lecturesTotal || 0) + (a.practicalsTotal || 0);
     });
     const attPct = totalSessions > 0 ? (totalAttended / totalSessions) * 100 : 0;
     document.getElementById('dash-metric-att').innerText = `${attPct.toFixed(0)}%`;
 
-    const pendingEx     = exams.length;
-    const pendingPrac   = practicals.length;
+    const pendingEx = exams.length;
+    const pendingPrac = practicals.length;
     const pendingAssign = assignments.filter(a => a.status !== 'Completed').length;
 
-    document.getElementById('dash-pending-exams').innerText   = pendingEx;
-    document.getElementById('dash-pending-pracs').innerText   = pendingPrac;
+    document.getElementById('dash-pending-exams').innerText = pendingEx;
+    document.getElementById('dash-pending-pracs').innerText = pendingPrac;
     document.getElementById('dash-pending-assigns').innerText = pendingAssign;
 
     const scheduleBox = document.getElementById('dash-weekly-schedule-list');
@@ -972,14 +1157,13 @@ const App = {
       scheduleBox.innerHTML = nextItems.map(item => `
         <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; border-bottom:1px solid var(--border-color); padding: 8px 0;">
           <span>${item.title}</span>
-          <span style="color:var(--text-muted); font-size:0.75rem;">${item.date}</span>
+          <span style="color:var(--text-muted); font-size:0.75rem;">${new Date(item.date + 'T00:00:00Z').toLocaleDateString('en-US', { timeZone: 'Asia/Colombo' })}</span>
         </div>
       `).join('') || '<div style="color:var(--text-muted); font-size:0.8rem;">No academic events scheduled.</div>';
     }
 
-    // NOTE: AnalyticsModule already listens to 'subjectsUpdated' itself, so
-    // calling render() here would cause a double draw. It is intentionally
-    // NOT called here — the shared event drives it once, cleanly.
+    // Call AnalyticsModule.render() to ensure all dashboard charts, balance bars, and progress trackers are updated
+    await AnalyticsModule.render();
   },
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -987,33 +1171,33 @@ const App = {
   // ────────────────────────────────────────────────────────────────────────────
 
   async renderSettings() {
-    const student          = await Database.get('students', 'profile');
+    const student = await Database.get('students', 'profile');
     const targetGpaSetting = await Database.get('settings', 'gpaTarget');
-    const fontSizeSetting  = await Database.get('settings', 'fontSize');
-    const fontFamilySetting= await Database.get('settings', 'fontFamily');
-    const activeTheme      = await Database.get('settings', 'studioTheme');
-    const glowSetting      = await Database.get('settings', 'studioGlow');
-    const hoverSetting     = await Database.get('settings', 'studioHover');
+    const fontSizeSetting = await Database.get('settings', 'fontSize');
+    const fontFamilySetting = await Database.get('settings', 'fontFamily');
+    const activeTheme = await Database.get('settings', 'studioTheme');
+    const glowSetting = await Database.get('settings', 'studioGlow');
+    const hoverSetting = await Database.get('settings', 'studioHover');
     const reflectionsSetting = await Database.get('settings', 'studioReflections');
-    const accentSetting    = await Database.get('settings', 'studioAccentLighting');
+    const accentSetting = await Database.get('settings', 'studioAccentLighting');
 
     // ── Populate Account Information card (B9) ────────────────────────────────
     try {
-      const userId  = Auth.getCurrentUserId();
+      const userId = Auth.getCurrentUserId();
       const allUsers = await Database.getAll('users');
-      const user    = allUsers.find(u => u.userId === userId);
+      const user = allUsers.find(u => u.userId === userId);
 
       if (user) {
         const set = (id, val) => {
           const el = document.getElementById(id);
           if (el) el.innerText = val || '—';
         };
-        set('settings-display-name',       user.name);
-        set('settings-display-studentid',  user.studentId);
-        set('settings-display-course',     user.course);
-        set('settings-display-faculty',    user.faculty);
+        set('settings-display-name', user.name);
+        set('settings-display-studentid', user.studentId);
+        set('settings-display-course', user.course);
+        set('settings-display-faculty', user.faculty);
         set('settings-display-university', user.university);
-        set('settings-display-admyear',    user.admissionYear);
+        set('settings-display-admyear', user.admissionYear);
       }
     } catch (err) {
       console.warn('Could not populate account info:', err);
@@ -1021,8 +1205,8 @@ const App = {
 
     // ── Profile form ──────────────────────────────────────────────────────────
     if (student) {
-      document.getElementById('settings-name').value     = student.name || '';
-      document.getElementById('settings-year').value     = student.admissionYear || '';
+      document.getElementById('settings-name').value = student.name || '';
+      document.getElementById('settings-year').value = student.admissionYear || '';
       document.getElementById('settings-semester').value = student.currentSemester || '1-1';
       const univEl = document.getElementById('settings-university');
       if (univEl) univEl.value = student.university || '';
@@ -1033,7 +1217,7 @@ const App = {
       document.getElementById('settings-target-gpa').value = targetGpaSetting.value;
     }
 
-    const sizeVal   = fontSizeSetting   ? fontSizeSetting.value   : 'medium';
+    const sizeVal = fontSizeSetting ? fontSizeSetting.value : 'medium';
     const familyVal = fontFamilySetting ? fontFamilySetting.value : 'Inter';
 
     const fontSelect = document.getElementById('settings-font-family');
@@ -1043,21 +1227,21 @@ const App = {
 
     this.applyTypography(familyVal, sizeVal);
 
-    const themeVal       = activeTheme       ? activeTheme.value       : 'space-gravity';
-    const glowVal        = glowSetting       ? glowSetting.value       : true;
-    const hoverVal       = hoverSetting      ? hoverSetting.value      : true;
-    const reflectionsVal = reflectionsSetting? reflectionsSetting.value: true;
-    const accentVal      = accentSetting     ? accentSetting.value     : true;
+    const themeVal = activeTheme ? activeTheme.value : 'space-gravity';
+    const glowVal = glowSetting ? glowSetting.value : true;
+    const hoverVal = hoverSetting ? hoverSetting.value : true;
+    const reflectionsVal = reflectionsSetting ? reflectionsSetting.value : true;
+    const accentVal = accentSetting ? accentSetting.value : true;
 
-    const toggleGlow        = document.getElementById('toggle-glow');
-    const toggleHover       = document.getElementById('toggle-hover-anims');
+    const toggleGlow = document.getElementById('toggle-glow');
+    const toggleHover = document.getElementById('toggle-hover-anims');
     const toggleReflections = document.getElementById('toggle-reflections');
-    const toggleAccent      = document.getElementById('toggle-accent-lighting');
+    const toggleAccent = document.getElementById('toggle-accent-lighting');
 
-    if (toggleGlow)        toggleGlow.checked        = glowVal;
-    if (toggleHover)       toggleHover.checked       = hoverVal;
+    if (toggleGlow) toggleGlow.checked = glowVal;
+    if (toggleHover) toggleHover.checked = hoverVal;
     if (toggleReflections) toggleReflections.checked = reflectionsVal;
-    if (toggleAccent)      toggleAccent.checked      = accentVal;
+    if (toggleAccent) toggleAccent.checked = accentVal;
 
     const swatches = document.querySelectorAll('.theme-swatch');
     swatches.forEach(swatch => {
@@ -1073,21 +1257,21 @@ const App = {
   // ────────────────────────────────────────────────────────────────────────────
 
   async renderCalendar() {
-    const grid        = document.getElementById('calendar-grid-container');
+    const grid = document.getElementById('calendar-grid-container');
     const headerTitle = document.getElementById('calendar-month-year-label');
     if (!grid || !headerTitle) return;
 
     grid.innerHTML = '';
-    const year  = this.currentDate.getFullYear();
+    const year = this.currentDate.getFullYear();
     const month = this.currentDate.getMonth();
 
     const monthNames = [
-      'January','February','March','April','May','June',
-      'July','August','September','October','November','December'
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
     ];
     headerTitle.innerText = `${monthNames[month]} ${year}`;
 
-    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     days.forEach(day => {
       const headerCell = document.createElement('div');
       headerCell.className = 'calendar-day-header';
@@ -1095,23 +1279,23 @@ const App = {
       grid.appendChild(headerCell);
     });
 
-    const firstDay       = new Date(year, month, 1).getDay();
-    const daysInMonth    = new Date(year, month + 1, 0).getDate();
-    const prevMonthDays  = new Date(year, month, 0).getDate();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
 
-    const exams       = await Database.getAll('exams');
-    const practicals  = await Database.getAll('practicals');
+    const exams = await Database.getAll('exams');
+    const practicals = await Database.getAll('practicals');
     const assignments = await Database.getAll('assignments');
-    const sports      = await Database.getAll('sports');
-    const studyplans  = await Database.getAll('studyplans');
+    const sports = await Database.getAll('sports');
+    const studyplans = await Database.getAll('studyplans');
 
     const getEventsForDate = (dateStr) => {
       const list = [];
-      exams.forEach(x       => { if (x.date === dateStr)         list.push({ text: `📝 ${x.name}`,    color: 'var(--danger)',  bg: 'rgba(239, 68, 68, 0.15)' }); });
-      practicals.forEach(p  => { if (p.date === dateStr)         list.push({ text: `🔬 ${p.name}`,    color: 'var(--accent)',  bg: 'var(--accent-glow)' }); });
-      assignments.forEach(a => { if (a.date === dateStr)         list.push({ text: `📬 ${a.title}`,   color: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.15)' }); });
-      sports.forEach(s      => { if (s.scheduleDate === dateStr) list.push({ text: `🏆 ${s.goalText}`,color: 'var(--success)', bg: 'rgba(16, 185, 129, 0.15)' }); });
-      studyplans.forEach(pl => { if (pl.date === dateStr)        list.push({ text: `📚 ${pl.title}`,  color: 'var(--accent)',  bg: 'var(--accent-glow)' }); });
+      exams.forEach(x => { if (x.date === dateStr) list.push({ text: `📝 ${x.name}`, color: 'var(--danger)', bg: 'rgba(239, 68, 68, 0.15)' }); });
+      practicals.forEach(p => { if (p.date === dateStr) list.push({ text: `🔬 ${p.name}`, color: 'var(--accent)', bg: 'var(--accent-glow)' }); });
+      assignments.forEach(a => { if (a.date === dateStr) list.push({ text: `📬 ${a.title}`, color: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.15)' }); });
+      sports.forEach(s => { if (s.scheduleDate === dateStr) list.push({ text: `🏆 ${s.goalText}`, color: 'var(--success)', bg: 'rgba(16, 185, 129, 0.15)' }); });
+      studyplans.forEach(pl => { if (pl.date === dateStr) list.push({ text: `📚 ${pl.title}`, color: 'var(--accent)', bg: 'var(--accent-glow)' }); });
       return list;
     };
 
@@ -1122,7 +1306,7 @@ const App = {
       grid.appendChild(cell);
     }
 
-    const today = new Date();
+    const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Colombo' }));
     for (let d = 1; d <= daysInMonth; d++) {
       const cell = document.createElement('div');
       cell.className = 'calendar-cell';
@@ -1154,7 +1338,7 @@ const App = {
           else cellBg = 'rgba(255, 255, 255, 0.28)'; // density >= 4
         }
         cell.style.backgroundColor = cellBg;
-        
+
         // Add workload indicator badge/dot
         const dot = document.createElement('span');
         dot.style.cssText = `position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: ${theme === 'light' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)'};`;
@@ -1174,7 +1358,7 @@ const App = {
       grid.appendChild(cell);
     }
 
-    const totalCellsUsed  = firstDay + daysInMonth;
+    const totalCellsUsed = firstDay + daysInMonth;
     const nextCellsNeeded = 42 - totalCellsUsed;
     for (let n = 1; n <= nextCellsNeeded; n++) {
       const cell = document.createElement('div');
@@ -1206,20 +1390,20 @@ const App = {
     if (!list) return;
 
     const commands = [
-      { text: 'Go to Dashboard',                  action: () => this.navigateTo('dashboard'),   shortcut: 'G + D' },
-      { text: 'Manage Course Units (Subjects)',    action: () => this.navigateTo('academic'),    shortcut: 'G + A' },
-      { text: 'Check Exams Schedules',             action: () => this.navigateTo('exams'),       shortcut: 'G + E' },
-      { text: 'Review Practical Classes',          action: () => this.navigateTo('practicals'),  shortcut: 'G + P' },
-      { text: 'Track Assignment Submissions',      action: () => this.navigateTo('assignments'), shortcut: 'G + T' },
-      { text: 'Open GPA Calculator',               action: () => this.navigateTo('gpa'),         shortcut: 'G + G' },
-      { text: 'Log Subject Attendance',            action: () => this.navigateTo('attendance'),  shortcut: 'G + L' },
-      { text: 'Sports & Training Schedules',       action: () => this.navigateTo('sports'),      shortcut: 'G + S' },
-      { text: 'Enter Study Focus Planner',         action: () => this.navigateTo('study'),       shortcut: 'G + F' },
-      { text: 'Read Subject Notes Pages',          action: () => this.navigateTo('notes'),       shortcut: 'G + N' },
-      { text: 'View Performance Analytics Charts', action: () => this.navigateTo('analytics'),   shortcut: 'G + C' },
-      { text: 'Toggle Application Theme Mode',     action: () => this.toggleTheme(),             shortcut: 'T + T' },
-      { text: 'Unified Calendar Planner',          action: () => this.navigateTo('calendar'),    shortcut: 'G + Y' },
-      { text: 'System Configuration Settings',     action: () => this.navigateTo('settings'),    shortcut: 'G + O' }
+      { text: 'Go to Dashboard', action: () => this.navigateTo('dashboard'), shortcut: 'G + D' },
+      { text: 'Manage Course Units (Subjects)', action: () => this.navigateTo('academic'), shortcut: 'G + A' },
+      { text: 'Check Exams Schedules', action: () => this.navigateTo('exams'), shortcut: 'G + E' },
+      { text: 'Review Practical Classes', action: () => this.navigateTo('practicals'), shortcut: 'G + P' },
+      { text: 'Track Assignment Submissions', action: () => this.navigateTo('assignments'), shortcut: 'G + T' },
+      { text: 'Open GPA Calculator', action: () => this.navigateTo('gpa'), shortcut: 'G + G' },
+      { text: 'Log Subject Attendance', action: () => this.navigateTo('attendance'), shortcut: 'G + L' },
+      { text: 'Sports & Training Schedules', action: () => this.navigateTo('sports'), shortcut: 'G + S' },
+      { text: 'Enter Study Focus Planner', action: () => this.navigateTo('study'), shortcut: 'G + F' },
+      { text: 'Read Subject Notes Pages', action: () => this.navigateTo('notes'), shortcut: 'G + N' },
+      { text: 'View Performance Analytics Charts', action: () => this.navigateTo('analytics'), shortcut: 'G + C' },
+      { text: 'Toggle Application Theme Mode', action: () => this.toggleTheme(), shortcut: 'T + T' },
+      { text: 'Unified Calendar Planner', action: () => this.navigateTo('calendar'), shortcut: 'G + Y' },
+      { text: 'System Configuration Settings', action: () => this.navigateTo('settings'), shortcut: 'G + O' }
     ];
 
     const match = commands.filter(c => c.text.toLowerCase().includes(query.toLowerCase()));
@@ -1246,9 +1430,9 @@ const App = {
   },
 
   handleCommandPaletteKey(e) {
-    const items   = document.querySelectorAll('.command-palette-item');
-    let selected  = document.querySelector('.command-palette-item.selected');
-    let index     = selected ? parseInt(selected.getAttribute('data-index')) : 0;
+    const items = document.querySelectorAll('.command-palette-item');
+    let selected = document.querySelector('.command-palette-item.selected');
+    let index = selected ? parseInt(selected.getAttribute('data-index')) : 0;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();

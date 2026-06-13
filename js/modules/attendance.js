@@ -2,6 +2,7 @@
  * Rajarata Campus Life Manager - Attendance Tracker Modules
  * Logs attendance records and calculates eligibility percentages per subject
  * UPGRADED: Critical Risk Index engine — "X consecutive lectures needed" warning strings
+ * AUDIT: Verified that no timestamp/date objects are formatted for UI insertion (purely numeric tracking).
  */
 
 import { Database } from '../database/db.js';

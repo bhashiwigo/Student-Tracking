@@ -375,6 +375,7 @@
             <h1 style="font-size: 1.5rem; font-weight: 800;">Biological Science Portfolio Hub</h1>
             <p>Rajarata University Biological Science student tracking application</p>
           </div>
+          <button class="btn-solid" id="btn-add-future-module">+ Future Module</button>
         </div>
 
         <div class="grid-layout">
@@ -407,6 +408,7 @@
             </div>
             <span style="font-size: 0.72rem; color: var(--text-secondary); text-align: center;">Progress Ring: <span
                 id="dash-metric-att-sub">0%</span></span>
+            <select class="select-input" id="dash-attendance-subject-select" style="width: 100%; height: 28px; padding: 2px 8px; font-size: 0.75rem; margin-top: 8px;"></select>
             <div id="dash-metric-att" style="display: none;">0%</div>
           </div>
 
@@ -417,28 +419,28 @@
               <div class="balance-item">
                 <div class="balance-header">
                   <span>Botany</span>
-                  <span>60%</span>
+                  <span>0%</span>
                 </div>
                 <div class="balance-bar-bg">
-                  <div class="balance-bar-fill" style="width: 60%;"></div>
+                  <div class="balance-bar-fill" style="width: 0%;"></div>
                 </div>
               </div>
               <div class="balance-item">
                 <div class="balance-header">
                   <span>Zoology</span>
-                  <span>35%</span>
+                  <span>0%</span>
                 </div>
                 <div class="balance-bar-bg">
-                  <div class="balance-bar-fill" style="width: 35%;"></div>
+                  <div class="balance-bar-fill" style="width: 0%;"></div>
                 </div>
               </div>
               <div class="balance-item">
                 <div class="balance-header">
                   <span>Chemistry</span>
-                  <span>25%</span>
+                  <span>0%</span>
                 </div>
                 <div class="balance-bar-bg">
-                  <div class="balance-bar-fill" style="width: 25%;"></div>
+                  <div class="balance-bar-fill" style="width: 0%;"></div>
                 </div>
               </div>
             </div>
@@ -527,37 +529,37 @@
               <div class="lab-item">
                 <div class="lab-header">
                   <span>Botany 1</span>
-                  <span>100%</span>
+                  <span>0%</span>
                 </div>
                 <div class="lab-bar-bg">
-                  <div class="lab-bar-fill" style="width: 100%;"></div>
+                  <div class="lab-bar-fill" style="width: 0%;"></div>
                 </div>
               </div>
               <div class="lab-item">
                 <div class="lab-header">
                   <span>Report 2</span>
-                  <span>90%</span>
+                  <span>0%</span>
                 </div>
                 <div class="lab-bar-bg">
-                  <div class="lab-bar-fill" style="width: 90%;"></div>
+                  <div class="lab-bar-fill" style="width: 0%;"></div>
                 </div>
               </div>
               <div class="lab-item">
                 <div class="lab-header">
                   <span>Zoology</span>
-                  <span>86%</span>
+                  <span>0%</span>
                 </div>
                 <div class="lab-bar-bg">
-                  <div class="lab-bar-fill" style="width: 86%;"></div>
+                  <div class="lab-bar-fill" style="width: 0%;"></div>
                 </div>
               </div>
               <div class="lab-item">
                 <div class="lab-header">
                   <span>Lab</span>
-                  <span>78%</span>
+                  <span>0%</span>
                 </div>
                 <div class="lab-bar-bg">
-                  <div class="lab-bar-fill" style="width: 78%;"></div>
+                  <div class="lab-bar-fill" style="width: 0%;"></div>
                 </div>
               </div>
             </div>
@@ -571,6 +573,14 @@
               <div class="roadmap-node">Lamarck Project</div>
               <div class="roadmap-node">Research Project 2</div>
               <div class="roadmap-node">Research Project</div>
+            </div>
+          </div>
+
+          <!-- J: Future Module Customizer Tracker -->
+          <div class="card col-12" id="future-module-tracker-card" style="display: none;">
+            <div class="card-title">Future Module Customizer Tracker</div>
+            <div class="grid-layout" id="future-module-tracker-container">
+              <!-- Dyn future modules -->
             </div>
           </div>
         </div>
@@ -1205,7 +1215,7 @@
                 <input type="text" value="Text Field Input" readonly
                   style="flex: 1; font-size: 0.7rem; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-secondary); pointer-events: none; outline: none;">
                 <button class="preview-btn-solid"
-                  style="font-size: 0.7rem; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: none; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%); color: #050608; cursor: default; box-shadow: 0 0 8px var(--accent-glow);">Trigger
+                  style="font-size: 0.7rem; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: none; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%); color: var(--preview-btn-text); cursor: default; box-shadow: 0 0 8px var(--accent-glow);">Trigger
                   Action</button>
               </div>
 
@@ -1621,6 +1631,68 @@
         <div class="modal-footer">
           <button type="button" class="btn-outline modal-close-btn">Cancel</button>
           <button type="submit" class="btn-solid">Add Session</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Future Module Planner Modal -->
+  <div class="modal-overlay" id="modal-future-module">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Future Module Planner</h3>
+        <button type="button" class="btn-icon modal-close-btn">&times;</button>
+      </div>
+      <form id="future-module-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Subject Code</label>
+            <input type="text" id="future-sub-code" class="input-text" placeholder="e.g. BOT 2101" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Target Semester</label>
+            <select id="future-sub-semester" class="select-input">
+              <option value="1-1">Year 1 - Semester I</option>
+              <option value="1-2">Year 1 - Semester II</option>
+              <option value="2-1">Year 2 - Semester I</option>
+              <option value="2-2">Year 2 - Semester II</option>
+              <option value="3-1">Year 3 - Semester I</option>
+              <option value="3-2">Year 3 - Semester II</option>
+              <option value="4-1">Year 4 - Semester I</option>
+              <option value="4-2">Year 4 - Semester II</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Module Core Focus</label>
+            <select id="future-sub-focus" class="select-input">
+              <option value="Botany Focus">Botany Focus</option>
+              <option value="Zoology Focus">Zoology Focus</option>
+              <option value="General Core">General Core</option>
+            </select>
+          </div>
+          
+          <div style="margin: 16px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent); border-top: 1px solid var(--border-color); padding-top: 16px;">
+            📊 Customized Chart Metric Toggles
+          </div>
+          
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; cursor: pointer;">
+              <input type="checkbox" id="future-toggle-lab-progress" checked>
+              <span>Enable Lab/Practical Progress Bar</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; cursor: pointer;">
+              <input type="checkbox" id="future-toggle-field-nodes" checked>
+              <span>Enable Field Assignment Nodes</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; cursor: pointer;">
+              <input type="checkbox" id="future-toggle-ca-ring" checked>
+              <span>Enable Continuous Assessment Ring</span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline modal-close-btn">Cancel</button>
+          <button type="submit" class="btn-solid">Save Future Module</button>
         </div>
       </form>
     </div>

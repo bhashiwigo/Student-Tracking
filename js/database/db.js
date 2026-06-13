@@ -8,12 +8,15 @@ import { Auth } from '../auth.js';
 import { FirestoreSync } from './firestore-sync.js';
 
 const DB_NAME = 'RajarataCampusLifeDB';
-const DB_VERSION = 2; // Bumped from 1 → 2 to add 'users' store
+const DB_VERSION = 3; // Bumped to 3 to add 'futureModules' store
 
 let dbInstance = null;
 
-// Cross-module boolean lock: prevents nested background sync execution waves.
-let isSyncingActive = false;
+// Cross-module session lock: prevents nested background sync execution waves.
+// Clear any stale lock on startup after page reload with a short delay (processing interval safety).
+setTimeout(() => {
+  sessionStorage.removeItem('is_app_syncing');
+}, 3000);
 
 export const initDB = () => {
   return new Promise((resolve, reject) => {
@@ -78,6 +81,11 @@ export const initDB = () => {
       if (!db.objectStoreNames.contains('settings')) {
         db.createObjectStore('settings', { keyPath: 'key' });
       }
+
+      // Future Modules Store
+      if (!db.objectStoreNames.contains('futureModules')) {
+        db.createObjectStore('futureModules', { keyPath: 'id' });
+      }
     };
 
     request.onsuccess = (e) => {
@@ -138,7 +146,7 @@ export const triggerBackgroundSync = async () => {
   // State guard: abort immediately if a sync wave is already in flight
   // to prevent thread flooding and infinite settings-store write cascades.
   // Must check BEFORE dispatching 'syncing' to avoid false status flicker.
-  if (isSyncingActive) return;
+  if (sessionStorage.getItem('is_app_syncing') === 'true') return;
 
   // If the device is completely offline, reflect that immediately.
   if (!navigator.onLine) {
@@ -157,7 +165,7 @@ export const triggerBackgroundSync = async () => {
   dispatch('syncing');
 
   // Full cloud push wrapped in the mutex lock.
-  isSyncingActive = true;
+  sessionStorage.setItem('is_app_syncing', 'true');
   try {
     const result = await FirestoreSync.pushAllToCloud();
     if (result.success) {
@@ -171,7 +179,7 @@ export const triggerBackgroundSync = async () => {
     dispatch('error');
   } finally {
     // Always release the lock so subsequent writes can trigger sync again.
-    isSyncingActive = false;
+    sessionStorage.removeItem('is_app_syncing');
   }
 };
 
@@ -218,6 +226,14 @@ export const Database = {
   add(storeName, data) {
     return dbOperation(storeName, 'readwrite', (store) => store.add(data))
       .then(async (result) => {
+        // Skip cloud sync if a sync operation is already in flight (prevents recursive loops)
+        if (sessionStorage.getItem('is_app_syncing') === 'true') {
+          if (storeName !== 'settings') {
+            window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+          }
+          return result;
+        }
+
         // Explicitly invoke Firestore sync for this record and surface the outcome.
         window.dispatchEvent(new CustomEvent('syncStatusChanged', { detail: 'syncing' }));
         try {
@@ -241,6 +257,14 @@ export const Database = {
   put(storeName, data) {
     return dbOperation(storeName, 'readwrite', (store) => store.put(data))
       .then(async (result) => {
+        // Skip cloud sync if a sync operation is already in flight (prevents recursive loops)
+        if (sessionStorage.getItem('is_app_syncing') === 'true') {
+          if (storeName !== 'settings') {
+            window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+          }
+          return result;
+        }
+
         // Explicitly invoke Firestore sync for this record and surface the outcome.
         window.dispatchEvent(new CustomEvent('syncStatusChanged', { detail: 'syncing' }));
         try {
@@ -264,6 +288,14 @@ export const Database = {
   delete(storeName, key) {
     return dbOperation(storeName, 'readwrite', (store) => store.delete(key))
       .then(async (result) => {
+        // Skip cloud sync if a sync operation is already in flight (prevents recursive loops)
+        if (sessionStorage.getItem('is_app_syncing') === 'true') {
+          if (storeName !== 'settings') {
+            window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+          }
+          return result;
+        }
+
         // Explicitly invoke Firestore delete and surface the outcome.
         window.dispatchEvent(new CustomEvent('syncStatusChanged', { detail: 'syncing' }));
         try {
