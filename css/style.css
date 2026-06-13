@@ -604,18 +604,20 @@ header.top-bar {
   height: 14px;
   color: #030a0e;
   position: absolute;
+  top: 50%;
+  left: 50%;
   transition: opacity 0.25s ease, transform 0.35s ease;
 }
 
 /* Dark mode: show moon, hide sun */
 .theme-icon-moon {
   opacity: 1;
-  transform: rotate(0deg) scale(1);
+  transform: translate(-50%, -50%) rotate(0deg) scale(1);
 }
 
 .theme-icon-sun {
   opacity: 0;
-  transform: rotate(90deg) scale(0.6);
+  transform: translate(-50%, -50%) rotate(90deg) scale(0.6);
 }
 
 /* Light mode state */
@@ -633,12 +635,12 @@ body[data-theme="light"] .theme-toggle-thumb {
 
 body[data-theme="light"] .theme-icon-moon {
   opacity: 0;
-  transform: rotate(-90deg) scale(0.6);
+  transform: translate(-50%, -50%) rotate(-90deg) scale(0.6);
 }
 
 body[data-theme="light"] .theme-icon-sun {
   opacity: 1;
-  transform: rotate(0deg) scale(1);
+  transform: translate(-50%, -50%) rotate(0deg) scale(1);
   color: #1a1a1a;
 }
 
@@ -2307,7 +2309,7 @@ body[data-theme="light"] .theme-toggle-thumb {
 }
 body[data-theme="light"] .theme-icon-sun {
   opacity: 1;
-  transform: rotate(0deg) scale(1);
+  transform: translate(-50%, -50%) rotate(0deg) scale(1);
   color: #ffffff;
 }
 
@@ -2321,4 +2323,9 @@ body[data-theme="light"] .badge.high {
   background-color: rgba(27, 94, 32, 0.08);
   color: #1b5e20;
   border-color: rgba(27, 94, 32, 0.2);
+}
+
+/* Radial ring center value — black text in light mode */
+body[data-theme="light"] .radial-ring-value {
+  color: #000000;
 }

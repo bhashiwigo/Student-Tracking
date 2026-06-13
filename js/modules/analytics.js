@@ -467,11 +467,11 @@ export const AnalyticsModule = {
               y: {
                 beginAtZero: true,
                 grid: { color: 'rgba(128, 128, 128, 0.08)' },
-                ticks: { color: 'var(--text-secondary)' }
+                ticks: { color: getColor('--text-secondary') }
               },
               x: {
                 grid: { display: false },
-                ticks: { color: 'var(--text-secondary)' }
+                ticks: { color: getColor('--text-secondary') }
               }
             },
             plugins: {
@@ -531,7 +531,7 @@ export const AnalyticsModule = {
               r: {
                 angleLines: { color: 'rgba(128, 128, 128, 0.15)' },
                 grid: { color: 'rgba(128, 128, 128, 0.15)' },
-                pointLabels: { color: 'var(--text-secondary)', font: { size: 9 } },
+                pointLabels: { color: getColor('--text-secondary'), font: { size: 9 } },
                 ticks: { display: false },
                 suggestedMin: 0,
                 suggestedMax: 100
@@ -592,15 +592,15 @@ export const AnalyticsModule = {
                 min: 0,
                 max: 100,
                 grid: { color: 'rgba(128, 128, 128, 0.08)' },
-                ticks: { color: 'var(--text-secondary)' }
+                ticks: { color: getColor('--text-secondary') }
               },
               x: {
                 grid: { display: false },
-                ticks: { color: 'var(--text-secondary)' }
+                ticks: { color: getColor('--text-secondary') }
               }
             },
             plugins: {
-              legend: { labels: { color: 'var(--text-primary)' } }
+              legend: { labels: { color: getColor('--text-primary') } }
             }
           }
         });
@@ -637,11 +637,11 @@ export const AnalyticsModule = {
               y: {
                 beginAtZero: true,
                 grid: { color: 'rgba(128, 128, 128, 0.08)' },
-                ticks: { color: 'var(--text-secondary)' }
+                ticks: { color: getColor('--text-secondary') }
               },
               x: {
                 grid: { display: false },
-                ticks: { color: 'var(--text-secondary)' }
+                ticks: { color: getColor('--text-secondary') }
               }
             },
             plugins: {
@@ -783,11 +783,11 @@ export const AnalyticsModule = {
           min: 0,
           max: suggestedMax,
           grid: { color: 'rgba(128, 128, 128, 0.08)' },
-          ticks: { color: 'var(--text-secondary)' }
+          ticks: { color: getColor('--text-secondary') }
         },
         x: {
           grid: { display: false },
-          ticks: { color: 'var(--text-secondary)' }
+          ticks: { color: getColor('--text-secondary') }
         }
       },
       plugins: {
