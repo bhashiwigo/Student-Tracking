@@ -1,6 +1,7 @@
 /**
  * Rajarata Campus Life Manager - Assignment Modules
  * Handles Assignments, Submission statuses, and Priority flags
+ * UPGRADED: Visual Gantt Project Roadmap timeline
  */
 
 import { Database } from '../database/db.js';
@@ -44,6 +45,10 @@ export const AssignmentsModule = {
 
     try {
       const assignments = await Database.getAll('assignments');
+      
+      // Render visual Gantt roadmap for assignments
+      this.renderGantt(assignments);
+
       if (assignments.length === 0) {
         container.innerHTML = `
           <div class="col-12" style="text-align: center; padding: 40px; color: var(--text-muted);">
@@ -142,6 +147,104 @@ export const AssignmentsModule = {
     } catch (err) {
       console.error('Render assignments failed:', err);
     }
+  },
+
+  renderGantt(assignments) {
+    const ganttContainer = document.getElementById('assignments-gantt-container');
+    if (!ganttContainer) return;
+
+    if (!assignments || assignments.length === 0) {
+      ganttContainer.style.display = 'none';
+      return;
+    }
+
+    ganttContainer.style.display = 'block';
+
+    const timelineData = assignments.map(as => {
+      const deadline = new Date(`${as.date}T23:59:59`);
+      const priority = as.priority || 'Medium';
+      const prepDays = priority === 'High' ? 5 : priority === 'Medium' ? 3 : 1;
+      const startDate = new Date(deadline.getTime() - prepDays * 24 * 60 * 60 * 1000);
+      
+      return {
+        id: as.id,
+        title: as.title,
+        subject: as.subjectCode,
+        priority: priority,
+        status: as.status,
+        startDate: startDate,
+        deadline: deadline,
+        dateStr: as.date
+      };
+    });
+
+    timelineData.sort((a, b) => a.deadline - b.deadline);
+
+    const minS = new Date(Math.min(...timelineData.map(d => d.startDate.getTime())));
+    minS.setHours(0,0,0,0);
+    
+    const maxD = new Date(Math.max(...timelineData.map(d => d.deadline.getTime())));
+    maxD.setHours(23,59,59,999);
+
+    const totalDuration = maxD.getTime() - minS.getTime() || 86400000;
+
+    const numMarkers = 6;
+    const markers = [];
+    for (let i = 0; i < numMarkers; i++) {
+      const time = minS.getTime() + (totalDuration * i) / (numMarkers - 1);
+      const d = new Date(time);
+      markers.push(d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
+    }
+
+    const rowsHtml = timelineData.map(item => {
+      const leftPct = (item.startDate.getTime() - minS.getTime()) / totalDuration * 100;
+      const widthPct = (item.deadline.getTime() - item.startDate.getTime()) / totalDuration * 100;
+
+      let color = 'var(--accent)';
+      if (item.status === 'Completed') {
+        color = 'var(--success)';
+      } else {
+        const priorityColors = { High: 'var(--danger)', Medium: 'var(--warning)', Low: 'var(--accent)' };
+        color = priorityColors[item.priority] || 'var(--accent)';
+      }
+
+      return `
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 600px;">
+          <div style="width: 180px; flex-shrink: 0; font-size: 0.78rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; ${item.status === 'Completed' ? 'text-decoration: line-through; opacity: 0.5;' : ''}">
+            <strong style="color: var(--text-primary);">${item.subject}</strong> - <span style="color: var(--text-secondary);">${item.title}</span>
+          </div>
+          <div style="flex: 1; height: 30px; background: rgba(255,255,255,0.02); border-radius: 4px; position: relative; border: 1px solid var(--border-color);">
+            <div style="position: absolute; left: ${leftPct}%; width: ${widthPct}%; top: 4px; height: 20px; background: ${color}; opacity: ${item.status === 'Completed' ? 0.2 : 0.35}; border-radius: 3px; border-left: 3px solid ${color}; display: flex; align-items: center; padding: 0 6px; box-sizing: border-box;">
+              <span style="font-size: 0.65rem; font-weight: 700; color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
+                ${item.status === 'Completed' ? '✓ Completed' : `${item.priority} Prep`} (due ${item.dateStr})
+              </span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    ganttContainer.innerHTML = `
+      <div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-x: auto; margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--accent);">
+            🗓️ Visual Gantt Assignment Roadmap
+          </span>
+          <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 500;">
+            Preparation timelines staggered by assignment priority and completion status
+          </span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 600px;">
+            <div style="width: 180px; flex-shrink: 0;"></div>
+            <div style="flex: 1; display: flex; justify-content: space-between; padding: 0 4px; font-size: 0.68rem; color: var(--text-muted); font-weight: 600;">
+              ${markers.map(m => `<span>${m}</span>`).join('')}
+            </div>
+          </div>
+          ${rowsHtml}
+        </div>
+      </div>
+    `;
   },
 
   async openModal(id = null) {

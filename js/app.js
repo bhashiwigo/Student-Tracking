@@ -1133,6 +1133,35 @@ const App = {
       const dateString = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
       cell.innerHTML = `<span class="calendar-date-number">${d}</span>`;
 
+      // Heatmap Workload Density (Exams + Labs/Practicals + Assignments)
+      let density = 0;
+      exams.forEach(x => { if (x.date === dateString) density++; });
+      practicals.forEach(p => { if (p.date === dateString) density++; });
+      assignments.forEach(a => { if (a.date === dateString) density++; });
+
+      if (density > 0) {
+        const theme = document.body.getAttribute('data-theme') || 'dark';
+        let cellBg = 'transparent';
+        if (theme === 'light') {
+          if (density === 1) cellBg = 'rgba(0, 0, 0, 0.05)';
+          else if (density === 2) cellBg = 'rgba(0, 0, 0, 0.12)';
+          else if (density === 3) cellBg = 'rgba(0, 0, 0, 0.22)';
+          else cellBg = 'rgba(0, 0, 0, 0.35)'; // density >= 4
+        } else {
+          if (density === 1) cellBg = 'rgba(255, 255, 255, 0.04)';
+          else if (density === 2) cellBg = 'rgba(255, 255, 255, 0.09)';
+          else if (density === 3) cellBg = 'rgba(255, 255, 255, 0.18)';
+          else cellBg = 'rgba(255, 255, 255, 0.28)'; // density >= 4
+        }
+        cell.style.backgroundColor = cellBg;
+        
+        // Add workload indicator badge/dot
+        const dot = document.createElement('span');
+        dot.style.cssText = `position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: ${theme === 'light' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)'};`;
+        cell.style.position = 'relative';
+        cell.appendChild(dot);
+      }
+
       getEventsForDate(dateString).forEach(evt => {
         const pill = document.createElement('div');
         pill.className = 'calendar-event-pill';

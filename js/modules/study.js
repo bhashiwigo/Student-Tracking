@@ -1,6 +1,7 @@
 /**
  * Rajarata Campus Life Manager - Study Planner Modules
  * Handles Daily/Weekly schedule entries, Focus sessions, and Pomodoro timer logic
+ * UPGRADED: Window blur detection, distraction logs, and Focus Quality Index metrics
  */
 
 import { Database } from '../database/db.js';
@@ -10,10 +11,74 @@ export const StudyModule = {
   pomodoroTimer: null,
   timeLeft: 25 * 60, // Default 25 minutes
   isTimerRunning: false,
-  timerType: 'focus', // focus, shortBreak, longBreak
+  timerType: 'focus', // focus, break
+
+  interruptionDuration: 0,
+  blurStartTime: null,
+  blurCount: 0,
+  sessionTotalSeconds: 25 * 60,
 
   init() {
     this.bindEvents();
+    this.resetFocusStats(25 * 60);
+
+    // Focus Quality Interruption hooks
+    window.addEventListener('blur', () => this.handleWindowBlur());
+    window.addEventListener('focus', () => this.handleWindowFocus());
+  },
+
+  resetFocusStats(totalSeconds = 25 * 60) {
+    this.interruptionDuration = 0;
+    this.blurStartTime = null;
+    this.blurCount = 0;
+    this.sessionTotalSeconds = totalSeconds;
+    this.updateQualityDisplay();
+  },
+
+  handleWindowBlur() {
+    if (this.isTimerRunning && this.timerType === 'focus') {
+      this.blurStartTime = Date.now();
+      this.blurCount++;
+      NotificationService.show('Focus Interruption Detected', '⚠️ Stay focused on your studies! Avoid leaving the workspace tab.', 'warning');
+    }
+  },
+
+  handleWindowFocus() {
+    if (this.isTimerRunning && this.timerType === 'focus' && this.blurStartTime) {
+      const elapsed = (Date.now() - this.blurStartTime) / 1000;
+      this.interruptionDuration += elapsed;
+      this.blurStartTime = null;
+      this.updateQualityDisplay();
+    }
+  },
+
+  updateQualityDisplay() {
+    let quality = 100;
+    if (this.timerType === 'focus') {
+      const elapsed = this.sessionTotalSeconds - this.timeLeft;
+      if (elapsed > 0) {
+        let currentBlur = 0;
+        if (this.blurStartTime) {
+          currentBlur = (Date.now() - this.blurStartTime) / 1000;
+        }
+        const totalInterrupt = this.interruptionDuration + currentBlur;
+        quality = Math.max(0, Math.round(((elapsed - totalInterrupt) / elapsed) * 100));
+      }
+    }
+
+    const color = quality >= 85 ? 'var(--success)' : quality >= 60 ? 'var(--warning)' : 'var(--danger)';
+    
+    const inlineVal = document.getElementById('pomo-quality-val');
+    if (inlineVal) {
+      inlineVal.innerText = `${quality}%`;
+      inlineVal.style.color = color;
+    }
+
+    const overlayVal = document.getElementById('focus-overlay-quality-val');
+    if (overlayVal) {
+      overlayVal.innerText = `${quality}%`;
+      overlayVal.style.color = color;
+    }
   },
 
   bindEvents() {
@@ -135,7 +200,7 @@ export const StudyModule = {
 
     form.reset();
     document.getElementById('study-plan-date').value = new Date().toISOString().slice(0, 10);
-    document.getElementById('study-plan-start').value = '19:00'; // Sri Lankan standard night study slot
+    document.getElementById('study-plan-start').value = '19:00';
     document.getElementById('study-plan-duration').value = '2';
     document.getElementById('study-plan-focus').value = '45';
 
@@ -186,15 +251,17 @@ export const StudyModule = {
     }
   },
 
-  /**
-   * Pomodoro Timer Logic
-   */
   togglePomodoro() {
     const startBtn = document.getElementById('pomo-start');
     if (this.isTimerRunning) {
       // Pause
       clearInterval(this.pomodoroTimer);
       this.isTimerRunning = false;
+      if (this.blurStartTime) {
+        const elapsed = (Date.now() - this.blurStartTime) / 1000;
+        this.interruptionDuration += elapsed;
+        this.blurStartTime = null;
+      }
       if (startBtn) startBtn.innerText = 'Start Session';
     } else {
       // Start
@@ -202,16 +269,28 @@ export const StudyModule = {
       if (startBtn) startBtn.innerText = 'Pause Session';
       this.pomodoroTimer = setInterval(() => this.tickTimer(), 1000);
     }
+    this.updateQualityDisplay();
   },
 
   resetPomodoro() {
     clearInterval(this.pomodoroTimer);
     this.isTimerRunning = false;
     this.timeLeft = this.timerType === 'focus' ? 25 * 60 : 5 * 60;
+    this.resetFocusStats(this.timeLeft);
     
     const startBtn = document.getElementById('pomo-start');
     if (startBtn) startBtn.innerText = 'Start Session';
     
+    const typeLabel = document.getElementById('pomo-type-label');
+    if (typeLabel) {
+      typeLabel.innerText = this.timerType === 'focus' ? 'Focus Interval' : 'Short Rest Break';
+    }
+
+    const typeLabelMain = document.getElementById('pomo-type-label-main');
+    if (typeLabelMain) {
+      typeLabelMain.innerText = this.timerType === 'focus' ? 'Pomodoro Timer (Focus)' : 'Pomodoro Timer (Break)';
+    }
+
     this.updatePomoDisplay();
   },
 
@@ -220,6 +299,7 @@ export const StudyModule = {
     this.isTimerRunning = false;
     this.timerType = this.timerType === 'focus' ? 'break' : 'focus';
     this.timeLeft = this.timerType === 'focus' ? 25 * 60 : 5 * 60;
+    this.resetFocusStats(this.timeLeft);
 
     const startBtn = document.getElementById('pomo-start');
     if (startBtn) startBtn.innerText = 'Start Session';
@@ -227,6 +307,11 @@ export const StudyModule = {
     const typeLabel = document.getElementById('pomo-type-label');
     if (typeLabel) {
       typeLabel.innerText = this.timerType === 'focus' ? 'Focus Interval' : 'Short Rest Break';
+    }
+
+    const typeLabelMain = document.getElementById('pomo-type-label-main');
+    if (typeLabelMain) {
+      typeLabelMain.innerText = this.timerType === 'focus' ? 'Pomodoro Timer (Focus)' : 'Pomodoro Timer (Break)';
     }
 
     const breakBtn = document.getElementById('pomo-break');
@@ -241,8 +326,8 @@ export const StudyModule = {
     if (this.timeLeft > 0) {
       this.timeLeft--;
       this.updatePomoDisplay();
+      this.updateQualityDisplay();
     } else {
-      // Interval finished
       clearInterval(this.pomodoroTimer);
       this.isTimerRunning = false;
       
@@ -250,8 +335,6 @@ export const StudyModule = {
       const alarmMsg = this.timerType === 'focus' ? 'Well done, take a rest.' : 'Ready to resume focus?';
       
       NotificationService.show(alarmTitle, alarmMsg, 'study');
-      
-      // Auto toggle state
       this.startBreak();
     }
   },
@@ -261,28 +344,22 @@ export const StudyModule = {
     const secs = this.timeLeft % 60;
     const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
-    // Update standard dashboard element
     const widgetDisplay = document.getElementById('pomo-time-display');
     if (widgetDisplay) widgetDisplay.innerText = timeStr;
 
-    // Update full-screen Focus Mode element if visible
     const focusTimerDisplay = document.getElementById('focus-overlay-timer');
     if (focusTimerDisplay) focusTimerDisplay.innerText = timeStr;
 
-    // Update document title for background tracking
     document.title = `(${timeStr}) Rajarata Life`;
   },
 
-  /**
-   * Fullscreen HUD Focus Mode
-   */
   enterFullscreenFocus() {
     const overlay = document.getElementById('focus-hud-overlay');
     if (overlay) {
       overlay.classList.add('active');
       this.updatePomoDisplay();
+      this.updateQualityDisplay();
       
-      // Auto run timer if it wasn't running
       if (!this.isTimerRunning) {
         this.togglePomodoro();
       }

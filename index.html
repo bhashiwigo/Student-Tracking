@@ -56,6 +56,7 @@
   <div class="focus-overlay" id="focus-hud-overlay">
     <div class="focus-label" id="pomo-type-label">Focus Interval</div>
     <div class="focus-timer" id="focus-overlay-timer">25:00</div>
+    <div id="focus-overlay-quality" style="font-size: 1.1rem; color: rgba(255,255,255,0.7); margin-top: -10px; font-weight: 600; margin-bottom: 15px;">Quality Index: <span id="focus-overlay-quality-val" style="color: var(--success); font-family: 'JetBrains Mono', monospace;">100%</span></div>
     <div style="display: flex; gap: 16px;">
       <button class="btn-solid" id="pomo-break" style="background-color: #f59e0b;">Take Break</button>
       <button class="btn-outline" id="btn-exit-focus" style="border-color: #ffffff; color: #ffffff;">Exit Focus
@@ -610,6 +611,7 @@
           </div>
           <button class="btn-solid" id="btn-add-exam">+ Schedule Exam</button>
         </div>
+        <div id="exams-gantt-container" style="display: none; margin-bottom: 20px; width: 100%;"></div>
         <div class="grid-layout" id="exams-list-container">
           <!-- Dyn cards -->
         </div>
@@ -638,6 +640,7 @@
           </div>
           <button class="btn-solid" id="btn-add-assignment">+ Log Assignment</button>
         </div>
+        <div id="assignments-gantt-container" style="display: none; margin-bottom: 20px; width: 100%;"></div>
         <div class="grid-layout" id="assignments-list-container">
           <!-- Dyn items -->
         </div>
@@ -711,6 +714,45 @@
             </table>
           </div>
 
+          <!-- Target CGPA Matrix -->
+          <div class="card col-6" id="gpa-matrix-card">
+            <div class="card-title">Target CGPA Distribution Matrix</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px;">
+              <span class="form-label" style="margin-bottom: 0;">Overall Target CGPA:</span>
+              <input type="number" id="gpa-matrix-target-input" class="input-text" step="0.05" min="2.00" max="4.00" style="width: 100px; padding: 4px 8px; height: 30px;" value="3.70">
+            </div>
+            <div id="gpa-matrix-results" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem;">
+              <!-- Dyn content -->
+            </div>
+          </div>
+
+          <!-- Repeat/Upgrade Simulator -->
+          <div class="card col-6" id="gpa-simulator-card">
+            <div class="card-title">Repeat & Upgrade Mock Simulator</div>
+            <p style="font-size: 0.76rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">
+              Select a subject below or click its grade in the log book to simulate how repeating it and scoring an A/A- boosts your overall CGPA.
+            </p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px;">
+              <div class="form-group">
+                <label class="form-label">Subject</label>
+                <select id="sim-subject-select" class="select-input" style="height: 32px; padding: 4px 8px; font-size: 0.8rem;"></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Mock Grade</label>
+                <select id="sim-grade-select" class="select-input" style="height: 32px; padding: 4px 8px; font-size: 0.8rem;">
+                  <option value="A+">A+ (4.00)</option>
+                  <option value="A" selected>A (4.00)</option>
+                  <option value="A-">A- (3.70)</option>
+                  <option value="B+">B+ (3.30)</option>
+                  <option value="B">B (3.00)</option>
+                </select>
+              </div>
+            </div>
+            <div id="sim-result-box" style="display: none; background: rgba(0, 229, 255, 0.06); border: 1px solid rgba(0, 229, 255, 0.15); border-radius: 6px; padding: 10px; text-align: center; font-size: 0.82rem; margin-top: 8px;">
+              <!-- Dyn output -->
+            </div>
+          </div>
+
           <!-- Predictor HUD Moved to Dashboard Section 1 -->
         </div>
       </div>
@@ -769,6 +811,7 @@
             <div
               style="font-family: 'JetBrains Mono', monospace; font-size: 3.5rem; font-weight: 800; margin: 16px 0; color: var(--accent);"
               id="pomo-time-display">25:00</div>
+            <div id="pomo-quality-container" style="font-size: 0.78rem; color: var(--text-secondary); margin-top: -10px; margin-bottom: 12px; font-weight: 600;">Focus Quality: <span id="pomo-quality-val" style="color: var(--success); font-family: 'JetBrains Mono', monospace;">100%</span></div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
               <button class="btn-solid" id="pomo-start">Start Session</button>
               <div style="display: flex; gap: 10px;">
@@ -828,10 +871,15 @@
                 <input type="text" id="note-tags" class="input-text" placeholder="e.g. Zoology, Invertebrates">
               </div>
             </div>
+            <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 8px;">
+              <button type="button" class="btn-outline btn-sm note-tab active" id="note-tab-write" style="padding: 4px 12px; font-size: 0.72rem; border-radius: 4px;">Write</button>
+              <button type="button" class="btn-outline btn-sm note-tab" id="note-tab-preview" style="padding: 4px 12px; font-size: 0.72rem; border-radius: 4px;">Preview HTML</button>
+            </div>
             <textarea id="note-body" class="textarea-input"
-              style="flex: 1; font-family: var(--font-body); font-size: 0.9rem; line-height: 1.6; resize: none;"
+              style="flex: 1; font-family: var(--font-body); font-size: 0.9rem; line-height: 1.6; resize: none; min-height: 300px;"
               placeholder="Start writing markdown-styled study notes here..."></textarea>
-            <button class="btn-solid" id="btn-save-note" style="width: 140px; margin-left: auto;">Save Page</button>
+            <div id="note-preview-area" class="textarea-input" style="display: none; flex: 1; min-height: 300px; overflow-y: auto; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; font-size: 0.9rem; line-height: 1.6;"></div>
+            <button class="btn-solid" id="btn-save-note" style="width: 140px; margin-left: auto; margin-top: 8px;">Save Page</button>
           </div>
         </div>
       </div>
@@ -1377,6 +1425,14 @@
               <option value="Final Practical">Final Practical</option>
               <option value="Mid-Semester">Mid-Semester</option>
               <option value="Quiz Spotting">Quiz Spotting</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Priority</label>
+            <select id="exam-priority" class="select-input">
+              <option value="High">High</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="Low">Low</option>
             </select>
           </div>
         </div>

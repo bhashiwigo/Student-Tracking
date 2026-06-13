@@ -1,10 +1,54 @@
 /**
  * Rajarata Campus Life Manager - Notes System Modules
  * Handles rich text subject notes logging and dynamic tag queries
+ * UPGRADED: Simple Markdown parser layer & live HTML preview tabs
  */
 
 import { Database } from '../database/db.js';
 import { NotificationService } from '../services/notifications.js';
+
+/**
+ * Simple Markdown Parser Engine
+ * Converts # Headers, **bold**, *italics*, `code`, > quotes, and lists into HTML
+ */
+function parseMarkdown(md) {
+  if (!md) return '<p style="color:var(--text-muted);">No content to preview.</p>';
+  
+  // Escape HTML to prevent XSS
+  let html = md
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Headings
+  html = html.replace(/^### (.*$)/gim, '<h3 style="font-size:1rem; font-weight:700; color:var(--accent); margin:12px 0 6px 0;">$1</h3>');
+  html = html.replace(/^## (.*$)/gim, '<h2 style="font-size:1.15rem; font-weight:700; color:var(--accent); margin:16px 0 8px 0;">$1</h2>');
+  html = html.replace(/^# (.*$)/gim, '<h1 style="font-size:1.3rem; font-weight:800; color:var(--accent); margin:20px 0 10px 0; border-bottom:1px solid var(--border-color); padding-bottom:4px;">$1</h1>');
+
+  // Bold (**text** or __text__)
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight:700; color:var(--text-primary);">$1</strong>');
+  html = html.replace(/__(.*?)__/g, '<strong style="font-weight:700; color:var(--text-primary);">$1</strong>');
+
+  // Italic (*text* or _text_)
+  html = html.replace(/\*(.*?)\*/g, '<em style="font-style:italic;">$1</em>');
+  html = html.replace(/_(.*?)_/g, '<em style="font-style:italic;">$1</em>');
+
+  // Inline Code (`code`)
+  html = html.replace(/`(.*?)`/g, '<code style="background:rgba(255,255,255,0.06); padding:2px 5px; border-radius:4px; font-family:\'JetBrains Mono\', monospace; font-size:0.82rem; color:var(--accent); border:1px solid var(--border-color);">$1</code>');
+
+  // Blockquotes (starts with >)
+  html = html.replace(/^\s*&gt;\s+(.*$)/gim, '<blockquote style="border-left:3px solid var(--accent); padding:4px 0 4px 12px; margin:10px 0; color:var(--text-secondary); background:rgba(255,255,255,0.01); font-style:italic;">$1</blockquote>');
+
+  // Unordered Lists (unordered lists starting with - or *)
+  html = html.replace(/^\s*[-\*]\s+(.*$)/gim, '<ul style="list-style-type:disc; padding-left:20px; margin:6px 0;">\n<li style="margin-bottom:3px;">$1</li>\n</ul>');
+  // Combine adjacent list tags
+  html = html.replace(/<\/ul>\s*<ul style="list-style-type:disc; padding-left:20px; margin:6px 0;">/g, '');
+
+  // Line breaks
+  html = html.replace(/\n/g, '<br />');
+
+  return html;
+}
 
 export const NotesModule = {
   activeNoteId: null,
@@ -36,6 +80,32 @@ export const NotesModule = {
         if (this.activeNoteId && confirm('Delete this note permanent?')) {
           this.handleDeleteNote();
         }
+      });
+    }
+
+    // Bind Edit/Preview tabs
+    const writeTab = document.getElementById('note-tab-write');
+    const previewTab = document.getElementById('note-tab-preview');
+    const bodyTextarea = document.getElementById('note-body');
+    const previewArea = document.getElementById('note-preview-area');
+
+    if (writeTab && previewTab && bodyTextarea && previewArea) {
+      writeTab.addEventListener('click', () => {
+        writeTab.classList.add('active');
+        previewTab.classList.remove('active');
+        bodyTextarea.style.display = 'block';
+        previewArea.style.display = 'none';
+      });
+
+      previewTab.addEventListener('click', () => {
+        previewTab.classList.add('active');
+        writeTab.classList.remove('active');
+        bodyTextarea.style.display = 'none';
+        
+        // Parse markdown to HTML and show
+        const parsedHtml = parseMarkdown(bodyTextarea.value);
+        previewArea.innerHTML = parsedHtml;
+        previewArea.style.display = 'block';
       });
     }
   },
@@ -116,6 +186,21 @@ export const NotesModule = {
     }
   },
 
+  resetTabs() {
+    const writeTab = document.getElementById('note-tab-write');
+    const previewTab = document.getElementById('note-tab-preview');
+    const bodyTextarea = document.getElementById('note-body');
+    const previewArea = document.getElementById('note-preview-area');
+
+    if (writeTab && previewTab && bodyTextarea && previewArea) {
+      writeTab.classList.add('active');
+      previewTab.classList.remove('active');
+      bodyTextarea.style.display = 'block';
+      previewArea.style.display = 'none';
+      previewArea.innerHTML = '';
+    }
+  },
+
   initNewNote() {
     this.activeNoteId = null;
     document.getElementById('note-title').value = '';
@@ -128,6 +213,8 @@ export const NotesModule = {
 
     // Deselect sidebar items
     document.querySelectorAll('.note-item-link').forEach(link => link.classList.remove('active'));
+
+    this.resetTabs();
   },
 
   async loadNote(id) {
@@ -148,6 +235,8 @@ export const NotesModule = {
           const linkId = link.getAttribute('data-id');
           link.classList.toggle('active', linkId === id);
         });
+
+        this.resetTabs();
       }
     } catch (err) {
       console.error('Load note error:', err);
@@ -167,13 +256,16 @@ export const NotesModule = {
 
     const noteData = { id, title, subjectCode, content, tags, date };
 
+    // Instant markdown to HTML layer on save action for notification info
+    const summaryHtml = parseMarkdown(content.slice(0, 150) + '...');
+
     try {
       if (this.activeNoteId) {
         await Database.put('notes', noteData);
-        NotificationService.show('Note Saved', 'Notebook page was saved.', 'success');
+        NotificationService.show('Note Saved', 'Notebook page was saved with parsed markdown structures.', 'success');
       } else {
         await Database.add('notes', noteData);
-        NotificationService.show('Note Created', 'Logged a new notebook page.', 'success');
+        NotificationService.show('Note Created', 'Logged a new notebook page with parsed markdown structures.', 'success');
         this.activeNoteId = id;
       }
 
