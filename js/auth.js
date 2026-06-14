@@ -31,6 +31,12 @@ export const Auth = {
    * @returns {boolean}
    */
   verifyPin(pin, storedHash) {
+    if (typeof pin !== 'string' || typeof storedHash !== 'string') {
+      return false;
+    }
+    if (pin.length !== 4) {
+      return false;
+    }
     return this.hashPin(pin) === storedHash;
   },
 

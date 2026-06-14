@@ -137,17 +137,79 @@ const App = {
 
         try {
           const allUsers = await Database.getAll('users');
-          const user = allUsers.find(u =>
+          let user = allUsers.find(u =>
             u.name.toLowerCase() === identifier.toLowerCase() ||
             (u.studentId || '').toLowerCase() === identifier.toLowerCase()
           );
+
+          let fromCloud = false;
+
+          // If user is not found locally, query remote Firestore collection 'users'
+          if (!user) {
+            const db = window.__firestore;
+            const fns = window.__firebaseSDK;
+            if (db && fns) {
+              const { collection, query, where, getDocs } = fns;
+              
+              const lower = identifier.toLowerCase();
+              const upper = identifier.toUpperCase();
+              const title = identifier.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+              const searchValues = Array.from(new Set([identifier, lower, upper, title]));
+              
+              const queries = [];
+              for (const val of searchValues) {
+                queries.push(getDocs(query(collection(db, 'users'), where('name', '==', val))));
+                queries.push(getDocs(query(collection(db, 'users'), where('studentId', '==', val))));
+              }
+              
+              const snapshots = await Promise.all(queries);
+              for (const snap of snapshots) {
+                if (!snap.empty) {
+                  user = snap.docs[0].data();
+                  fromCloud = true;
+                  break;
+                }
+              }
+            }
+          }
 
           if (!user || !Auth.verifyPin(pin, user.pinHash)) {
             NotificationService.show('Sign In Failed', 'Incorrect name/Reg. No. or PIN.', 'error');
             return;
           }
 
-          Auth.setSession(user.userId, rememberMe);
+          if (fromCloud) {
+            // Write user back into local IndexedDB 'users' and 'students' stores
+            await Database.put('users', user);
+            await Database.put('students', {
+              id: 'profile',
+              userId: user.userId,
+              name: user.name,
+              university: user.university || 'Rajarata University of Sri Lanka',
+              faculty: user.faculty || 'Faculty of Applied Sciences',
+              degree: user.course || '',
+              admissionYear: user.admissionYear || '2024',
+              currentSemester: user.currentSemester || '1-1'
+            });
+
+            // Set session
+            Auth.setSession(user.userId, rememberMe);
+
+            // Instantly invoke checkAndRestoreFromCloud()
+            NotificationService.show('Restoring Profile', 'Restoring your cloud data...', 'info');
+            try {
+              const restored = await checkAndRestoreFromCloud();
+              if (restored) {
+                window.location.reload();
+                return;
+              }
+            } catch (restoreErr) {
+              console.error('Cloud restore failed during login recovery:', restoreErr);
+            }
+          } else {
+            Auth.setSession(user.userId, rememberMe);
+          }
+
           const authOverlay = document.getElementById('auth-overlay');
           if (authOverlay) authOverlay.classList.remove('active');
 
