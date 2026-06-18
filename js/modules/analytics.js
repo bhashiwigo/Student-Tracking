@@ -9,6 +9,15 @@
 import { Database } from '../database/db.js';
 import { GPAModule } from './gpa.js';
 
+const getCleanSubmoduleLabel = (sub, rawParents) => {
+  if (!sub) return 'CORE - Unknown';
+  const parentCode = sub.parentSubjectCode;
+  const parentExists = parentCode && (rawParents || []).some(p => p.code === parentCode);
+  const code = parentExists ? parentCode : 'CORE';
+  const title = sub.name || sub.moduleTitle || 'Unknown';
+  return `${code} - ${title}`;
+};
+
 let dashboardGPATrendChart    = null;
 let dashboardAssignmentsChart = null;
 let dashboardBalanceChart     = null;
@@ -107,11 +116,15 @@ export const AnalyticsModule = {
     // Intercept predictor dropdown changes
     const selectPredictor = document.getElementById('predictor-subject-select');
     const gradePredictor = document.getElementById('predictor-grade-select');
+    const recGradeCheckbox = document.getElementById('predictor-use-recommended-grade');
     if (selectPredictor) {
       selectPredictor.addEventListener('change', () => this.updatePredictorHUD());
     }
     if (gradePredictor) {
       gradePredictor.addEventListener('change', () => this.updatePredictorHUD());
+    }
+    if (recGradeCheckbox) {
+      recGradeCheckbox.addEventListener('change', () => this.updatePredictorHUD());
     }
 
     // Intercept attendance dropdown changes
@@ -132,7 +145,7 @@ export const AnalyticsModule = {
     try {
       // 1. Setup Runtime Dynamic Accumulators
       const [
-        subjects, attendance, assignments, studyPlans, sports, futureModules, allSettings
+        subjects, attendance, assignments, studyPlans, sports, futureModules, allSettings, practicals, researchProjects, headingsConfig, rawParents
       ] = await Promise.all([
         Database.getAll('subjects'),
         Database.getAll('attendance'),
@@ -141,6 +154,10 @@ export const AnalyticsModule = {
         Database.getAll('sports'),
         Database.getAll('futureModules'),
         Database.getAll('settings'),
+        Database.getAll('practicals'),
+        Database.getAll('researchProject'),
+        Database.get('researchConfig', 'headingsConfig'),
+        Database.getAll('subjects-raw'),
       ]);
 
       const settingsMap = {};
@@ -186,7 +203,7 @@ export const AnalyticsModule = {
         
         if (!listsMatch) {
           attSelect.innerHTML = subjects.map(s => `
-            <option value="${s.code}">${s.code} - ${s.name}</option>
+            <option value="${s.code}">${getCleanSubmoduleLabel(s, rawParents)}</option>
           `).join('');
           
           if (prevVal && subjects.some(s => s.code === prevVal)) {
@@ -272,7 +289,7 @@ export const AnalyticsModule = {
             return `
               <div class="balance-item">
                 <div class="balance-header">
-                  <span>${s.code} - ${s.name}</span>
+                  <span>${getCleanSubmoduleLabel(s, rawParents)}</span>
                   <span>${progress.toFixed(0)}%</span>
                 </div>
                 <div class="balance-bar-bg">
@@ -295,7 +312,7 @@ export const AnalyticsModule = {
         
         if (!listsMatch) {
           selectPredictor.innerHTML = subjects.map(s => `
-            <option value="${s.code}">${s.code} - ${s.name}</option>
+            <option value="${s.code}">${getCleanSubmoduleLabel(s, rawParents)}</option>
           `).join('') || '<option value="">No course units added</option>';
           
           if (prevVal && subjects.some(s => s.code === prevVal)) {
@@ -313,15 +330,26 @@ export const AnalyticsModule = {
           .filter(s => (s.code || '').toUpperCase().includes('BOT'))
           .sort((a, b) => (a.code || '').localeCompare(b.code || ''));
         
+        // Dynamically update the card title to reflect dynamic weights and credit ratios
+        const cardTitleEl = dashboardTrendCanvas.closest('.card')?.querySelector('.card-title span');
+        if (cardTitleEl) {
+          cardTitleEl.innerText = 'Botany Component Tracking (Dynamic Weights & Credits)';
+        }
+
         const labels = botanySubjects.map(s => s.code);
         const theoryData = botanySubjects.map(s => {
           const ca = s.internalMarks?.ca !== undefined ? parseFloat(s.internalMarks.ca) : 0;
           const quiz = s.internalMarks?.quiz !== undefined ? parseFloat(s.internalMarks.quiz) : 0;
-          return (ca + quiz) / 2;
+          const theoryWeight = s.theoryWeight !== undefined ? parseFloat(s.theoryWeight) : 70;
+          const credits = s.credits !== undefined ? parseFloat(s.credits) : 1;
+          const theoryScore = (ca + quiz) / 2;
+          return theoryScore * (theoryWeight / 100) * credits;
         });
         const practicalData = botanySubjects.map(s => {
           const lab = s.internalMarks?.lab !== undefined ? parseFloat(s.internalMarks.lab) : 0;
-          return lab;
+          const practicalWeight = s.practicalWeight !== undefined ? parseFloat(s.practicalWeight) : 30;
+          const credits = s.credits !== undefined ? parseFloat(s.credits) : 1;
+          return lab * (practicalWeight / 100) * credits;
         });
 
         dashboardGPATrendChart = new Chart(dashboardTrendCanvas.getContext('2d'), {
@@ -330,7 +358,7 @@ export const AnalyticsModule = {
             labels: labels,
             datasets: [
               {
-                label: 'Theory Internals',
+                label: 'Weighted Theory Component',
                 data: theoryData,
                 borderColor: getColor('--accent-secondary') || '#00e676',
                 backgroundColor: getColor('--accent-secondary', 0.02) || 'rgba(0, 230, 118, 0.02)',
@@ -340,7 +368,7 @@ export const AnalyticsModule = {
                 pointBackgroundColor: getColor('--accent-secondary') || '#00e676'
               },
               {
-                label: 'Practical Score',
+                label: 'Weighted Practical Component',
                 data: practicalData,
                 borderColor: getColor('--accent'),
                 backgroundColor: getColor('--accent', 0.05),
@@ -351,7 +379,7 @@ export const AnalyticsModule = {
               }
             ]
           },
-          options: this.getChartOptions(100.0)
+          options: this.getChartOptions(null)
         });
       }
 
@@ -404,15 +432,18 @@ export const AnalyticsModule = {
           `;
         } else {
           labContainer.innerHTML = practicalSubjects.map(s => {
-            const labMark = s.internalMarks?.lab !== undefined ? parseFloat(s.internalMarks.lab) : 0;
+            const subjectLabs = (practicals || []).filter(p => p.subjectCode === s.code);
+            const totalLabs = subjectLabs.length;
+            const completedLabs = subjectLabs.filter(p => p.completed === true).length;
+            const percentage = totalLabs > 0 ? Math.round((completedLabs / totalLabs) * 100) : 0;
             return `
               <div class="lab-item">
                 <div class="lab-header" style="display: flex; justify-content: space-between; align-items: center;">
-                  <span>${s.code} - ${s.name}</span>
-                  <span style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 2px 8px; color: #000000; font-weight: 800; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">${labMark.toFixed(0)}%</span>
+                  <span>${getCleanSubmoduleLabel(s, rawParents)}</span>
+                  <span style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 2px 8px; color: #000000; font-weight: 800; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">${percentage}%</span>
                 </div>
                 <div class="lab-bar-bg">
-                  <div class="lab-bar-fill" style="width: ${labMark}%;"></div>
+                  <div class="lab-bar-fill" style="width: ${percentage}%;"></div>
                 </div>
               </div>
             `;
@@ -423,279 +454,65 @@ export const AnalyticsModule = {
       // 6. Bind Section I: "Research Project Roadmap"
       const roadmapContainer = document.querySelector('.roadmap-flowchart');
       if (roadmapContainer) {
-        const milestones = ["Common Project 1", "Lamarck Project", "Research Project 2", "Research Project"];
-        
-        // Fetch verified states from settings
-        const verifiedStates = {};
-        for (const m of milestones) {
-          const settingKey = `roadmap_verified_${m.replace(/\s+/g, '_')}`;
-          const val = await Database.get('settings', settingKey);
-          verifiedStates[m] = val ? val.value : false;
-        }
+        const headings = headingsConfig?.headings || [
+          "Common Project 1",
+          "Lamarck Project",
+          "Research Project 2",
+          "Research Project"
+        ];
 
-        roadmapContainer.innerHTML = milestones.map(m => {
-          const isVerified = verifiedStates[m];
-          const found = assignments.find(a => 
-            (a.title || '').toLowerCase().includes(m.toLowerCase())
-          );
-          
-          let detailsText = 'Pending';
+        const tasks = (researchProjects || []).filter(r => r && r.id !== 'project1');
+
+        roadmapContainer.innerHTML = headings.map(h => {
+          const headingTasks = tasks.filter(t => t.heading === h);
+          let status = 'Pending';
+          if (headingTasks.length > 0) {
+            status = headingTasks.every(t => t.completed) ? 'Completed' : 'In Progress';
+          }
+
+          let detailsText = 'Pending 💤';
           let style = '';
           
-          if (isVerified) {
-            style = `background: rgba(30, 30, 30, 0.65); border: 1px solid rgba(80, 80, 80, 0.5); box-shadow: 0 0 12px rgba(40, 40, 40, 0.8); color: #999999; text-shadow: none; cursor: pointer;`;
-            detailsText = 'Verified ✅';
+          if (status === 'Completed') {
+            style = `background: ${getColor('--success', 0.15)}; border-color: ${getColor('--success')}; box-shadow: 0 0 10px ${getColor('--success', 0.4)}; cursor: pointer;`;
+            detailsText = 'Completed ✅';
+          } else if (status === 'In Progress') {
+            style = `background: ${getColor('--accent', 0.15)}; border-color: ${getColor('--accent')}; box-shadow: 0 0 10px ${getColor('--accent-glow', 0.8) || getColor('--accent', 0.4)}; cursor: pointer;`;
+            detailsText = 'In Progress ⏳';
           } else {
-            if (found) {
-              detailsText = `${found.status} (Due: ${new Date(found.date + 'T00:00:00Z').toLocaleDateString('en-US', { timeZone: 'Asia/Colombo' })})`;
-              if (found.status === 'Completed') {
-                style = `background: ${getColor('--success', 0.15)}; border-color: ${getColor('--success')}; box-shadow: 0 0 10px ${getColor('--success', 0.4)}; cursor: pointer;`;
-              } else if (found.status === 'In Progress') {
-                style = `background: ${getColor('--accent', 0.15)}; border-color: ${getColor('--accent')}; box-shadow: 0 0 10px ${getColor('--accent-glow', 0.8) || getColor('--accent', 0.4)}; cursor: pointer;`;
-              } else {
-                style = `background: rgba(255, 255, 255, 0.05); border-color: var(--border-color); cursor: pointer;`;
-              }
-            } else {
-              style = `background: rgba(6, 21, 29, 0.55); border-color: var(--border-color); cursor: pointer;`;
-            }
+            style = `background: rgba(6, 21, 29, 0.55); border-color: var(--border-color); cursor: pointer;`;
+            detailsText = 'Pending 💤';
           }
 
           return `
-            <div class="roadmap-node" data-milestone="${m}" style="${style}">
-              ${m} <span style="font-size: 0.6rem; opacity: 0.8; font-weight: 500; display: block;">${detailsText}</span>
+            <div class="roadmap-node" data-milestone="${h}" style="${style}">
+              ${h} <span style="font-size: 0.6rem; opacity: 0.8; font-weight: 500; display: block;">${detailsText}</span>
             </div>
           `;
         }).join('');
 
-        // Bind click events
+        // Validation pass loop: immediately append the active class onto node if completed
         roadmapContainer.querySelectorAll('.roadmap-node').forEach(node => {
-          node.addEventListener('click', async () => {
-            const m = node.getAttribute('data-milestone');
-            const settingKey = `roadmap_verified_${m.replace(/\s+/g, '_')}`;
-            const currentVal = verifiedStates[m];
-            const newVal = !currentVal;
-            
-            await Database.put('settings', { key: settingKey, value: newVal });
-            this.render();
+          const milestoneName = node.getAttribute('data-milestone');
+          const headingTasks = tasks.filter(t => t.heading === milestoneName);
+          const isAllCompleted = headingTasks.length > 0 && headingTasks.every(t => t.completed);
+
+          if (isAllCompleted) {
+            node.classList.add('active');
+          } else {
+            node.classList.remove('active');
+          }
+
+          node.addEventListener('click', () => {
+            const navLink = document.querySelector('.nav-link[data-target="research"]');
+            if (navLink) {
+              navLink.click();
+            }
           });
         });
       }
 
-      // 7. Bind Section J: "Future Module Customizer Tracker"
-      const futureCard = document.getElementById('future-module-tracker-card');
-      const futureContainer = document.getElementById('future-module-tracker-container');
-      if (futureCard && futureContainer) {
-        if (!futureModules || futureModules.length === 0) {
-          futureCard.style.display = 'none';
-          futureContainer.innerHTML = '';
-        } else {
-          futureCard.style.display = 'flex';
-          futureContainer.innerHTML = futureModules.map(m => {
-            let cardClass = 'future-module-card';
-            let labelType = '';
-            let accentColor = '';
-            
-            // Build checkpoints dynamically based on choices
-            const checkpoints = [];
-            if (m.focus === 'Botany Focus') {
-              cardClass += ' botany-focus';
-              accentColor = 'var(--accent)';
-              labelType = 'Future Botany Module';
-              if (m.enableLab) {
-                checkpoints.push({ key: 'bot_lab_1', label: 'Botany Slide Prep' });
-                checkpoints.push({ key: 'bot_lab_2', label: 'Herbarium Mount' });
-              }
-              if (m.enableField) {
-                checkpoints.push({ key: 'bot_field_1', label: 'Quadrat Plot Prep' });
-                checkpoints.push({ key: 'bot_field_2', label: 'Flora Field Log' });
-              }
-              if (m.enableCA) {
-                checkpoints.push({ key: 'bot_ca_1', label: 'CA Theory Quiz' });
-              }
-            } else if (m.focus === 'Zoology Focus') {
-              cardClass += ' zoology-focus';
-              accentColor = 'var(--accent-secondary)';
-              labelType = 'Future Zoology Module';
-              if (m.enableLab) {
-                checkpoints.push({ key: 'zoo_lab_1', label: 'Lab Anatomy Draw 1' });
-                checkpoints.push({ key: 'zoo_lab_2', label: 'Lab Anatomy Draw 2' });
-              }
-              if (m.enableField) {
-                checkpoints.push({ key: 'zoo_field_1', label: 'Specimen Anatomy Log' });
-                checkpoints.push({ key: 'zoo_field_2', label: 'Dissection Slide Chart' });
-              }
-              if (m.enableCA) {
-                checkpoints.push({ key: 'zoo_ca_1', label: 'Anatomy Spot Test' });
-              }
-            } else {
-              cardClass += ' general-focus';
-              accentColor = 'var(--text-muted)';
-              labelType = 'General Core Module';
-              if (m.enableLab) {
-                checkpoints.push({ key: 'gen_lab_1', label: 'Core Lab Experiment' });
-              }
-              if (m.enableField) {
-                checkpoints.push({ key: 'gen_field_1', label: 'Field Study Task' });
-              }
-              if (m.enableCA) {
-                checkpoints.push({ key: 'gen_ca_1', label: 'CA Test Paper' });
-              }
-            }
 
-            // Calculate completion percentage
-            let completedCount = 0;
-            checkpoints.forEach(cp => {
-              const cpKey = `future_cp_${m.id}_${cp.key}`;
-              cp.completed = settingsMap[cpKey] === true;
-              if (cp.completed) {
-                completedCount++;
-              }
-            });
-            const totalCount = checkpoints.length;
-            const completionPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-            // Render interactive UI nodes / badges based on type
-            let trackingAreaHTML = '';
-            if (m.focus === 'Botany Focus' && totalCount > 0) {
-              trackingAreaHTML = `
-                <div class="botany-timeline-container" style="margin-top: 8px; width: 100%;">
-                  <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">Botany Progress Timeline</div>
-                  <div class="botany-timeline" style="display: flex; align-items: center; justify-content: space-between; position: relative; padding: 0 10px;">
-                    <div style="position: absolute; top: 12px; left: 10px; right: 10px; height: 2px; background: rgba(255,255,255,0.08); z-index: 1;">
-                      <div style="width: ${completionPct}%; height: 100%; background: var(--accent); transition: width 0.4s ease;"></div>
-                    </div>
-                    ${checkpoints.map((cp, idx) => {
-                      const activeStyle = cp.completed 
-                        ? `background: var(--accent); border-color: var(--accent); color: #000000; box-shadow: 0 0 8px var(--accent);`
-                        : `background: var(--bg-card); border-color: var(--border-color); color: var(--text-muted);`;
-                      return `
-                        <div class="botany-node-btn" data-future-id="${m.id}" data-cp-key="${cp.key}" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 800; cursor: pointer; z-index: 2; transition: all 0.3s; ${activeStyle}" title="${cp.label} (${cp.completed ? 'Completed' : 'Pending'})">
-                          ${idx + 1}
-                        </div>
-                      `;
-                    }).join('')}
-                  </div>
-                  <div style="display: flex; justify-content: space-between; font-size: 0.6rem; color: var(--text-muted); margin-top: 6px; padding: 0 5px;">
-                    <span>Start</span>
-                    <span style="color: var(--text-secondary); font-weight: 600;">${completionPct}% Done</span>
-                    <span>Target</span>
-                  </div>
-                </div>
-              `;
-            } else if (m.focus === 'Zoology Focus' && totalCount > 0) {
-              trackingAreaHTML = `
-                <div style="margin-top: 8px;">
-                  <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px;">Practical Drawings Checkpoints</div>
-                  <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                    ${checkpoints.map(cp => {
-                      const badgeStyle = cp.completed
-                        ? `background: var(--accent-secondary); color: #000000; border-color: var(--accent-secondary); box-shadow: 0 0 6px var(--accent-secondary-glow);`
-                        : `background: rgba(255, 255, 255, 0.05); border-color: var(--border-color); color: var(--text-muted);`;
-                      return `
-                        <span class="badge zoology-node-btn" data-future-id="${m.id}" data-cp-key="${cp.key}" style="font-size: 0.65rem; padding: 3px 8px; border-radius: 4px; border: 1px solid; cursor: pointer; transition: all 0.2s; ${badgeStyle}">
-                          ${cp.label} ${cp.completed ? '✓' : '○'}
-                        </span>
-                      `;
-                    }).join('')}
-                  </div>
-                </div>
-              `;
-            } else if (totalCount > 0) {
-              trackingAreaHTML = `
-                <div style="margin-top: 8px;">
-                  <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px;">Checkpoints</div>
-                  <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                    ${checkpoints.map(cp => {
-                      const badgeStyle = cp.completed
-                        ? `background: var(--text-primary); color: var(--bg-app); border-color: var(--text-primary);`
-                        : `background: rgba(255, 255, 255, 0.03); border-color: var(--border-color); color: var(--text-muted);`;
-                      return `
-                        <span class="badge general-node-btn" data-future-id="${m.id}" data-cp-key="${cp.key}" style="font-size: 0.65rem; padding: 3px 8px; border-radius: 4px; border: 1px solid; cursor: pointer; transition: all 0.2s; ${badgeStyle}">
-                          ${cp.label} ${cp.completed ? '✓' : '○'}
-                        </span>
-                      `;
-                    }).join('')}
-                  </div>
-                </div>
-              `;
-            }
-
-            return `
-              <div class="card col-6 ${cardClass}">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                  <h3 style="font-size: 0.95rem; font-weight: 800; color: ${accentColor}; margin: 0;">${m.code} - ${labelType}</h3>
-                  <span style="font-size: 0.72rem; color: var(--text-muted);">Sem: ${m.semester}</span>
-                </div>
-                
-                <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
-                  ${m.enableCA ? `
-                  <div style="display: flex; align-items: center; gap: 12px;">
-                    <div class="radial-ring-container" style="width: 45px; height: 45px; flex-shrink: 0; min-height: auto; margin: 0;">
-                      <svg class="radial-ring" viewBox="0 0 100 100" style="width: 100%; height: 100%;">
-                        <circle class="ring-bg" cx="50" cy="50" r="40" />
-                        <circle class="ring-fill" cx="50" cy="50" r="40" style="stroke-dasharray: 251.2; stroke-dashoffset: ${251.2 - (251.2 * completionPct) / 100}; stroke: ${accentColor};" />
-                      </svg>
-                      <div class="radial-ring-value" style="font-size: 0.72rem; color: var(--text-primary);">${completionPct}%</div>
-                    </div>
-                    <div>
-                      <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-primary);">CA Target Ring</div>
-                      <div style="font-size: 0.65rem; color: var(--text-secondary);">Continuous Assessment</div>
-                    </div>
-                  </div>
-                  ` : ''}
-                  
-                  ${m.enableLab ? `
-                  <div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                      <span style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">${m.focus === 'Zoology Focus' ? 'Practical Anatomy Completion' : 'Practical Labs'}</span>
-                      <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-primary);">${completionPct}%</span>
-                    </div>
-                    <div style="height: 6px; background: var(--border-color); border-radius: 4px; overflow: hidden;">
-                      <div style="width: ${completionPct}%; height: 100%; background: ${accentColor}; border-radius: 4px; transition: width 0.4s ease;"></div>
-                    </div>
-                  </div>
-                  ` : ''}
-
-                  ${trackingAreaHTML}
-                </div>
-                
-                <button type="button" class="btn-outline btn-sm delete-future-btn" data-id="${m.id}" style="margin-top: auto; border-color: var(--danger); color: var(--danger); font-size: 0.65rem; padding: 4px 8px; width: fit-content; align-self: flex-end;">
-                  Remove Card
-                </button>
-              </div>
-            `;
-          }).join('');
-
-          // Bind delete buttons
-          futureContainer.querySelectorAll('.delete-future-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-              const id = btn.getAttribute('data-id');
-              if (confirm('Remove this future module tracking card?')) {
-                try {
-                  await Database.delete('futureModules', id);
-                  this.render();
-                } catch (err) {
-                  console.error(err);
-                }
-              }
-            });
-          });
-
-          // Bind checkpoint buttons for botany, zoology, and general core
-          futureContainer.querySelectorAll('.botany-node-btn, .zoology-node-btn, .general-node-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-              const futureId = btn.getAttribute('data-future-id');
-              const cpKey = btn.getAttribute('data-cp-key');
-              const settingKey = `future_cp_${futureId}_${cpKey}`;
-              const currentVal = settingsMap[settingKey] === true;
-              const newVal = !currentVal;
-              
-              await Database.put('settings', { key: settingKey, value: newVal });
-              this.render();
-            });
-          });
-        }
-      }
 
       // 2b. Assignments status doughnut
       const dashAssignCanvas = document.getElementById('chart-dashboard-assignments');
@@ -984,13 +801,62 @@ export const AnalyticsModule = {
       const sub = await Database.get('subjects', code);
       if (!sub) return;
 
+      // Pull real marks, suppressing 0 defaults by querying practicals store for fallback if lab is 0
+      const ca = sub.internalMarks?.ca !== undefined ? parseFloat(sub.internalMarks.ca) : 0;
+      const quiz = sub.internalMarks?.quiz !== undefined ? parseFloat(sub.internalMarks.quiz) : 0;
+      
+      let lab = sub.internalMarks?.lab !== undefined ? parseFloat(sub.internalMarks.lab) : 0;
+      if (lab === 0) {
+        const practicals = await Database.getAll('practicals');
+        const relatedLabs = practicals.filter(p => p.subjectCode === code);
+        const completedLabs = relatedLabs.filter(p => p.completed === true).length;
+        if (relatedLabs.length > 0) {
+          lab = Math.round((completedLabs / relatedLabs.length) * 100);
+        }
+      }
+
+      // Sample past results to recommend realistic target grade
+      const allSubjects = await Database.getAll('subjects');
+      const completedSubjects = allSubjects.filter(s => s.grade);
+      const gradesOrdered = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D'];
+      let recommendedGrade = 'A-'; // default fallback
+      
+      if (completedSubjects.length > 0) {
+        const completedThresholds = completedSubjects.map(s => RUSL_GRADE_BOUNDARIES[s.grade] || 40);
+        completedThresholds.sort((a, b) => a - b);
+        let medianThreshold;
+        const mid = Math.floor(completedThresholds.length / 2);
+        if (completedThresholds.length % 2 !== 0) {
+          medianThreshold = completedThresholds[mid];
+        } else {
+          medianThreshold = (completedThresholds[mid - 1] + completedThresholds[mid]) / 2;
+        }
+        
+        let bestGrade = 'D';
+        for (const g of gradesOrdered) {
+          const boundary = RUSL_GRADE_BOUNDARIES[g];
+          if (boundary && medianThreshold >= boundary) {
+            bestGrade = g;
+            break;
+          }
+        }
+        recommendedGrade = bestGrade;
+      }
+
+      // Update recommended grade UI elements
+      const recGradeLabel = document.getElementById('predictor-recommended-grade-label');
+      if (recGradeLabel) recGradeLabel.innerText = recommendedGrade;
+
+      const useRecCheckbox = document.getElementById('predictor-use-recommended-grade');
+      if (useRecCheckbox && useRecCheckbox.checked) {
+        gradeSelect.value = recommendedGrade;
+      }
+
+      const targetGrade = gradeSelect.value || 'A';
       const theoryWeight = sub.theoryWeight !== undefined ? parseFloat(sub.theoryWeight) : 70;
       const practicalWeight = sub.practicalWeight !== undefined ? parseFloat(sub.practicalWeight) : 30;
-      const ca = (sub.internalMarks && sub.internalMarks.ca) !== undefined ? parseFloat(sub.internalMarks.ca) : 0;
-      const quiz = (sub.internalMarks && sub.internalMarks.quiz) !== undefined ? parseFloat(sub.internalMarks.quiz) : 0;
-      const lab = (sub.internalMarks && sub.internalMarks.lab) !== undefined ? parseFloat(sub.internalMarks.lab) : 0;
 
-      // Update HUD elements
+      // Update basic fields
       const theoryWeightEl = document.getElementById('predictor-theory-weight');
       const practicalWeightEl = document.getElementById('predictor-practical-weight');
       const caValEl = document.getElementById('predictor-ca-val');
@@ -1004,23 +870,73 @@ export const AnalyticsModule = {
       if (caValEl) caValEl.innerText = ca;
       if (quizValEl) quizValEl.innerText = quiz;
       if (labValEl) labValEl.innerText = lab;
-
-      const targetGrade = gradeSelect.value || 'A';
       if (resGradeEl) resGradeEl.innerText = targetGrade;
 
+      // Live GPA Shift Forecasting
+      const originalStats = await GPAModule.calculateGPAs(allSubjects);
+      const originalSem = originalStats.currentSemester || 0.00;
+      const originalCum = originalStats.overall || 0.00;
+
+      const simulatedSubjects = allSubjects.map(s => {
+        if (s.code === code) {
+          return { ...s, grade: targetGrade };
+        }
+        return s;
+      });
+      const simulatedStats = await GPAModule.calculateGPAs(simulatedSubjects);
+      const simulatedSem = simulatedStats.currentSemester || 0.00;
+      const simulatedCum = simulatedStats.overall || 0.00;
+
+      const simImpactEl = document.getElementById('predictor-simulation-impact');
+      if (simImpactEl) {
+        simImpactEl.innerHTML = `<span style="color: var(--text-secondary);">Simulated Impact:</span><br>Sem GPA: ${originalSem.toFixed(2)} ➔ <span style="color: var(--accent);">${simulatedSem.toFixed(2)}</span><br>CGPA: ${originalCum.toFixed(2)} ➔ <span style="color: var(--accent);">${simulatedCum.toFixed(2)}</span>`;
+      }
+
+      // Calculate required exam marks for target grade & maximum achievable score
       const targetThreshold = RUSL_GRADE_BOUNDARIES[targetGrade] || 85;
       const requiredExamScore = this.calculateRequiredExam(targetThreshold, theoryWeight, practicalWeight, ca, quiz, lab);
+      
+      const W_T = theoryWeight / 100;
+      const W_P = practicalWeight / 100;
+      const theoryInternal = (ca + quiz) / 2;
+      const practicalScore = lab;
+      const S_max = W_T * (0.2 * theoryInternal + 80) + W_P * practicalScore;
+
+      let maxAchievableGrade = 'E';
+      for (const g of gradesOrdered) {
+        const boundary = RUSL_GRADE_BOUNDARIES[g];
+        if (boundary && S_max >= boundary) {
+          maxAchievableGrade = g;
+          break;
+        }
+      }
 
       if (resReqEl) {
-        if (requiredExamScore === 'Impossible') {
-          resReqEl.innerText = 'Impossible 🚫';
-          resReqEl.style.color = '#f43f5e';
-        } else if (requiredExamScore === 'Already Achieved') {
-          resReqEl.innerText = 'Achieved 🎉';
-          resReqEl.style.color = getColor('--success') || '#00e676';
+        const parent = resReqEl.parentElement;
+        if (requiredExamScore === 'Impossible' || requiredExamScore > 100) {
+          if (parent) {
+            parent.style.flexDirection = 'column';
+            parent.style.alignItems = 'stretch';
+            parent.style.background = 'rgba(255, 23, 68, 0.08)';
+            parent.style.borderColor = 'rgba(255, 23, 68, 0.2)';
+            parent.style.padding = '8px';
+          }
+          resReqEl.innerHTML = `<span style="font-size: 0.58rem; color: #ff1744; font-weight: 700; line-height: 1.3; text-align: left; display: block;">Target Mathematical Impossibility. Max Achievable Grade based on current CA bounds is ${maxAchievableGrade}</span>`;
         } else {
-          resReqEl.innerText = `${requiredExamScore.toFixed(1)}%`;
-          resReqEl.style.color = '#ffffff';
+          if (parent) {
+            parent.style.flexDirection = 'row';
+            parent.style.alignItems = 'center';
+            parent.style.background = 'rgba(0, 229, 255, 0.08)';
+            parent.style.borderColor = 'rgba(0, 229, 255, 0.15)';
+            parent.style.padding = '4px 8px';
+          }
+          if (requiredExamScore === 'Already Achieved') {
+            resReqEl.innerText = 'Achieved 🎉';
+            resReqEl.style.color = getColor('--success') || '#00e676';
+          } else {
+            resReqEl.innerText = `${requiredExamScore.toFixed(1)}%`;
+            resReqEl.style.color = '#ffffff';
+          }
         }
       }
 
@@ -1033,7 +949,7 @@ export const AnalyticsModule = {
           const req = this.calculateRequiredExam(threshold, theoryWeight, practicalWeight, ca, quiz, lab);
           let text = 'N/A';
           let textColor = 'var(--text-secondary)';
-          if (req === 'Impossible') {
+          if (req === 'Impossible' || req > 100) {
             text = 'N/A';
             textColor = 'rgba(255,255,255,0.2)';
           } else if (req === 'Already Achieved') {

@@ -53,28 +53,38 @@ export const PracticalsModule = {
         return;
       }
 
-      container.innerHTML = practicals.map(pr => `
-        <div class="card col-6">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-              <span class="badge" style="background-color: var(--accent-glow); color: var(--accent); margin-bottom: 6px; display: inline-block;">Lab: ${pr.labName || 'N/A'}</span>
-              <h3 style="font-size: 1.1rem; font-weight: 700;">${pr.name}</h3>
-              <h4 style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin-top: 2px;">Subject: ${pr.subjectCode}</h4>
+      container.innerHTML = practicals.map(pr => {
+        const completed = pr.completed === true;
+        return `
+          <div class="card col-6">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <span class="badge" style="background-color: var(--accent-glow); color: var(--accent); margin-bottom: 6px; display: inline-block;">Lab: ${pr.labName || 'N/A'}</span>
+                <h3 style="font-size: 1.1rem; font-weight: 700;">${pr.name}</h3>
+                <h4 style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin-top: 2px;">Subject: ${pr.subjectCode}</h4>
+              </div>
+            </div>
+            
+            <div style="font-size: 0.8rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 4px;">
+              <span><strong>Date & Time:</strong> ${pr.date} @ ${pr.time}</span>
+              <span><strong>Required Materials:</strong> ${pr.materials || 'None listed'}</span>
+              <span><strong>Lab Notes:</strong> ${pr.notes || 'No notes added'}</span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 6px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px;">
+              <input type="checkbox" class="toggle-practical-status" data-id="${pr.id}" ${completed ? 'checked' : ''} style="width: 14px; height: 14px; cursor: pointer; accent-color: var(--accent); margin: 0;">
+              <label style="font-size: 0.75rem; font-weight: 700; color: ${completed ? 'var(--text-muted)' : 'var(--text-primary)'}; text-decoration: ${completed ? 'line-through' : 'none'}; cursor: pointer; margin: 0; user-select: none;">
+                ${completed ? 'Verified / Completed' : 'Mark as Verified / Completed'}
+              </label>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+              <button class="btn-outline btn-sm edit-prac-btn" data-id="${pr.id}" style="flex: 1; padding: 4px 8px; font-size: 0.75rem;">Edit</button>
+              <button class="btn-outline btn-sm delete-prac-btn" data-id="${pr.id}" style="border-color: var(--danger); color: var(--danger); padding: 4px 8px; font-size: 0.75rem;">Delete</button>
             </div>
           </div>
-          
-          <div style="font-size: 0.8rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 4px;">
-            <span><strong>Date & Time:</strong> ${pr.date} @ ${pr.time}</span>
-            <span><strong>Required Materials:</strong> ${pr.materials || 'None listed'}</span>
-            <span><strong>Lab Notes:</strong> ${pr.notes || 'No notes added'}</span>
-          </div>
-
-          <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <button class="btn-outline btn-sm edit-prac-btn" data-id="${pr.id}" style="flex: 1; padding: 4px 8px; font-size: 0.75rem;">Edit</button>
-            <button class="btn-outline btn-sm delete-prac-btn" data-id="${pr.id}" style="border-color: var(--danger); color: var(--danger); padding: 4px 8px; font-size: 0.75rem;">Delete</button>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
 
       // Bind edits
       container.querySelectorAll('.edit-prac-btn').forEach(btn => {
@@ -90,6 +100,26 @@ export const PracticalsModule = {
           const id = btn.getAttribute('data-id');
           if (confirm('Delete practical class schedule entry?')) {
             this.handleDeletePractical(id);
+          }
+        });
+      });
+
+      // Bind check-handlers to toggle status completed/pending
+      container.querySelectorAll('.toggle-practical-status').forEach(chk => {
+        chk.addEventListener('change', async () => {
+          const id = chk.getAttribute('data-id');
+          const isChecked = chk.checked;
+          try {
+            const pr = await Database.get('practicals', id);
+            if (pr) {
+              pr.completed = isChecked;
+              await Database.put('practicals', pr);
+              NotificationService.show('Practical Updated', `Practical session marked as ${isChecked ? 'Completed' : 'Pending'}.`, 'success');
+              this.render();
+              window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+            }
+          } catch (err) {
+            console.error('Toggle practical status failed:', err);
           }
         });
       });
@@ -156,9 +186,17 @@ export const PracticalsModule = {
       return;
     }
 
-    const practicalData = { id, name, subjectCode, labName, date, time, materials, notes };
-
     try {
+      let completed = false;
+      if (mode === 'edit') {
+        const existing = await Database.get('practicals', id);
+        if (existing) {
+          completed = existing.completed ?? false;
+        }
+      }
+
+      const practicalData = { id, name, subjectCode, labName, date, time, materials, notes, completed };
+
       if (mode === 'add') {
         await Database.add('practicals', practicalData);
         NotificationService.show('Practical Class Scheduled', `${name} scheduled for ${date}.`, 'practical');
@@ -170,6 +208,7 @@ export const PracticalsModule = {
       this.closeModal();
       this.render();
       window.dispatchEvent(new CustomEvent('calendarItemsUpdated'));
+      window.dispatchEvent(new CustomEvent('subjectsUpdated'));
 
     } catch (err) {
       console.error('Save practical failed:', err);
@@ -182,6 +221,7 @@ export const PracticalsModule = {
       NotificationService.show('Practical Session Deleted', 'Practical session removed.', 'warning');
       this.render();
       window.dispatchEvent(new CustomEvent('calendarItemsUpdated'));
+      window.dispatchEvent(new CustomEvent('subjectsUpdated'));
     } catch (err) {
       console.error('Delete practical failed:', err);
     }

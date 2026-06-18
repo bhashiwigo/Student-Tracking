@@ -7,6 +7,15 @@
 import { Database } from '../database/db.js';
 import { NotificationService } from '../services/notifications.js';
 
+const getCleanSubmoduleLabel = (sub, rawParents) => {
+  if (!sub) return 'CORE - Unknown';
+  const parentCode = sub.parentSubjectCode;
+  const parentExists = parentCode && (rawParents || []).some(p => p.code === parentCode);
+  const code = parentExists ? parentCode : 'CORE';
+  const title = sub.name || sub.moduleTitle || 'Unknown';
+  return `${code} - ${title}`;
+};
+
 // Default RUSL Grade Point mappings
 const DEFAULT_GRADE_MAP = {
   'A+': 4.00, 'A': 4.00, 'A-': 3.70,
@@ -106,6 +115,13 @@ export const GPAModule = {
       });
     }
 
+    const predictorUseRecGrade = document.getElementById('predictor-use-recommended-grade');
+    if (predictorUseRecGrade) {
+      predictorUseRecGrade.addEventListener('change', () => {
+        this.updatePredictorHUD();
+      });
+    }
+
     // Bind Target CGPA Input for Matrix calculations
     const matrixTargetInput = document.getElementById('gpa-matrix-target-input');
     if (matrixTargetInput) {
@@ -139,12 +155,15 @@ export const GPAModule = {
     if (!tableBody) return;
 
     try {
-      const subjects = await Database.getAll('subjects');
+      const [subjects, rawParents] = await Promise.all([
+        Database.getAll('subjects'),
+        Database.getAll('subjects-raw')
+      ]);
       
       // Update subject selector inside GPA module
       if (selectSubject) {
         selectSubject.innerHTML = subjects.map(s => `
-          <option value="${s.code}">${s.code} - ${s.name} (${s.credits} Credits)</option>
+          <option value="${s.code}">${getCleanSubmoduleLabel(s, rawParents)} (${s.credits} Credits)</option>
         `).join('') || '<option value="">No course units added</option>';
       }
 
@@ -153,7 +172,7 @@ export const GPAModule = {
       if (selectPredictor) {
         const prevVal = selectPredictor.value;
         selectPredictor.innerHTML = subjects.map(s => `
-          <option value="${s.code}">${s.code} - ${s.name}</option>
+          <option value="${s.code}">${getCleanSubmoduleLabel(s, rawParents)}</option>
         `).join('') || '<option value="">No course units added</option>';
         
         if (prevVal && subjects.some(s => s.code === prevVal)) {
@@ -195,9 +214,11 @@ export const GPAModule = {
           ? `cursor: pointer; text-decoration: underline; text-underline-offset: 3px; color: var(--accent);`
           : `color: var(--text-primary);`;
 
+        const parentCode = sub.parentSubjectCode && (rawParents || []).some(p => p.code === sub.parentSubjectCode) ? sub.parentSubjectCode : 'CORE';
+
         return `
           <tr style="border-bottom: 1px solid var(--border-color); font-size: 0.85rem;">
-            <td style="padding: 12px 8px;"><strong>${sub.code}</strong><br><span style="font-size:0.75rem; color:var(--text-secondary);">${sub.name}</span></td>
+            <td style="padding: 12px 8px;"><strong>${parentCode}</strong><br><span style="font-size:0.75rem; color:var(--text-secondary);">${sub.name}</span></td>
             <td style="padding: 12px 8px; text-align: center;">${sub.credits}</td>
             <td class="sim-clickable-grade" data-code="${sub.code}" style="padding: 12px 8px; text-align: center; font-weight: 700; ${gradeStyle}">${gradeVal}</td>
             <td style="padding: 12px 8px; text-align: center;">${points}</td>
@@ -242,7 +263,7 @@ export const GPAModule = {
       this.updateMatrix();
 
       // Populate Simulator dropdown
-      this.populateSimulatorDropdown(subjects);
+      this.populateSimulatorDropdown(subjects, rawParents);
 
     } catch (err) {
       console.error('GPA render failed:', err);
@@ -428,7 +449,7 @@ export const GPAModule = {
     }
   },
 
-  populateSimulatorDropdown(subjects) {
+  populateSimulatorDropdown(subjects, rawParents) {
     const simSelect = document.getElementById('sim-subject-select');
     if (!simSelect) return;
 
@@ -443,7 +464,7 @@ export const GPAModule = {
 
     const prevVal = simSelect.value;
     simSelect.innerHTML = targetSubjects.map(s => `
-      <option value="${s.code}">${s.code} - ${s.name} (Current: ${s.grade})</option>
+      <option value="${s.code}">${getCleanSubmoduleLabel(s, rawParents)} (Current: ${s.grade})</option>
     `).join('');
 
     if (prevVal && targetSubjects.some(s => s.code === prevVal)) {
@@ -541,18 +562,66 @@ export const GPAModule = {
     if (!subSelect || !gradeSelect) return;
     
     const code = subSelect.value;
-    const targetGrade = gradeSelect.value;
     if (!code) return;
     
     try {
       const sub = await Database.get('subjects', code);
       if (!sub) return;
 
-      const theoryWeight = sub.theoryWeight !== undefined ? sub.theoryWeight : 70;
-      const practicalWeight = sub.practicalWeight !== undefined ? sub.practicalWeight : 30;
-      const ca = sub.internalMarks?.ca !== undefined ? sub.internalMarks.ca : 0;
-      const quiz = sub.internalMarks?.quiz !== undefined ? sub.internalMarks.quiz : 0;
-      const lab = sub.internalMarks?.lab !== undefined ? sub.internalMarks.lab : 0;
+      // Pull real marks, suppressing 0 defaults by querying practicals store for fallback if lab is 0
+      const ca = sub.internalMarks?.ca !== undefined ? parseFloat(sub.internalMarks.ca) : 0;
+      const quiz = sub.internalMarks?.quiz !== undefined ? parseFloat(sub.internalMarks.quiz) : 0;
+      
+      let lab = sub.internalMarks?.lab !== undefined ? parseFloat(sub.internalMarks.lab) : 0;
+      if (lab === 0) {
+        const practicals = await Database.getAll('practicals');
+        const relatedLabs = practicals.filter(p => p.subjectCode === code);
+        const completedLabs = relatedLabs.filter(p => p.completed === true).length;
+        if (relatedLabs.length > 0) {
+          lab = Math.round((completedLabs / relatedLabs.length) * 100);
+        }
+      }
+
+      // Sample past results to recommend realistic target grade
+      const allSubjects = await Database.getAll('subjects');
+      const completedSubjects = allSubjects.filter(s => s.grade);
+      const gradesOrdered = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D'];
+      let recommendedGrade = 'A-'; // default fallback
+      
+      if (completedSubjects.length > 0) {
+        const completedThresholds = completedSubjects.map(s => RUSL_GRADE_BOUNDARIES[s.grade] || 40);
+        completedThresholds.sort((a, b) => a - b);
+        let medianThreshold;
+        const mid = Math.floor(completedThresholds.length / 2);
+        if (completedThresholds.length % 2 !== 0) {
+          medianThreshold = completedThresholds[mid];
+        } else {
+          medianThreshold = (completedThresholds[mid - 1] + completedThresholds[mid]) / 2;
+        }
+        
+        let bestGrade = 'D';
+        for (const g of gradesOrdered) {
+          const boundary = RUSL_GRADE_BOUNDARIES[g];
+          if (boundary && medianThreshold >= boundary) {
+            bestGrade = g;
+            break;
+          }
+        }
+        recommendedGrade = bestGrade;
+      }
+
+      // Update recommended grade UI elements
+      const recGradeLabel = document.getElementById('predictor-recommended-grade-label');
+      if (recGradeLabel) recGradeLabel.innerText = recommendedGrade;
+
+      const useRecCheckbox = document.getElementById('predictor-use-recommended-grade');
+      if (useRecCheckbox && useRecCheckbox.checked) {
+        gradeSelect.value = recommendedGrade;
+      }
+
+      const targetGrade = gradeSelect.value;
+      const theoryWeight = sub.theoryWeight !== undefined ? parseFloat(sub.theoryWeight) : 70;
+      const practicalWeight = sub.practicalWeight !== undefined ? parseFloat(sub.practicalWeight) : 30;
 
       // Update basic fields
       const thWeightEl = document.getElementById('predictor-theory-weight');
@@ -567,24 +636,75 @@ export const GPAModule = {
       if (quizValEl) quizValEl.innerText = quiz;
       if (labValEl) labValEl.innerText = lab;
 
-      // Calculate required exam marks for target grade
+      // Live GPA Shift Forecasting
+      const originalStats = await this.calculateGPAs(allSubjects);
+      const originalSem = originalStats.currentSemester || 0.00;
+      const originalCum = originalStats.overall || 0.00;
+
+      const simulatedSubjects = allSubjects.map(s => {
+        if (s.code === code) {
+          return { ...s, grade: targetGrade };
+        }
+        return s;
+      });
+      const simulatedStats = await this.calculateGPAs(simulatedSubjects);
+      const simulatedSem = simulatedStats.currentSemester || 0.00;
+      const simulatedCum = simulatedStats.overall || 0.00;
+
+      const simImpactEl = document.getElementById('predictor-simulation-impact');
+      if (simImpactEl) {
+        simImpactEl.innerHTML = `<span style="color: var(--text-secondary);">Simulated Impact:</span><br>Sem GPA: ${originalSem.toFixed(2)} ➔ <span style="color: var(--accent);">${simulatedSem.toFixed(2)}</span><br>CGPA: ${originalCum.toFixed(2)} ➔ <span style="color: var(--accent);">${simulatedCum.toFixed(2)}</span>`;
+      }
+
+      // Calculate required exam marks for target grade & maximum achievable score
       const targetThreshold = RUSL_GRADE_BOUNDARIES[targetGrade] || 85;
       const requiredExamScore = this.calculateRequiredExam(targetThreshold, theoryWeight, practicalWeight, ca, quiz, lab);
       
+      const W_T = theoryWeight / 100;
+      const W_P = practicalWeight / 100;
+      const theoryInternal = (ca + quiz) / 2;
+      const practicalScore = lab;
+      const S_max = W_T * (0.2 * theoryInternal + 80) + W_P * practicalScore;
+
+      let maxAchievableGrade = 'E';
+      for (const g of gradesOrdered) {
+        const boundary = RUSL_GRADE_BOUNDARIES[g];
+        if (boundary && S_max >= boundary) {
+          maxAchievableGrade = g;
+          break;
+        }
+      }
+
       const resGradeEl = document.getElementById('predictor-result-grade');
       const resReqEl = document.getElementById('predictor-result-required');
       
       if (resGradeEl) resGradeEl.innerText = targetGrade;
       if (resReqEl) {
-        if (requiredExamScore === 'Impossible') {
-          resReqEl.innerText = 'Impossible 🚫';
-          resReqEl.style.color = '#f43f5e';
-        } else if (requiredExamScore === 'Already Achieved') {
-          resReqEl.innerText = 'Achieved 🎉';
-          resReqEl.style.color = '#00e676';
+        const parent = resReqEl.parentElement;
+        if (requiredExamScore === 'Impossible' || requiredExamScore > 100) {
+          if (parent) {
+            parent.style.flexDirection = 'column';
+            parent.style.alignItems = 'stretch';
+            parent.style.background = 'rgba(255, 23, 68, 0.08)';
+            parent.style.borderColor = 'rgba(255, 23, 68, 0.2)';
+            parent.style.padding = '8px';
+          }
+          resReqEl.innerHTML = `<span style="font-size: 0.58rem; color: #ff1744; font-weight: 700; line-height: 1.3; text-align: left; display: block;">Target Mathematical Impossibility. Max Achievable Grade based on current CA bounds is ${maxAchievableGrade}</span>`;
         } else {
-          resReqEl.innerText = `${requiredExamScore.toFixed(1)}%`;
-          resReqEl.style.color = '#ffffff';
+          if (parent) {
+            parent.style.flexDirection = 'row';
+            parent.style.alignItems = 'center';
+            parent.style.background = 'rgba(0, 229, 255, 0.08)';
+            parent.style.borderColor = 'rgba(0, 229, 255, 0.15)';
+            parent.style.padding = '4px 8px';
+          }
+          if (requiredExamScore === 'Already Achieved') {
+            resReqEl.innerText = 'Achieved 🎉';
+            resReqEl.style.color = '#00e676';
+          } else {
+            resReqEl.innerText = `${requiredExamScore.toFixed(1)}%`;
+            resReqEl.style.color = '#ffffff';
+          }
         }
       }
 
@@ -597,7 +717,7 @@ export const GPAModule = {
           const req = this.calculateRequiredExam(threshold, theoryWeight, practicalWeight, ca, quiz, lab);
           let text = 'N/A';
           let textColor = 'var(--text-secondary)';
-          if (req === 'Impossible') {
+          if (req === 'Impossible' || req > 100) {
             text = 'N/A';
             textColor = 'rgba(255,255,255,0.2)';
           } else if (req === 'Already Achieved') {

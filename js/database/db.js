@@ -8,7 +8,7 @@ import { Auth } from '../auth.js';
 import { FirestoreSync } from './firestore-sync.js';
 
 const DB_NAME = 'RajarataCampusLifeDB';
-const DB_VERSION = 3; // Bumped to 3 to add 'futureModules' store
+const DB_VERSION = 5; // Bumped to 5 to add 'researchConfig' store
 
 let dbInstance = null;
 
@@ -85,6 +85,16 @@ export const initDB = () => {
       // Future Modules Store
       if (!db.objectStoreNames.contains('futureModules')) {
         db.createObjectStore('futureModules', { keyPath: 'id' });
+      }
+
+      // Research Project Store (v4)
+      if (!db.objectStoreNames.contains('researchProject')) {
+        db.createObjectStore('researchProject', { keyPath: 'id' });
+      }
+
+      // Research Config Store (v5)
+      if (!db.objectStoreNames.contains('researchConfig')) {
+        db.createObjectStore('researchConfig', { keyPath: 'id' });
       }
     };
 

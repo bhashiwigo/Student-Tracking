@@ -604,7 +604,8 @@
               <option value="4-1">Year 4 - Semester I</option>
               <option value="4-2">Year 4 - Semester II</option>
             </select>
-            <button class="btn-solid" id="btn-add-subject">+ Add Course Unit</button>
+            <button class="btn-solid" id="btn-add-main-subject">+ Add Subject</button>
+            <button class="btn-solid" id="btn-add-sub-module">+ Add Modules</button>
           </div>
         </div>
         <div class="grid-layout" id="subjects-list-container">
@@ -1319,79 +1320,142 @@
   <div class="modal-overlay" id="subject-modal">
     <div class="modal-box">
       <div class="modal-header">
-        <h3 id="subject-modal-title">New Course Unit</h3>
-        <button class="btn-icon modal-close-btn">&times;</button>
+        <h3 id="subject-modal-title">New Subject</h3>
+        <button class="btn-icon modal-close-btn" type="button">&times;</button>
       </div>
       <form id="subject-form">
         <div class="modal-body">
           <input type="hidden" id="subject-mode" value="add">
           <div class="form-group">
-            <label class="form-label">Subject Code</label>
-            <input type="text" id="sub-code" class="input-text" placeholder="e.g. BOT 1101" required>
+            <label class="form-label">Subject Code ID</label>
+            <input type="text" id="sub-code" class="input-text" placeholder="e.g. BOT" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Subject Title</label>
-            <input type="text" id="sub-name" class="input-text" placeholder="e.g. Plant Diversity I" required>
+            <label class="form-label">Main Subject Title</label>
+            <input type="text" id="sub-name" class="input-text" placeholder="e.g. Botany" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Credits</label>
-            <input type="number" id="sub-credits" class="input-text" value="3" min="1" max="8" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Semester</label>
-            <select id="sub-semester" class="select-input">
-              <option value="1-1">Year 1 - Semester I</option>
-              <option value="1-2">Year 1 - Semester II</option>
-              <option value="2-1">Year 2 - Semester I</option>
-              <option value="2-2">Year 2 - Semester II</option>
-              <option value="3-1">Year 3 - Semester I</option>
-              <option value="3-2">Year 3 - Semester II</option>
-              <option value="4-1">Year 4 - Semester I</option>
-              <option value="4-2">Year 4 - Semester II</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Lecturer Name</label>
-            <input type="text" id="sub-lecturer" class="input-text" placeholder="e.g. Dr. K. Silva">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Lecturer Office / Contact Info</label>
-            <input type="text" id="sub-info" class="input-text" placeholder="e.g. Lab A, Ext. 431">
-          </div>
-          <div
-            style="margin: 16px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent); border-top: 1px solid var(--border-color); padding-top: 16px;">
-            🔬 Theory/Practical Component Weights</div>
-          <div style="display: flex; gap: 12px;">
-            <div class="form-group" style="flex: 1;">
-              <label class="form-label">Theory Weight %</label>
-              <input type="number" id="sub-theory-weight" class="input-text" value="70" min="0" max="100" required>
-            </div>
-            <div class="form-group" style="flex: 1;">
-              <label class="form-label">Practical Weight %</label>
-              <input type="number" id="sub-practical-weight" class="input-text" value="30" min="0" max="100" required>
-            </div>
-          </div>
-
-          <div style="margin: 12px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent);">📊 Continuous
-            Assessments / Internal Marks</div>
-          <div style="display: flex; gap: 10px;">
-            <div class="form-group" style="flex: 1;">
-              <label class="form-label">CA Marks (out of 100)</label>
-              <input type="number" id="sub-ca-marks" class="input-text" value="80" min="0" max="100" required>
-            </div>
-            <div class="form-group" style="flex: 1;">
-              <label class="form-label">Quiz Marks (out of 100)</label>
-              <input type="number" id="sub-quiz-marks" class="input-text" value="80" min="0" max="100" required>
-            </div>
-            <div class="form-group" style="flex: 1;">
-              <label class="form-label">Lab Marks (out of 100)</label>
-              <input type="number" id="sub-lab-marks" class="input-text" value="80" min="0" max="100" required>
-            </div>
+            <label class="form-label">Subject Description (Optional)</label>
+            <textarea id="sub-description" class="input-text" rows="4" placeholder="Enter brief subject description..." style="resize: vertical; min-height: 80px; font-family: inherit; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; width: 100%; box-sizing: border-box;"></textarea>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-outline modal-close-btn">Cancel</button>
-          <button type="submit" class="btn-solid">Save Course Unit</button>
+          <button type="submit" class="btn-solid">Save Subject</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add/Edit Sub-Module Modal -->
+  <div class="modal-overlay" id="sub-module-modal" style="z-index: 1000;">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="sub-module-modal-title">Add Sub-Module</h3>
+        <button class="btn-icon modal-close-btn" type="button">&times;</button>
+      </div>
+      <form id="sub-module-form">
+        <div class="modal-body">
+          <input type="hidden" id="sub-module-mode" value="add">
+          <input type="hidden" id="sub-module-id" value="">
+          
+          <div class="form-group">
+            <label class="form-label">Parent Subject</label>
+            <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+              <select id="module-parent-subject-select" class="select-input" style="flex: 1;" required>
+                <!-- Dynamically populated -->
+              </select>
+              <button type="button" id="btn-shortcut-add-subject" class="btn-outline" 
+                      style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 700; border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.05); color: var(--accent); border-radius: 6px; cursor: pointer; transition: all 0.2s;" 
+                      title="Add new subject">+</button>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Sub-Module Title</label>
+            <input type="text" id="sub-module-title" class="input-text" placeholder="e.g. Plant Diversity" required>
+          </div>
+
+          <div style="display: flex; gap: 12px;">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Credits</label>
+              <select id="module-credits-select" class="select-input">
+                <option value="1">1 Credit</option>
+                <option value="2">2 Credits</option>
+                <option value="3" selected>3 Credits</option>
+                <option value="4">4 Credits</option>
+                <option value="8">8 Credits</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Semester</label>
+              <select id="module-semester-select" class="select-input">
+                <option value="1-1">Year 1 - Sem I</option>
+                <option value="1-2">Year 1 - Sem II</option>
+                <option value="2-1">Year 2 - Sem I</option>
+                <option value="2-2">Year 2 - Sem II</option>
+                <option value="3-1">Year 3 - Sem I</option>
+                <option value="3-2">Year 3 - Sem II</option>
+                <option value="4-1">Year 4 - Sem I</option>
+                <option value="4-2">Year 4 - Sem II</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Lecturer Name</label>
+            <input type="text" id="module-lecturer-name" class="input-text" placeholder="e.g. Dr. Silva">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Lecturer Contact / Office</label>
+            <input type="text" id="module-lecturer-contact" class="input-text" placeholder="e.g. Lab A, Ext. 431">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Sub-Module Type</label>
+            <select id="sub-module-type" class="select-input">
+              <option value="theory" selected>Theory Component</option>
+              <option value="practical">Practical Component</option>
+            </select>
+          </div>
+
+          <div style="margin: 16px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent); border-top: 1px solid var(--border-color); padding-top: 16px;">
+            🔬 Component Weights
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Theory Weight %</label>
+              <input type="number" id="module-theory-weight" class="input-text" value="70" min="0" max="100" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Practical Weight %</label>
+              <input type="number" id="module-practical-weight" class="input-text" value="30" min="0" max="100" required>
+            </div>
+          </div>
+
+          <div style="margin: 12px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent);">
+            📊 Continuous Assessments / Internal Marks
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">CA Marks (out of 100)</label>
+              <input type="number" id="module-ca-marks" class="input-text" value="0" min="0" max="100" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Quiz Marks (out of 100)</label>
+              <input type="number" id="module-quiz-marks" class="input-text" value="0" min="0" max="100" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Lab Marks (out of 100)</label>
+              <input type="number" id="module-lab-marks" class="input-text" value="0" min="0" max="100" required>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline modal-close-btn">Cancel</button>
+          <button type="submit" class="btn-solid">Save Sub-Module</button>
         </div>
       </form>
     </div>

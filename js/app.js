@@ -19,6 +19,7 @@ import { SportsModule } from './modules/sports.js';
 import { StudyModule } from './modules/study.js';
 import { NotesModule } from './modules/notes.js';
 import { AnalyticsModule } from './modules/analytics.js';
+import { ResearchModule } from './modules/research.js';
 
 const App = {
   currentView: 'dashboard',
@@ -82,6 +83,7 @@ const App = {
     StudyModule.init();
     NotesModule.init();
     AnalyticsModule.init();
+    ResearchModule.init();
 
     // Trigger initial rendering pass instantly upon bootstrapping
     await this.renderDashboard();
@@ -221,6 +223,14 @@ const App = {
           NotificationService.show('Sign In Error', err.message, 'error');
         }
       });
+
+      const handleEnterKey = (e) => {
+        if (e.key === 'Enter') {
+          signinBtn.click();
+        }
+      };
+      document.getElementById('auth-signin-identifier')?.addEventListener('keydown', handleEnterKey);
+      document.getElementById('auth-signin-pin')?.addEventListener('keydown', handleEnterKey);
     }
 
     // ── Register handler ──────────────────────────────────────────────────────
@@ -831,56 +841,7 @@ const App = {
       });
     });
 
-    // Future Module Modal Trigger
-    const addFutureBtn = document.getElementById('btn-add-future-module');
-    if (addFutureBtn) {
-      addFutureBtn.addEventListener('click', () => {
-        const modal = document.getElementById('modal-future-module');
-        if (modal) modal.classList.add('visible');
-      });
-    }
 
-    // Future Module Form Submission
-    const futureForm = document.getElementById('future-module-form');
-    if (futureForm) {
-      futureForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const code = document.getElementById('future-sub-code').value.trim();
-        const semester = document.getElementById('future-sub-semester').value;
-        const focus = document.getElementById('future-sub-focus').value;
-        const enableLab = document.getElementById('future-toggle-lab-progress').checked;
-        const enableField = document.getElementById('future-toggle-field-nodes').checked;
-        const enableCA = document.getElementById('future-toggle-ca-ring').checked;
-
-        const userId = Auth.getCurrentUserId();
-
-        const newFutureModule = {
-          id: 'future_' + Date.now().toString(),
-          userId,
-          code,
-          semester,
-          focus,
-          enableLab,
-          enableField,
-          enableCA,
-          createdAt: new Date().toISOString()
-        };
-
-        try {
-          await Database.add('futureModules', newFutureModule);
-          NotificationService.show('Future Module Saved', `Configured future module ${code} successfully.`, 'success');
-          futureForm.reset();
-          const modal = document.getElementById('modal-future-module');
-          if (modal) modal.classList.remove('visible');
-          
-          // Force dashboard re-render
-          await this.renderDashboard();
-        } catch (err) {
-          console.error(err);
-          NotificationService.show('Save Failed', err.message, 'error');
-        }
-      });
-    }
 
     // Command Palette shortcut
     window.addEventListener('keydown', (e) => {
@@ -1160,6 +1121,7 @@ const App = {
     else if (this.currentView === 'sports') { SportsModule.render(); }
     else if (this.currentView === 'study') { StudyModule.render(); }
     else if (this.currentView === 'notes') { NotesModule.render(); }
+    else if (this.currentView === 'research') { ResearchModule.render(); }
     else if (this.currentView === 'analytics') { AnalyticsModule.render(); }
     else if (this.currentView === 'calendar') { this.renderCalendar(); }
     else if (this.currentView === 'settings') { this.renderSettings(); }
