@@ -575,7 +575,7 @@ export const AcademicModule = {
       container.querySelectorAll('.delete-subject-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const code = btn.getAttribute('data-code');
-          if (await window.showCustomConfirm('Delete Subject', 'Are you sure you want to completely delete this subject?', true)) {
+          if (await window.authenticateDestructiveAction('Are you sure you want to completely delete this subject?')) {
             this.handleDeleteSubject(code);
           }
         });
@@ -593,7 +593,7 @@ export const AcademicModule = {
       container.querySelectorAll('.delete-submodule-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const id = btn.getAttribute('data-id');
-          if (await window.showCustomConfirm('Delete Sub-Module', 'Are you sure you want to delete this sub-module?', true)) {
+          if (await window.authenticateDestructiveAction('Are you sure you want to delete this sub-module?')) {
             this.handleDeleteSubModule(id);
           }
         });

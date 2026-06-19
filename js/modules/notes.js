@@ -77,7 +77,7 @@ export const NotesModule = {
     const deleteBtn = document.getElementById('btn-delete-note');
     if (deleteBtn) {
       deleteBtn.addEventListener('click', async () => {
-        if (this.activeNoteId && await window.showCustomConfirm('Delete Note', 'Delete this note permanent?', true)) {
+        if (this.activeNoteId && await window.authenticateDestructiveAction('Delete this note permanent?')) {
           this.handleDeleteNote();
         }
       });

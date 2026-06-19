@@ -86,6 +86,109 @@ window.showCustomConfirm = function(title, message, isDestructive = false) {
   });
 };
 
+window.authenticateDestructiveAction = function(promptMessage) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('modal-secure-delete-gate');
+    const msgEl = document.getElementById('secure-delete-prompt-message');
+    const pinInput = document.getElementById('secure-delete-pin-input');
+    const errorEl = document.getElementById('secure-delete-error-message');
+    const purgeBtn = document.getElementById('btn-auth-secure-purge');
+    const cancelBtn = document.getElementById('btn-secure-delete-cancel');
+    const closeBtn = modal ? modal.querySelector('.modal-close-btn') : null;
+
+    if (!modal || !msgEl || !pinInput || !errorEl || !purgeBtn) {
+      console.warn('Security PIN gate elements missing, falling back to showCustomConfirm.');
+      resolve(window.showCustomConfirm('Verify Action', promptMessage, true));
+      return;
+    }
+
+    // Reset fields
+    msgEl.innerText = promptMessage;
+    pinInput.value = '';
+    pinInput.style.borderColor = 'var(--border-color)';
+    pinInput.style.boxShadow = 'none';
+    errorEl.innerText = '';
+
+    // Show modal
+    modal.classList.add('visible');
+    setTimeout(() => pinInput.focus(), 200);
+
+    const cleanup = (value) => {
+      purgeBtn.removeEventListener('click', onVerify);
+      pinInput.removeEventListener('keydown', onKeyDown);
+      if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
+      if (closeBtn) closeBtn.removeEventListener('click', onCancel);
+      modal.removeEventListener('click', onOverlayClick);
+      modal.classList.remove('visible');
+      resolve(value);
+    };
+
+    async function onVerify() {
+      const pin = pinInput.value;
+      if (!pin || pin.length !== 4) {
+        showError('Please enter a 4-digit PIN.');
+        return;
+      }
+
+      try {
+        const userId = Auth.getCurrentUserId();
+        if (!userId) {
+          showError('No active user session found.');
+          return;
+        }
+
+        const user = await Database.get('users', userId);
+        if (!user) {
+          showError('User profile not found in database.');
+          return;
+        }
+
+        if (Auth.verifyPin(pin, user.pinHash)) {
+          cleanup(true);
+        } else {
+          showError('Authentication Failure: Invalid Sign-In PIN');
+        }
+      } catch (err) {
+        console.error('Security verification failed:', err);
+        showError('System Error: Try again.');
+      }
+    }
+
+    function onCancel() {
+      cleanup(false);
+    }
+
+    function onOverlayClick(e) {
+      if (e.target === modal) {
+        cleanup(false);
+      }
+    }
+
+    function onKeyDown(e) {
+      if (e.key === 'Enter') {
+        onVerify();
+      }
+    }
+
+    function showError(msg) {
+      errorEl.innerText = msg;
+      pinInput.style.borderColor = 'var(--danger)';
+      pinInput.style.boxShadow = '0 0 8px rgba(239, 68, 68, 0.3)';
+      
+      // Trigger shake animation
+      pinInput.classList.remove('shake');
+      void pinInput.offsetWidth; // Force repaint
+      pinInput.classList.add('shake');
+    }
+
+    purgeBtn.addEventListener('click', onVerify);
+    pinInput.addEventListener('keydown', onKeyDown);
+    if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
+    if (closeBtn) closeBtn.addEventListener('click', onCancel);
+    modal.addEventListener('click', onOverlayClick);
+  });
+};
+
 const App = {
   currentView: 'dashboard',
   currentDate: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Colombo' })),
@@ -1012,7 +1115,7 @@ const App = {
         const file = e.target.files[0];
         if (!file) return;
 
-        if (await window.showCustomConfirm('Import Backup', 'Import backup data? This clears and replaces all current logbooks.', true)) {
+        if (await window.authenticateDestructiveAction('Import backup data? This clears and replaces all current logbooks.')) {
           try {
             await BackupService.importBackup(file);
             NotificationService.show('Restore Successful', 'Database records rebuilt.', 'success');

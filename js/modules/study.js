@@ -182,7 +182,7 @@ export const StudyModule = {
       container.querySelectorAll('.delete-plan-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const id = btn.getAttribute('data-id');
-          if (await window.showCustomConfirm('Delete Study Plan', 'Delete study plan entry?', true)) {
+          if (await window.authenticateDestructiveAction('Delete study plan entry?')) {
             this.handleDeletePlan(id);
           }
         });

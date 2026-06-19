@@ -138,7 +138,7 @@ export const AssignmentsModule = {
       container.querySelectorAll('.delete-assign-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const id = btn.getAttribute('data-id');
-          if (await window.showCustomConfirm('Delete Assignment', 'Delete assignment entry?', true)) {
+          if (await window.authenticateDestructiveAction('Delete assignment entry?')) {
             this.handleDeleteAssignment(id);
           }
         });

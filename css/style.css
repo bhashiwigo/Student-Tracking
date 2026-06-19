@@ -2329,3 +2329,13 @@ body[data-theme="light"] .badge.high {
 body[data-theme="light"] .radial-ring-value {
   color: #000000;
 }
+
+/* Shake animation for input verification failures */
+@keyframes shake-anim {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+.shake {
+  animation: shake-anim 0.3s ease-in-out;
+}

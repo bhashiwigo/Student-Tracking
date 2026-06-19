@@ -49,7 +49,7 @@ export const SportsModule = {
         fitnessText.querySelectorAll('.delete-sport-goal-btn').forEach(btn => {
           btn.addEventListener('click', async () => {
             const id = btn.getAttribute('data-id');
-            if (await window.showCustomConfirm('Delete Goal', 'Delete this fitness goal?', true)) {
+            if (await window.authenticateDestructiveAction('Delete this fitness goal?')) {
               this.handleDeleteSport(id);
             }
           });
@@ -105,7 +105,7 @@ export const SportsModule = {
       container.querySelectorAll('.delete-sport-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const id = btn.getAttribute('data-id');
-          if (await window.showCustomConfirm('Delete Sports Entry', 'Delete this sports entry?', true)) {
+          if (await window.authenticateDestructiveAction('Delete this sports entry?')) {
             this.handleDeleteSport(id);
           }
         });

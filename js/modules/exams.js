@@ -186,7 +186,7 @@ export const ExamsModule = {
       container.querySelectorAll('.delete-exam-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const id = btn.getAttribute('data-id');
-          if (await window.showCustomConfirm('Delete Exam', 'Delete exam schedule entry?', true)) {
+          if (await window.authenticateDestructiveAction('Delete exam schedule entry?')) {
             this.handleDeleteExam(id);
           }
         });
