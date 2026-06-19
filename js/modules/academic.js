@@ -7,6 +7,7 @@
 
 import { Database } from '../database/db.js';
 import { NotificationService } from '../services/notifications.js';
+import { GPAModule } from './gpa.js';
 
 // Default syllabus checkpoint template per standard semester topic arc
 const DEFAULT_SYLLABUS_CHECKPOINTS = [
@@ -260,6 +261,7 @@ export const AcademicModule = {
         const selectCode = e.detail?.code || null;
         await this.refreshParentSubjectSelect(selectCode);
       }
+      this.render();
     });
   },
 
@@ -269,11 +271,105 @@ export const AcademicModule = {
     return Math.round((done / checkpoints.length) * 100);
   },
 
+  async _getGPADetails() {
+    try {
+      const submodules = await Database.getAll('subjects');
+      const gradeMap = (GPAModule && GPAModule.gradeMap) || {
+        'A+': 4.00, 'A': 4.00, 'A-': 3.70,
+        'B+': 3.30, 'B': 3.00, 'B-': 2.70,
+        'C+': 2.30, 'C': 2.00, 'C-': 1.70,
+        'D+': 1.30, 'D': 1.00, 'E': 0.00
+      };
+      
+      let overallCredits = 0;
+      let overallGP = 0;
+      let threeYearCredits = 0;
+      let threeYearGP = 0;
+      
+      (submodules || []).forEach(sub => {
+        if (sub.grade) {
+          const gp = gradeMap[sub.grade] !== undefined ? gradeMap[sub.grade] : 0.00;
+          overallCredits += sub.credits || 0;
+          overallGP += gp * (sub.credits || 0);
+          
+          const sem = sub.semester;
+          if (sem && (sem.startsWith('1-') || sem.startsWith('2-') || sem.startsWith('3-'))) {
+            threeYearCredits += sub.credits || 0;
+            threeYearGP += gp * (sub.credits || 0);
+          }
+        }
+      });
+      
+      const overallCGPA = overallCredits > 0 ? (overallGP / overallCredits) : 0.00;
+      const threeYearCGPA = threeYearCredits > 0 ? (threeYearGP / threeYearCredits) : 0.00;
+      
+      return { overallCGPA, threeYearCGPA };
+    } catch (err) {
+      console.error("Failed to calculate GPA details:", err);
+      return { overallCGPA: 0.00, threeYearCGPA: 0.00 };
+    }
+  },
+
+  updateSpecialEligibilityHUD(stats) {
+    const cgpaDisplay = document.getElementById('global-cgpa-display');
+    const statusBadge = document.getElementById('special-status-badge');
+    const progressFill = document.getElementById('hud-progress-fill');
+    const progressText = document.getElementById('hud-progress-text');
+    
+    if (!cgpaDisplay || !statusBadge || !progressFill || !progressText) return;
+    
+    const cgpa3Year = stats.threeYearCGPA;
+    const cgpaOverall = stats.overallCGPA;
+    
+    cgpaDisplay.innerText = `3-Yr GPA: ${cgpa3Year.toFixed(2)} (Overall: ${cgpaOverall.toFixed(2)})`;
+    
+    const pct = Math.min(100, (cgpa3Year / 3.00) * 100);
+    progressFill.style.width = `${pct}%`;
+    progressText.innerText = `${pct.toFixed(1)}%`;
+    
+    if (cgpa3Year >= 3.00) {
+      statusBadge.innerHTML = '🔓 Special Honours Eligible';
+      statusBadge.style.background = 'rgba(0, 229, 255, 0.15)';
+      statusBadge.style.color = 'var(--accent)';
+      statusBadge.style.border = '1px solid var(--accent)';
+      statusBadge.style.boxShadow = '0 0 10px rgba(0, 229, 255, 0.25)';
+      progressFill.style.backgroundColor = 'var(--success)';
+    } else {
+      statusBadge.innerHTML = '🔒 General Bound (GPA &lt; 3.0)';
+      statusBadge.style.background = 'rgba(255, 255, 255, 0.08)';
+      statusBadge.style.color = 'var(--text-secondary)';
+      statusBadge.style.border = '1px solid var(--border-color)';
+      statusBadge.style.boxShadow = 'none';
+      progressFill.style.backgroundColor = 'var(--accent)';
+    }
+    
+    this.updateYear4DropdownOptions(cgpa3Year);
+  },
+
+  updateYear4DropdownOptions(cgpa3Year) {
+    const filter = document.getElementById('subject-semester-filter');
+    if (!filter) return;
+    const isSpecial = cgpa3Year >= 3.00;
+    
+    const opt41 = filter.querySelector('option[value="4-1"]');
+    if (opt41) {
+      opt41.innerText = isSpecial ? 'Year 4 (Special Honours) - Semester I' : 'Year 4 (General - Extended) - Semester I';
+    }
+    
+    const opt42 = filter.querySelector('option[value="4-2"]');
+    if (opt42) {
+      opt42.innerText = isSpecial ? 'Year 4 (Special Honours) - Semester II' : 'Year 4 (General - Extended) - Semester II';
+    }
+  },
+
   async render() {
     const container = document.getElementById('subjects-list-container');
     if (!container) return;
 
     try {
+      const gpaStats = await this._getGPADetails();
+      this.updateSpecialEligibilityHUD(gpaStats);
+
       const allSubjects = await originalGetAll.call(Database, 'subjects');
       const parents = allSubjects.filter(s => s.isParent);
 
@@ -292,9 +388,27 @@ export const AcademicModule = {
         return;
       }
 
+      const gradeMap = (GPAModule && GPAModule.gradeMap) || {
+        'A+': 4.00, 'A': 4.00, 'A-': 3.70,
+        'B+': 3.30, 'B': 3.00, 'B-': 2.70,
+        'C+': 2.30, 'C': 2.00, 'C-': 1.70,
+        'D+': 1.30, 'D': 1.00, 'E': 0.00
+      };
+
       container.innerHTML = filteredParents.map(parent => {
         const semesterSubmodules = (parent.submodules || []).filter(s => s.semester === this.activeSemester);
         
+        let totalCoreCredits = 0;
+        let weightedCoreGP = 0;
+        (parent.submodules || []).forEach(sub => {
+          if (sub.grade) {
+            const gp = gradeMap[sub.grade] !== undefined ? gradeMap[sub.grade] : 0.00;
+            totalCoreCredits += sub.credits || 0;
+            weightedCoreGP += gp * (sub.credits || 0);
+          }
+        });
+        const coreGPA = totalCoreCredits > 0 ? (weightedCoreGP / totalCoreCredits).toFixed(2) : 'N/A';
+
         let submodulesHTML = '';
         if (semesterSubmodules.length === 0) {
           submodulesHTML = `
@@ -394,8 +508,13 @@ export const AcademicModule = {
                 <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--accent); margin: 0; font-family: var(--font-family-app) !important;">${parent.code}</h3>
                 <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-top: 4px; font-family: var(--font-family-app) !important;">${parent.name}</h4>
               </div>
-              <div style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(0, 229, 255, 0.18); border: 1px solid rgba(0, 229, 255, 0.3); font-size: 0.8rem; font-weight: 700; color: var(--accent); font-family: var(--font-family-app) !important;">
-                ${semesterSubmodules.length}
+              <div style="display: flex; align-items: center; gap: 12px; font-family: var(--font-family-app) !important;">
+                <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 6px; font-family: var(--font-family-app) !important;">
+                  Core GPA: <span style="color: var(--accent); font-family: var(--font-family-app) !important;">${coreGPA}</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(0, 229, 255, 0.18); border: 1px solid rgba(0, 229, 255, 0.3); font-size: 0.8rem; font-weight: 700; color: var(--accent); font-family: var(--font-family-app) !important;">
+                  ${semesterSubmodules.length}
+                </div>
               </div>
             </div>
 

@@ -82,11 +82,6 @@ export const initDB = () => {
         db.createObjectStore('settings', { keyPath: 'key' });
       }
 
-      // Future Modules Store
-      if (!db.objectStoreNames.contains('futureModules')) {
-        db.createObjectStore('futureModules', { keyPath: 'id' });
-      }
-
       // Research Project Store (v4)
       if (!db.objectStoreNames.contains('researchProject')) {
         db.createObjectStore('researchProject', { keyPath: 'id' });

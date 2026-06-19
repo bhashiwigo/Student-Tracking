@@ -369,15 +369,12 @@
       </header>
 
       <!-- VIEW 01: DASHBOARD -->
-      <div class="page-view active" id="view-dashboard">
-        <div class="page-header">
+      <div class="page-view active" id="view-dashboard">        <div class="page-header">
           <div>
             <h1 style="font-size: 1.5rem; font-weight: 800;">Biological Science Portfolio Hub</h1>
             <p>Rajarata University Biological Science student tracking application</p>
           </div>
-          <button class="btn-solid" id="btn-add-future-module">+ Future Module</button>
         </div>
-
         <div class="grid-layout">
           <!-- C: Overall GPA Forecast -->
           <div class="card col-3" style="align-items: center; justify-content: center;">
@@ -576,13 +573,6 @@
             </div>
           </div>
 
-          <!-- J: Future Module Customizer Tracker -->
-          <div class="card col-12" id="future-module-tracker-card" style="display: none;">
-            <div class="card-title">Future Module Customizer Tracker</div>
-            <div class="grid-layout" id="future-module-tracker-container">
-              <!-- Dyn future modules -->
-            </div>
-          </div>
         </div>
       </div>
 
@@ -608,6 +598,30 @@
             <button class="btn-solid" id="btn-add-sub-module">+ Add Modules</button>
           </div>
         </div>
+
+        <!-- Global Specialization Eligibility HUD -->
+        <div id="special-eligibility-hud" style="display: flex; flex-direction: column; gap: 12px; padding: 16px; margin-bottom: 20px; font-family: var(--font-family-app) !important; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 12px; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); box-shadow: var(--shadow-sm);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; width: 100%;">
+            <div>
+              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--accent); font-family: var(--font-family-app) !important;">Year 4 Special Honours Eligibility Checkpoint</h4>
+              <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Benchmark: Cumulative GPA of first 3 years must be &ge; 3.00</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; font-family: var(--font-family-app) !important;">
+              <span id="global-cgpa-display" style="font-size: 1rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-family-app) !important;">3-Yr GPA: 0.00 (Overall: 0.00)</span>
+              <span id="special-status-badge" class="badge" style="font-family: var(--font-family-app) !important; font-size: 0.72rem; font-weight: 700; padding: 6px 12px; border-radius: 20px; display: inline-flex; align-items: center; background: rgba(255, 255, 255, 0.08); color: var(--text-secondary); border: 1px solid var(--border-color); transition: all 0.3s ease;">🔒 General Bound (GPA &lt; 3.0)</span>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">
+              <span style="font-family: var(--font-family-app) !important;">GPA Progress (3.00 Threshold Gauge)</span>
+              <span id="hud-progress-text" style="font-family: var(--font-family-app) !important; font-weight: 700;">0.0%</span>
+            </div>
+            <div style="height: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; width: 100%; box-sizing: border-box;">
+              <div id="hud-progress-fill" style="width: 0%; height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.5s ease, background-color 0.3s ease;"></div>
+            </div>
+          </div>
+        </div>
+
         <div class="grid-layout" id="subjects-list-container">
           <!-- Dyn cards -->
         </div>
@@ -1700,67 +1714,6 @@
     </div>
   </div>
 
-  <!-- Future Module Planner Modal -->
-  <div class="modal-overlay" id="modal-future-module">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h3>Future Module Planner</h3>
-        <button type="button" class="btn-icon modal-close-btn">&times;</button>
-      </div>
-      <form id="future-module-form">
-        <div class="modal-body">
-          <div class="form-group">
-            <label class="form-label">Subject Code</label>
-            <input type="text" id="future-sub-code" class="input-text" placeholder="e.g. BOT 2101" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Target Semester</label>
-            <select id="future-sub-semester" class="select-input">
-              <option value="1-1">Year 1 - Semester I</option>
-              <option value="1-2">Year 1 - Semester II</option>
-              <option value="2-1">Year 2 - Semester I</option>
-              <option value="2-2">Year 2 - Semester II</option>
-              <option value="3-1">Year 3 - Semester I</option>
-              <option value="3-2">Year 3 - Semester II</option>
-              <option value="4-1">Year 4 - Semester I</option>
-              <option value="4-2">Year 4 - Semester II</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Module Core Focus</label>
-            <select id="future-sub-focus" class="select-input">
-              <option value="Botany Focus">Botany Focus</option>
-              <option value="Zoology Focus">Zoology Focus</option>
-              <option value="General Core">General Core</option>
-            </select>
-          </div>
-          
-          <div style="margin: 16px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent); border-top: 1px solid var(--border-color); padding-top: 16px;">
-            📊 Customized Chart Metric Toggles
-          </div>
-          
-          <div style="display: flex; flex-direction: column; gap: 10px;">
-            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; cursor: pointer;">
-              <input type="checkbox" id="future-toggle-lab-progress" checked>
-              <span>Enable Lab/Practical Progress Bar</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; cursor: pointer;">
-              <input type="checkbox" id="future-toggle-field-nodes" checked>
-              <span>Enable Field Assignment Nodes</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; cursor: pointer;">
-              <input type="checkbox" id="future-toggle-ca-ring" checked>
-              <span>Enable Continuous Assessment Ring</span>
-            </label>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn-outline modal-close-btn">Cancel</button>
-          <button type="submit" class="btn-solid">Save Future Module</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
   <!-- Bootstrapping scripts loaded as ES6 modules -->
   <script type="module" src="js/app.js?v=9"></script>

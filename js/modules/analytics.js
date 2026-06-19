@@ -145,14 +145,13 @@ export const AnalyticsModule = {
     try {
       // 1. Setup Runtime Dynamic Accumulators
       const [
-        subjects, attendance, assignments, studyPlans, sports, futureModules, allSettings, practicals, researchProjects, headingsConfig, rawParents
+        subjects, attendance, assignments, studyPlans, sports, allSettings, practicals, researchProjects, headingsConfig, rawParents
       ] = await Promise.all([
         Database.getAll('subjects'),
         Database.getAll('attendance'),
         Database.getAll('assignments'),
         Database.getAll('studyplans'),
         Database.getAll('sports'),
-        Database.getAll('futureModules'),
         Database.getAll('settings'),
         Database.getAll('practicals'),
         Database.getAll('researchProject'),
