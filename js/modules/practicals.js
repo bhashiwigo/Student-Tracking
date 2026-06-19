@@ -96,9 +96,9 @@ export const PracticalsModule = {
 
       // Bind deletes
       container.querySelectorAll('.delete-prac-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const id = btn.getAttribute('data-id');
-          if (confirm('Delete practical class schedule entry?')) {
+          if (await window.showCustomConfirm('Delete Practical Entry', 'Delete practical class schedule entry?', true)) {
             this.handleDeletePractical(id);
           }
         });

@@ -21,6 +21,71 @@ import { NotesModule } from './modules/notes.js';
 import { AnalyticsModule } from './modules/analytics.js';
 import { ResearchModule } from './modules/research.js';
 
+window.showCustomConfirm = function(title, message, isDestructive = false) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('modal-custom-confirm');
+    const titleEl = document.getElementById('confirm-modal-title');
+    const messageEl = document.getElementById('confirm-modal-message');
+    const actionBtn = document.getElementById('btn-custom-confirm-action');
+    const cancelBtn = document.getElementById('btn-custom-confirm-cancel');
+    const closeBtn = modal ? modal.querySelector('.modal-close-btn') : null;
+
+    if (!modal || !titleEl || !messageEl || !actionBtn) {
+      console.warn('Custom confirm elements missing, falling back to native confirm.');
+      resolve(confirm(message));
+      return;
+    }
+
+    // Populate inputs
+    titleEl.innerText = title;
+    messageEl.innerText = message;
+
+    // Apply color styling dynamically based on isDestructive
+    if (isDestructive) {
+      actionBtn.style.setProperty('background', 'var(--danger)', 'important');
+      actionBtn.style.setProperty('border-color', 'var(--danger)', 'important');
+      actionBtn.style.setProperty('color', '#ffffff', 'important');
+      actionBtn.style.setProperty('box-shadow', '0 0 10px rgba(239, 68, 68, 0.4)', 'important');
+    } else {
+      actionBtn.style.setProperty('background', 'var(--accent)', 'important');
+      actionBtn.style.setProperty('border-color', 'var(--accent)', 'important');
+      actionBtn.style.setProperty('color', '#000000', 'important');
+      actionBtn.style.setProperty('box-shadow', '0 0 10px rgba(0, 229, 255, 0.3)', 'important');
+    }
+
+    // Open modal
+    modal.classList.add('visible');
+
+    const cleanup = (value) => {
+      actionBtn.removeEventListener('click', onConfirm);
+      if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
+      if (closeBtn) closeBtn.removeEventListener('click', onCancel);
+      modal.removeEventListener('click', onOverlayClick);
+      modal.classList.remove('visible');
+      resolve(value);
+    };
+
+    function onConfirm() {
+      cleanup(true);
+    }
+
+    function onCancel() {
+      cleanup(false);
+    }
+
+    function onOverlayClick(e) {
+      if (e.target === modal) {
+        cleanup(false);
+      }
+    }
+
+    actionBtn.addEventListener('click', onConfirm);
+    if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
+    if (closeBtn) closeBtn.addEventListener('click', onCancel);
+    modal.addEventListener('click', onOverlayClick);
+  });
+};
+
 const App = {
   currentView: 'dashboard',
   currentDate: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Colombo' })),
@@ -482,8 +547,8 @@ const App = {
     // Bind Sign Out button in sidebar footer
     const logoutBtn = document.getElementById('btn-logout');
     if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => {
-        if (confirm('Sign out? Your data is saved locally and will sync when you return.')) {
+      logoutBtn.addEventListener('click', async () => {
+        if (await window.showCustomConfirm('Sign Out', 'Sign out? Your data is saved locally and will sync when you return.', false)) {
           Auth.clearSession();
           window.location.reload();
         }
@@ -920,8 +985,8 @@ const App = {
     // Settings page Sign Out button (B9)
     const settingsLogoutBtn = document.getElementById('btn-settings-logout');
     if (settingsLogoutBtn) {
-      settingsLogoutBtn.addEventListener('click', () => {
-        if (confirm('Sign out? Your data is saved and will sync when you return.')) {
+      settingsLogoutBtn.addEventListener('click', async () => {
+        if (await window.showCustomConfirm('Sign Out', 'Sign out? Your data is saved and will sync when you return.', false)) {
           Auth.clearSession();
           window.location.reload();
         }
@@ -947,7 +1012,7 @@ const App = {
         const file = e.target.files[0];
         if (!file) return;
 
-        if (confirm('Import backup data? This clears and replaces all current logbooks.')) {
+        if (await window.showCustomConfirm('Import Backup', 'Import backup data? This clears and replaces all current logbooks.', true)) {
           try {
             await BackupService.importBackup(file);
             NotificationService.show('Restore Successful', 'Database records rebuilt.', 'success');

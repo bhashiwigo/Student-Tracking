@@ -136,9 +136,9 @@ export const AssignmentsModule = {
 
       // Bind deletes
       container.querySelectorAll('.delete-assign-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const id = btn.getAttribute('data-id');
-          if (confirm('Delete assignment entry?')) {
+          if (await window.showCustomConfirm('Delete Assignment', 'Delete assignment entry?', true)) {
             this.handleDeleteAssignment(id);
           }
         });

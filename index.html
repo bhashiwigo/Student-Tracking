@@ -1714,6 +1714,22 @@
     </div>
   </div>
 
+  <!-- Custom Confirmation Modal HUD -->
+  <div class="modal-overlay" id="modal-custom-confirm">
+    <div class="modal-box" style="background: rgba(10, 24, 32, 0.95) !important; border: 1px solid var(--border-color) !important; box-shadow: var(--shadow-lg), var(--shadow-glow) !important; backdrop-filter: var(--glass-blur) !important; -webkit-backdrop-filter: var(--glass-blur) !important; font-family: var(--font-family-app) !important; max-width: 400px; width: 90%;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-color) !important; display: flex; align-items: center; justify-content: flex-start !important; gap: 10px; font-family: var(--font-family-app) !important; padding: 18px 24px !important;">
+        <h3 id="confirm-modal-title" style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-family-app) !important;">Confirm Action</h3>
+      </div>
+      <div class="modal-body" style="font-family: var(--font-family-app) !important; padding: 20px 24px !important; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5;">
+        <p id="confirm-modal-message" style="margin: 0; font-family: var(--font-family-app) !important;"></p>
+      </div>
+      <div class="modal-footer" style="border-top: 1px solid rgba(255, 255, 255, 0.05) !important; display: flex; justify-content: flex-end; gap: 12px; font-family: var(--font-family-app) !important; padding: 16px 24px !important;">
+        <button type="button" class="btn-outline modal-close-btn" id="btn-custom-confirm-cancel" style="font-family: var(--font-family-app) !important; background: rgba(255, 255, 255, 0.05) !important; border: 1px solid var(--border-color) !important; color: var(--text-primary) !important; cursor: pointer; transition: all 0.2s ease; border-radius: 8px; padding: 8px 16px; font-weight: 600;">Cancel</button>
+        <button type="button" class="btn-solid" id="btn-custom-confirm-action" style="font-family: var(--font-family-app) !important; cursor: pointer; transition: all 0.2s ease; border-radius: 8px; padding: 8px 16px; font-weight: 700;">Confirm</button>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Bootstrapping scripts loaded as ES6 modules -->
   <script type="module" src="js/app.js?v=9"></script>

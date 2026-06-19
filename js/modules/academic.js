@@ -573,9 +573,9 @@ export const AcademicModule = {
 
       // Bind parent subject deletes
       container.querySelectorAll('.delete-subject-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const code = btn.getAttribute('data-code');
-          if (confirm("Are you sure you want to completely delete this subject?")) {
+          if (await window.showCustomConfirm('Delete Subject', 'Are you sure you want to completely delete this subject?', true)) {
             this.handleDeleteSubject(code);
           }
         });
@@ -591,9 +591,9 @@ export const AcademicModule = {
 
       // Bind submodule deletes
       container.querySelectorAll('.delete-submodule-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const id = btn.getAttribute('data-id');
-          if (confirm("Are you sure you want to delete this sub-module?")) {
+          if (await window.showCustomConfirm('Delete Sub-Module', 'Are you sure you want to delete this sub-module?', true)) {
             this.handleDeleteSubModule(id);
           }
         });

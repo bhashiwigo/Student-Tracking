@@ -180,9 +180,9 @@ export const StudyModule = {
 
       // Bind delete
       container.querySelectorAll('.delete-plan-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const id = btn.getAttribute('data-id');
-          if (confirm('Delete study plan entry?')) {
+          if (await window.showCustomConfirm('Delete Study Plan', 'Delete study plan entry?', true)) {
             this.handleDeletePlan(id);
           }
         });

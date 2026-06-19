@@ -185,7 +185,7 @@ export const ResearchModule = {
       document.querySelectorAll('.delete-task-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const id = btn.getAttribute('data-id');
-          if (confirm('Delete this research sub-task?')) {
+          if (await window.showCustomConfirm('Delete Research Task', 'Delete this research sub-task?', true)) {
             try {
               await Database.delete('researchProject', id);
               NotificationService.show('Task Deleted', 'Research sub-task removed.', 'warning');

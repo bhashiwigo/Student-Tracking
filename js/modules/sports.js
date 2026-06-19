@@ -47,9 +47,9 @@ export const SportsModule = {
 
         // BUG FIX: Scope delete listener to fitnessText, not document (avoids duplicate bindings)
         fitnessText.querySelectorAll('.delete-sport-goal-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', async () => {
             const id = btn.getAttribute('data-id');
-            if (confirm('Delete this fitness goal?')) {
+            if (await window.showCustomConfirm('Delete Goal', 'Delete this fitness goal?', true)) {
               this.handleDeleteSport(id);
             }
           });
@@ -103,9 +103,9 @@ export const SportsModule = {
 
       // BUG FIX: Use container.querySelectorAll (scoped) instead of document.querySelectorAll (global)
       container.querySelectorAll('.delete-sport-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const id = btn.getAttribute('data-id');
-          if (confirm('Delete this sports entry?')) {
+          if (await window.showCustomConfirm('Delete Sports Entry', 'Delete this sports entry?', true)) {
             this.handleDeleteSport(id);
           }
         });
