@@ -215,6 +215,14 @@ const App = {
   _initialized: false, // Guard against double-bootstrap on re-init after login
 
   async init() {
+    // Set up theme and typography immediately to avoid white flash/background mismatch on load
+    try {
+      await this.setupTheme();
+      await this.setupTypography();
+    } catch (e) {
+      console.warn('Initial theme setup warning:', e);
+    }
+
     this.registerServiceWorker();
     this.setupSyncIndicatorListener();
 
@@ -224,6 +232,7 @@ const App = {
     //    collapse into a single render pass instead of firing 4-5 times.
     let _dashDebounceTimer = null;
     window.addEventListener('subjectsUpdated', () => {
+      if (sessionStorage.getItem('is_app_syncing') === 'true') return;
       clearTimeout(_dashDebounceTimer);
       _dashDebounceTimer = setTimeout(() => {
         if (App.currentView === 'dashboard') {
@@ -247,8 +256,13 @@ const App = {
     try {
       const restored = await checkAndRestoreFromCloud();
       if (restored) {
-        window.location.reload();
-        return;
+        if (!localStorage.getItem('app_cloud_restore_executed')) {
+          localStorage.setItem('app_cloud_restore_executed', 'true');
+          window.location.reload();
+          return;
+        }
+      } else {
+        localStorage.removeItem('app_cloud_restore_executed');
       }
     } catch (err) {
       console.error('Initial cloud sync check failed:', err);
@@ -256,8 +270,6 @@ const App = {
 
     // ── App Bootstrap ─────────────────────────────────────────────────────────
     await this.setupProfileOnboarding();
-    await this.setupTheme();
-    await this.setupTypography();
     await this.setupThemeStudio();
 
     // Bootstrap modules
@@ -401,12 +413,12 @@ const App = {
             Auth.setSession(user.userId, rememberMe);
           }
 
-          const authOverlay = document.getElementById('auth-overlay');
-          if (authOverlay) authOverlay.classList.remove('active');
-
           // Re-run init with session now set
           this._initialized = false;
           await this.init();
+
+          const authOverlay = document.getElementById('auth-overlay');
+          if (authOverlay) authOverlay.classList.remove('active');
         } catch (err) {
           console.error('Sign in error:', err);
           NotificationService.show('Sign In Error', err.message, 'error');
@@ -485,11 +497,11 @@ const App = {
           Auth.setSession(userId, true);
           NotificationService.show('Account Created!', `Welcome to Campus Life, ${name}!`, 'success');
 
-          const authOverlay = document.getElementById('auth-overlay');
-          if (authOverlay) authOverlay.classList.remove('active');
-
           this._initialized = false;
           await this.init();
+
+          const authOverlay = document.getElementById('auth-overlay');
+          if (authOverlay) authOverlay.classList.remove('active');
         } catch (err) {
           console.error('Registration error:', err);
           NotificationService.show('Registration Failed', err.message, 'error');
@@ -618,6 +630,14 @@ const App = {
 
     // Initial trigger
     triggerBackgroundSync();
+
+    // Wire network online/offline listeners to auto-trigger synchronization on connection state changes
+    window.addEventListener('online', () => {
+      triggerBackgroundSync();
+    });
+    window.addEventListener('offline', () => {
+      window.dispatchEvent(new CustomEvent('syncStatusChanged', { detail: 'offline' }));
+    });
   },
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -673,6 +693,7 @@ const App = {
     if (logoutBtn) {
       logoutBtn.addEventListener('click', async () => {
         if (await window.showCustomConfirm('Sign Out', 'Sign out? Your data is saved locally and will sync when you return.', false)) {
+          localStorage.removeItem('app_cloud_restore_executed');
           Auth.clearSession();
           window.location.reload();
         }
@@ -1141,6 +1162,7 @@ const App = {
     if (settingsLogoutBtn) {
       settingsLogoutBtn.addEventListener('click', async () => {
         if (await window.showCustomConfirm('Sign Out', 'Sign out? Your data is saved and will sync when you return.', false)) {
+          localStorage.removeItem('app_cloud_restore_executed');
           Auth.clearSession();
           window.location.reload();
         }
@@ -1364,8 +1386,20 @@ const App = {
     ]);
 
     const gpaStats = await GPAModule.calculateGPAs(subjects);
-    document.getElementById('dash-metric-gpa').innerText = gpaStats.overall.toFixed(2);
-    document.getElementById('dash-metric-sem-gpa').innerText = gpaStats.currentSemester.toFixed(2);
+    const overallGpa = gpaStats.overall || 0.00;
+    const semGpa = gpaStats.currentSemester || 0.00;
+
+    const gpaValEl = document.getElementById('dash-metric-gpa');
+    if (gpaValEl) gpaValEl.innerText = overallGpa.toFixed(2);
+
+    const gpaSubEl = document.getElementById('dash-metric-gpa-sub');
+    if (gpaSubEl) gpaSubEl.innerText = overallGpa.toFixed(2);
+
+    const semGpaEl = document.getElementById('dash-metric-sem-gpa');
+    if (semGpaEl) {
+      semGpaEl.innerText = semGpa.toFixed(2);
+      semGpaEl.style.display = 'inline';
+    }
 
     let totalAttended = 0;
     let totalSessions = 0;
@@ -1379,15 +1413,70 @@ const App = {
       }
     });
     const attPct = totalSessions > 0 ? (totalAttended / totalSessions) * 100 : 0;
-    document.getElementById('dash-metric-att').innerText = `${attPct.toFixed(0)}%`;
+    
+    const attValEl = document.getElementById('dash-metric-att');
+    if (attValEl) attValEl.innerText = `${attPct.toFixed(0)}%`;
+
+    const attTextValEl = document.getElementById('dashboard-attendance-text-val');
+    if (attTextValEl) attTextValEl.innerText = `${attPct.toFixed(0)}%`;
+
+    const attSubEl = document.getElementById('dash-metric-att-sub');
+    if (attSubEl) attSubEl.innerText = `${attPct.toFixed(0)}%`;
+
+    // Apply dynamic border warning glow states on Attendance Summary Widget card
+    const attCard = document.getElementById('dashboard-attendance-summary-card');
+    if (attCard) {
+      attCard.style.transition = 'border 0.3s ease, box-shadow 0.3s ease';
+      if (attPct >= 80) {
+        attCard.style.border = '1px solid var(--success, #00e676)';
+        attCard.style.boxShadow = '0 0 15px rgba(0, 230, 118, 0.25)';
+      } else if (attPct >= 60) {
+        attCard.style.border = '1px solid var(--warning, #ffd600)';
+        attCard.style.boxShadow = '0 0 15px rgba(255, 214, 0, 0.25)';
+      } else {
+        attCard.style.border = '1px solid var(--danger, #ff1744)';
+        attCard.style.boxShadow = '0 0 15px rgba(255, 23, 68, 0.25)';
+      }
+    }
+
+    // Process Academic Progress Metrics: Credits & monochromatic rail
+    let completedCredits = 0;
+    let remainingCredits = 0;
+    subjects.forEach(sub => {
+      const credits = sub.credits || 0;
+      if (sub.grade) {
+        completedCredits += credits;
+      } else {
+        remainingCredits += credits;
+      }
+    });
+    const totalCredits = completedCredits + remainingCredits;
+    const completionPct = totalCredits > 0 ? (completedCredits / totalCredits) * 100 : 0;
+
+    const compCrEl = document.getElementById('progress-completed-credits');
+    if (compCrEl) compCrEl.innerText = `${completedCredits} Cr`;
+
+    const remCrEl = document.getElementById('progress-remaining-credits');
+    if (remCrEl) remCrEl.innerText = `${remainingCredits} Cr`;
+
+    const pctEl = document.getElementById('progress-completion-pct');
+    if (pctEl) pctEl.innerText = `${completionPct.toFixed(1)}%`;
+
+    const fillEl = document.getElementById('progress-completion-fill');
+    if (fillEl) fillEl.style.width = `${completionPct}%`;
 
     const pendingEx = exams.length;
     const pendingPrac = practicals.length;
     const pendingAssign = assignments.filter(a => a.status !== 'Completed').length;
 
-    document.getElementById('dash-pending-exams').innerText = pendingEx;
-    document.getElementById('dash-pending-pracs').innerText = pendingPrac;
-    document.getElementById('dash-pending-assigns').innerText = pendingAssign;
+    const penExEl = document.getElementById('dash-pending-exams');
+    if (penExEl) penExEl.innerText = pendingEx;
+
+    const penPrEl = document.getElementById('dash-pending-pracs');
+    if (penPrEl) penPrEl.innerText = pendingPrac;
+
+    const penAsEl = document.getElementById('dash-pending-assigns');
+    if (penAsEl) penAsEl.innerText = pendingAssign;
 
     const scheduleBox = document.getElementById('dash-weekly-schedule-list');
     if (scheduleBox) {
@@ -1404,11 +1493,71 @@ const App = {
       const nextItems = allUpcoming.slice(0, 4);
 
       scheduleBox.innerHTML = nextItems.map(item => `
-        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; border-bottom:1px solid var(--border-color); padding: 8px 0;">
-          <span>${item.title}</span>
-          <span style="color:var(--text-muted); font-size:0.75rem;">${new Date(item.date + 'T00:00:00Z').toLocaleDateString('en-US', { timeZone: 'Asia/Colombo' })}</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; border-bottom:1px solid var(--border-color); padding: 8px 0; font-family: var(--font-family-app) !important;">
+          <span style="font-family: var(--font-family-app) !important;">${item.title}</span>
+          <span style="color:var(--text-muted); font-size:0.75rem; font-family: var(--font-family-app) !important;">${new Date(item.date + 'T00:00:00Z').toLocaleDateString('en-US', { timeZone: 'Asia/Colombo' })}</span>
         </div>
-      `).join('') || '<div style="color:var(--text-muted); font-size:0.8rem;">No academic events scheduled.</div>';
+      `).join('') || '<div style="color:var(--text-muted); font-size:0.8rem; font-family: var(--font-family-app) !important;">No academic events scheduled.</div>';
+    }
+
+    // Render upcoming assignments widget
+    const assignContainer = document.getElementById('dashboard-assignments-container');
+    if (assignContainer) {
+      const pendingAssignments = assignments.filter(a => a.status !== 'Completed');
+      pendingAssignments.sort((a, b) => {
+        const dateA = new Date(a.deadline || a.date || '9999-12-31');
+        const dateB = new Date(b.deadline || b.date || '9999-12-31');
+        return dateA - dateB;
+      });
+
+      const topAssignments = pendingAssignments.slice(0, 3);
+
+      if (topAssignments.length === 0) {
+        assignContainer.innerHTML = `
+          <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.8rem; font-family: var(--font-family-app) !important;">
+            No pending coursework assignments.
+          </div>
+        `;
+      } else {
+        assignContainer.innerHTML = topAssignments.map(as => {
+          const priorityClasses = {
+            Low: 'low',
+            Medium: 'medium',
+            High: 'high'
+          };
+          const priorityClass = priorityClasses[as.priority] || 'low';
+
+          const statusColors = {
+            'Pending': 'background-color: var(--border-color); color: var(--text-secondary);',
+            'Submitted': 'background-color: var(--accent-glow); color: var(--accent);',
+            'Completed': 'background-color: rgba(16, 185, 129, 0.15); color: var(--success);'
+          };
+          const statusStyle = statusColors[as.status] || 'background-color: var(--border-color); color: var(--text-secondary);';
+
+          const deadlineVal = as.deadline || as.date || 'N/A';
+          const courseVal = as.courseId || as.subjectCode || 'N/A';
+
+          return `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(255, 255, 255, 0.02); font-family: var(--font-family-app) !important;">
+              <div style="font-family: var(--font-family-app) !important; min-width: 0; flex: 1;">
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--accent); font-family: var(--font-family-app) !important; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  ${courseVal}
+                </div>
+                <div style="font-size: 0.9rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-family-app) !important; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  ${as.title}
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); font-family: var(--font-family-app) !important; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  Deadline: ${deadlineVal}
+                </div>
+              </div>
+              <div style="text-align: right; font-family: var(--font-family-app) !important; flex-shrink: 0; margin-left: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                <span class="badge" style="${statusStyle} font-family: var(--font-family-app) !important; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px;">${as.status}</span>
+                <span class="badge ${priorityClass}" style="font-family: var(--font-family-app) !important; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px;">${as.priority}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
     }
 
     // Call AnalyticsModule.render() to ensure all dashboard charts, balance bars, and progress trackers are updated

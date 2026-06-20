@@ -84,48 +84,133 @@ export const FirestoreSync = {
     const fns = getFirestoreFns();
     if (!fns) return { success: false, reason: 'Firebase SDK not loaded' };
 
-    const { doc, setDoc, serverTimestamp } = fns;
+    const { doc, setDoc, serverTimestamp, collection, getDocs } = fns;
     const db = window.__firestore;
     const userId = Auth.getCurrentUserId();
 
     let synced = 0;
 
-    // Push each store using individual setDoc calls
-    for (const storeName of SYNC_STORES) {
+    // Helper to extract timestamp in ms from record defensively
+    const getTimestampMs = (record) => {
+      if (!record) return 0;
+      if (record._updatedAt) {
+        const parsed = Date.parse(record._updatedAt);
+        if (!isNaN(parsed)) return parsed;
+      }
+      if (record._syncedAt) {
+        if (typeof record._syncedAt.toDate === 'function') {
+          return record._syncedAt.toDate().getTime();
+        }
+        if (record._syncedAt.seconds) {
+          return record._syncedAt.seconds * 1000;
+        }
+        const parsed = Date.parse(record._syncedAt);
+        if (!isNaN(parsed)) return parsed;
+      }
+      return 0;
+    };
+
+    // Set app sync flag to prevent local write cycles from overwriting timestamps
+    sessionStorage.setItem('is_app_syncing', 'true');
+
+    try {
+      // Sync each store bidirectionally using LWW
+      for (const storeName of SYNC_STORES) {
+        try {
+          const localRecords = await Database.getAll(storeName);
+          const userLocalRecords = storeName === 'settings'
+            ? localRecords.filter(r => !r.userId || r.userId === userId)
+            : localRecords.filter(r => r.userId === userId);
+
+          const colPath = this.getUserCollectionPath(storeName);
+          if (!colPath) continue;
+
+          // Fetch all remote records from Firestore
+          const snapshot = await getDocs(collection(db, colPath));
+          const remoteRecords = snapshot.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+          }));
+
+          const keyField = STORE_KEYS[storeName];
+
+          // Map local records
+          const localMap = new Map();
+          userLocalRecords.forEach(r => {
+            const id = String(r[keyField] || r.id);
+            localMap.set(id, r);
+          });
+
+          // Map remote records
+          const remoteMap = new Map();
+          remoteRecords.forEach(r => {
+            const id = String(r[keyField] || r.id);
+            remoteMap.set(id, r);
+          });
+
+          // Union of keys
+          const allKeys = new Set([...localMap.keys(), ...remoteMap.keys()]);
+
+          for (const key of allKeys) {
+            const localRec = localMap.get(key);
+            const remoteRec = remoteMap.get(key);
+
+            if (localRec && !remoteRec) {
+              // Exists locally only -> push to cloud
+              const docRef = doc(db, colPath, key);
+              await setDoc(docRef, { ...localRec, _syncedAt: serverTimestamp() });
+              synced++;
+            } else if (!localRec && remoteRec) {
+              // Exists remotely only -> pull to local
+              const { _syncedAt, ...cleanData } = remoteRec;
+              await Database.put(storeName, cleanData);
+              synced++;
+            } else if (localRec && remoteRec) {
+              // Exists in both -> resolve via LWW conflict resolution
+              const localTime = getTimestampMs(localRec);
+              const remoteTime = getTimestampMs(remoteRec);
+
+              if (localTime > remoteTime) {
+                // Local is newer -> push to cloud
+                const docRef = doc(db, colPath, key);
+                await setDoc(docRef, { ...localRec, _syncedAt: serverTimestamp() });
+                synced++;
+              } else if (remoteTime > localTime) {
+                // Remote is newer -> pull to local
+                const { _syncedAt, ...cleanData } = remoteRec;
+                await Database.put(storeName, cleanData);
+                synced++;
+              } else {
+                // Same timestamp or fallback -> check payload equality
+                if (canonicalStringify(localRec) !== canonicalStringify(remoteRec)) {
+                  // Fallback: push local to remote
+                  const docRef = doc(db, colPath, key);
+                  await setDoc(docRef, { ...localRec, _syncedAt: serverTimestamp() });
+                  synced++;
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.warn(`[FirestoreSync] Bidirectional sync failed for store "${storeName}":`, err.message);
+        }
+      }
+
+      // Push user profile document
       try {
-        const records = await Database.getAll(storeName);
-        // Filter to current user's records (settings may not have userId)
-        const userRecords = storeName === 'settings'
-          ? records.filter(r => !r.userId || r.userId === userId)
-          : records.filter(r => r.userId === userId);
-
-        const keyField = STORE_KEYS[storeName];
-        const colPath = this.getUserCollectionPath(storeName);
-        if (!colPath) continue;
-
-        for (const record of userRecords) {
-          const docId = String(record[keyField] || record.id || Date.now());
-          const docRef = doc(db, colPath, docId);
-          await setDoc(docRef, { ...record, _syncedAt: serverTimestamp() });
+        const allUsers = await Database.getAll('users');
+        const user = allUsers.find(u => u.userId === userId);
+        if (user) {
+          await setDoc(doc(db, 'users', userId), {
+            ...user, _syncedAt: serverTimestamp()
+          });
           synced++;
         }
       } catch (err) {
-        console.warn(`[FirestoreSync] Push failed for store "${storeName}":`, err.message);
+        console.warn('[FirestoreSync] User profile push failed:', err.message);
       }
-    }
-
-    // Push user profile document
-    try {
-      const allUsers = await Database.getAll('users');
-      const user = allUsers.find(u => u.userId === userId);
-      if (user) {
-        await setDoc(doc(db, 'users', userId), {
-          ...user, _syncedAt: serverTimestamp()
-        });
-        synced++;
-      }
-    } catch (err) {
-      console.warn('[FirestoreSync] User profile push failed:', err.message);
+    } finally {
+      sessionStorage.removeItem('is_app_syncing');
     }
 
     return { success: true, synced };

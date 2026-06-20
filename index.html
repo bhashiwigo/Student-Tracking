@@ -15,6 +15,14 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@300;400;500;600;700;800&family=Nunito:wght@300;400;500;600;700;800&family=Open+Sans:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&family=Roboto:wght@300;400;500;600;700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="css/style.css?v=9">
+  <style>
+    html, body {
+      background-color: #030a0e;
+    }
+    body[data-theme="light"] {
+      background-color: #e3e3e3;
+    }
+  </style>
   <!-- Chart.js via CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -378,134 +386,159 @@
         </div>
         <div class="grid-layout">
           <!-- C: Overall GPA Forecast -->
-          <div class="card col-3" style="align-items: center; justify-content: center;">
-            <div class="card-title">Overall GPA Forecast</div>
+          <div class="card col-4" style="align-items: center; justify-content: center;" id="dashboard-gpa-summary-card">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">GPA Summary Widget</div>
             <div class="radial-ring-container">
               <svg class="radial-ring" viewBox="0 0 100 100">
                 <circle class="ring-bg" cx="50" cy="50" r="40" />
                 <circle class="ring-fill" cx="50" cy="50" r="40" id="dash-metric-gpa-ring" stroke-dasharray="251.2"
                   stroke-dashoffset="251.2" />
               </svg>
-              <div class="radial-ring-value" id="dash-metric-gpa">0.00</div>
+              <div class="radial-ring-value" id="dash-metric-gpa" style="font-family: 'JetBrains Mono', monospace, var(--font-family-app) !important;">0.00</div>
             </div>
-            <span style="font-size: 0.72rem; color: var(--text-secondary); text-align: center;">Progress Ring: <span
-                id="dash-metric-gpa-sub">0.00</span></span>
-            <span id="dash-metric-sem-gpa" style="display: none;">0.00</span>
+            <div style="font-size: 0.72rem; color: var(--text-secondary); text-align: center; font-family: var(--font-family-app) !important; display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-family: var(--font-family-app) !important;">Cumulative GPA: <span id="dash-metric-gpa-sub" style="font-family: var(--font-family-app) !important;">0.00</span></span>
+              <span style="font-family: var(--font-family-app) !important;">Semester Forecast: <span id="dash-metric-sem-gpa" style="font-family: var(--font-family-app) !important;">0.00</span></span>
+            </div>
           </div>
 
           <!-- D: RUSL Attendance Status -->
-          <div class="card col-3" style="align-items: center; justify-content: center;">
-            <div class="card-title">RUSL Attendance Status</div>
+          <div class="card col-4" style="align-items: center; justify-content: center;" id="dashboard-attendance-summary-card">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">Attendance Summary Widget</div>
             <div class="radial-ring-container">
               <svg class="radial-ring" viewBox="0 0 100 100">
                 <circle class="ring-bg" cx="50" cy="50" r="40" />
                 <circle class="ring-fill att-ring-fill" cx="50" cy="50" r="40" id="dash-metric-att-ring"
                   stroke-dasharray="251.2" stroke-dashoffset="251.2" />
               </svg>
-              <div class="radial-ring-value" id="dashboard-attendance-text-val">0%</div>
+              <div class="radial-ring-value" id="dashboard-attendance-text-val" style="font-family: 'JetBrains Mono', monospace, var(--font-family-app) !important;">0%</div>
             </div>
-            <span style="font-size: 0.72rem; color: var(--text-secondary); text-align: center;">Progress Ring: <span
-                id="dash-metric-att-sub">0%</span></span>
-            <select class="select-input" id="dash-attendance-subject-select" style="width: 100%; height: 28px; padding: 2px 8px; font-size: 0.75rem; margin-top: 8px;"></select>
-            <div id="dash-metric-att" style="display: none;">0%</div>
+            <span style="font-size: 0.72rem; color: var(--text-secondary); text-align: center; font-family: var(--font-family-app) !important;">Progress Ring: <span
+                id="dash-metric-att-sub" style="font-family: var(--font-family-app) !important;">0%</span></span>
+            <select class="select-input" id="dash-attendance-subject-select" style="width: 100%; height: 28px; padding: 2px 8px; font-size: 0.75rem; margin-top: 8px; font-family: var(--font-family-app) !important;"></select>
+            <div id="dash-metric-att" style="display: none; font-family: var(--font-family-app) !important;">0%</div>
+          </div>
+
+          <!-- Academic Progress Metrics -->
+          <div class="card col-4" id="academic-progress-widget" style="font-family: var(--font-family-app) !important; display: flex; flex-direction: column; justify-content: space-between;">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">Academic Progress Metrics</div>
+            <div style="display: flex; flex-direction: column; gap: 12px; font-family: var(--font-family-app) !important; width: 100%; margin-top: auto; margin-bottom: auto;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-family: var(--font-family-app) !important;">
+                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Completed Credits</span>
+                <span id="progress-completed-credits" style="font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">0 Cr</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-family: var(--font-family-app) !important;">
+                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Remaining Credits</span>
+                <span id="progress-remaining-credits" style="font-weight: 700; color: var(--warning); font-family: var(--font-family-app) !important;">0 Cr</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 6px; font-family: var(--font-family-app) !important; margin-top: 4px;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">
+                  <span style="font-family: var(--font-family-app) !important;">Curriculum Completion</span>
+                  <span id="progress-completion-pct" style="font-family: var(--font-family-app) !important; font-weight: 700;">0.0%</span>
+                </div>
+                <div style="height: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; width: 100%; box-sizing: border-box;">
+                  <div id="progress-completion-fill" style="width: 0%; height: 100%; background: #ffffff; border-radius: 4px; transition: width 0.5s ease;"></div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- E: Current Academic Balance -->
-          <div class="card col-3" style="justify-content: flex-start;">
-            <div class="card-title">Current Academic Balance</div>
-            <div class="balance-progress-group">
-              <div class="balance-item">
-                <div class="balance-header">
-                  <span>Botany</span>
-                  <span>0%</span>
+          <div class="card col-6" style="justify-content: flex-start;">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">Current Academic Balance</div>
+            <div class="balance-progress-group" style="font-family: var(--font-family-app) !important;">
+              <div class="balance-item" style="font-family: var(--font-family-app) !important;">
+                <div class="balance-header" style="font-family: var(--font-family-app) !important;">
+                  <span style="font-family: var(--font-family-app) !important;">Botany</span>
+                  <span style="font-family: var(--font-family-app) !important;">0%</span>
                 </div>
-                <div class="balance-bar-bg">
-                  <div class="balance-bar-fill" style="width: 0%;"></div>
-                </div>
-              </div>
-              <div class="balance-item">
-                <div class="balance-header">
-                  <span>Zoology</span>
-                  <span>0%</span>
-                </div>
-                <div class="balance-bar-bg">
-                  <div class="balance-bar-fill" style="width: 0%;"></div>
+                <div class="balance-bar-bg" style="font-family: var(--font-family-app) !important;">
+                  <div class="balance-bar-fill" style="width: 0%; font-family: var(--font-family-app) !important;"></div>
                 </div>
               </div>
-              <div class="balance-item">
-                <div class="balance-header">
-                  <span>Chemistry</span>
-                  <span>0%</span>
+              <div class="balance-item" style="font-family: var(--font-family-app) !important;">
+                <div class="balance-header" style="font-family: var(--font-family-app) !important;">
+                  <span style="font-family: var(--font-family-app) !important;">Zoology</span>
+                  <span style="font-family: var(--font-family-app) !important;">0%</span>
                 </div>
-                <div class="balance-bar-bg">
-                  <div class="balance-bar-fill" style="width: 0%;"></div>
+                <div class="balance-bar-bg" style="font-family: var(--font-family-app) !important;">
+                  <div class="balance-bar-fill" style="width: 0%; font-family: var(--font-family-app) !important;"></div>
+                </div>
+              </div>
+              <div class="balance-item" style="font-family: var(--font-family-app) !important;">
+                <div class="balance-header" style="font-family: var(--font-family-app) !important;">
+                  <span style="font-family: var(--font-family-app) !important;">Chemistry</span>
+                  <span style="font-family: var(--font-family-app) !important;">0%</span>
+                </div>
+                <div class="balance-bar-bg" style="font-family: var(--font-family-app) !important;">
+                  <div class="balance-bar-fill" style="width: 0%; font-family: var(--font-family-app) !important;"></div>
                 </div>
               </div>
             </div>
             <span
-              style="font-size: 0.65rem; color: var(--text-secondary); text-align: center; margin-top: auto;">Botany/Zoology/Chemistry</span>
+              style="font-size: 0.65rem; color: var(--text-secondary); text-align: center; margin-top: auto; font-family: var(--font-family-app) !important;">Botany/Zoology/Chemistry</span>
           </div>
 
           <!-- F: GPA Predictor HUD -->
-          <div class="card col-3">
-            <div class="card-title">GPA Predictor HUD</div>
-            <div class="predictor-compact">
-              <div class="form-group">
-                <label class="form-label" style="font-size: 0.55rem;">Component Weights</label>
+          <div class="card col-6" style="font-family: var(--font-family-app) !important;">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">GPA Predictor HUD</div>
+            <div class="predictor-compact" style="font-family: var(--font-family-app) !important;">
+              <div class="form-group" style="font-family: var(--font-family-app) !important;">
+                <label class="form-label" style="font-size: 0.55rem; font-family: var(--font-family-app) !important;">Component Weights</label>
                 <select class="select-input" id="predictor-subject-select"
-                  style="width: 100%; height: 28px; padding: 2px 8px; font-size: 0.75rem;"></select>
+                  style="width: 100%; height: 28px; padding: 2px 8px; font-size: 0.75rem; font-family: var(--font-family-app) !important;"></select>
               </div>
-              <div class="form-group" style="margin-top: -4px;">
+              <div class="form-group" style="margin-top: -4px; font-family: var(--font-family-app) !important;">
                 <select class="select-input" id="predictor-grade-select"
-                  style="width: 100%; height: 28px; padding: 2px 8px; font-size: 0.75rem;">
-                  <option value="A+">A+ (90%)</option>
-                  <option value="A" selected>A (85%)</option>
-                  <option value="A-">A- (80%)</option>
-                  <option value="B+">B+ (75%)</option>
-                  <option value="B">B (70%)</option>
-                  <option value="B-">B- (65%)</option>
-                  <option value="C+">C+ (60%)</option>
-                  <option value="C">C (55%)</option>
-                  <option value="C-">C- (50%)</option>
-                  <option value="D+">D+ (45%)</option>
-                  <option value="D">D (40%)</option>
+                  style="width: 100%; height: 28px; padding: 2px 8px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">
+                  <option value="A+" style="font-family: var(--font-family-app) !important;">A+ (90%)</option>
+                  <option value="A" selected style="font-family: var(--font-family-app) !important;">A (85%)</option>
+                  <option value="A-" style="font-family: var(--font-family-app) !important;">A- (80%)</option>
+                  <option value="B+" style="font-family: var(--font-family-app) !important;">B+ (75%)</option>
+                  <option value="B" style="font-family: var(--font-family-app) !important;">B (70%)</option>
+                  <option value="B-" style="font-family: var(--font-family-app) !important;">B- (65%)</option>
+                  <option value="C+" style="font-family: var(--font-family-app) !important;">C+ (60%)</option>
+                  <option value="C" style="font-family: var(--font-family-app) !important;">C (55%)</option>
+                  <option value="C-" style="font-family: var(--font-family-app) !important;">C- (50%)</option>
+                  <option value="D+" style="font-family: var(--font-family-app) !important;">D+ (45%)</option>
+                  <option value="D" style="font-family: var(--font-family-app) !important;">D (40%)</option>
                 </select>
               </div>
-              <div class="predictor-stats-row">
-                <div class="predictor-stat-box">
-                  <label>Theory</label>
-                  <span><span id="predictor-theory-weight">70</span>%</span>
+              <div class="predictor-stats-row" style="font-family: var(--font-family-app) !important;">
+                <div class="predictor-stat-box" style="font-family: var(--font-family-app) !important;">
+                  <label style="font-family: var(--font-family-app) !important;">Theory</label>
+                  <span style="font-family: var(--font-family-app) !important;"><span id="predictor-theory-weight" style="font-family: var(--font-family-app) !important;">70</span>%</span>
                 </div>
-                <div class="predictor-stat-box">
-                  <label>Prac</label>
-                  <span><span id="predictor-practical-weight">30</span>%</span>
+                <div class="predictor-stat-box" style="font-family: var(--font-family-app) !important;">
+                  <label style="font-family: var(--font-family-app) !important;">Prac</label>
+                  <span style="font-family: var(--font-family-app) !important;"><span id="predictor-practical-weight" style="font-family: var(--font-family-app) !important;">30</span>%</span>
                 </div>
-                <div class="predictor-stat-box">
-                  <label>CA</label>
-                  <span><span id="predictor-ca-val">0</span></span>
+                <div class="predictor-stat-box" style="font-family: var(--font-family-app) !important;">
+                  <label style="font-family: var(--font-family-app) !important;">CA</label>
+                  <span style="font-family: var(--font-family-app) !important;"><span id="predictor-ca-val" style="font-family: var(--font-family-app) !important;">0</span></span>
                 </div>
               </div>
-              <div class="predictor-stats-row" style="margin-top: -6px;">
-                <div class="predictor-stat-box">
-                  <label>Quiz</label>
-                  <span><span id="predictor-quiz-val">0</span></span>
+              <div class="predictor-stats-row" style="margin-top: -6px; font-family: var(--font-family-app) !important;">
+                <div class="predictor-stat-box" style="font-family: var(--font-family-app) !important;">
+                  <label style="font-family: var(--font-family-app) !important;">Quiz</label>
+                  <span style="font-family: var(--font-family-app) !important;"><span id="predictor-quiz-val" style="font-family: var(--font-family-app) !important;">0</span></span>
                 </div>
-                <div class="predictor-stat-box">
-                  <label>Lab</label>
-                  <span><span id="predictor-lab-val">0</span></span>
+                <div class="predictor-stat-box" style="font-family: var(--font-family-app) !important;">
+                  <label style="font-family: var(--font-family-app) !important;">Lab</label>
+                  <span style="font-family: var(--font-family-app) !important;"><span id="predictor-lab-val" style="font-family: var(--font-family-app) !important;">0</span></span>
                 </div>
-                <div class="predictor-stat-box">
-                  <label>Grade</label>
-                  <span id="predictor-result-grade">A</span>
+                <div class="predictor-stat-box" style="font-family: var(--font-family-app) !important;">
+                  <label style="font-family: var(--font-family-app) !important;">Grade</label>
+                  <span id="predictor-result-grade" style="font-family: var(--font-family-app) !important;">A</span>
                 </div>
               </div>
               <div
-                style="display: flex; align-items: center; justify-content: space-between; background: rgba(0, 229, 255, 0.08); border: 1px solid rgba(0, 229, 255, 0.15); border-radius: 6px; padding: 4px 8px; margin-top: 2px;">
-                <span style="font-size: 0.65rem; color: #ffffff; font-weight: 700;">Req Exam:</span>
-                <span style="font-size: 0.78rem; font-weight: 800; color: #ffffff;"
+                style="display: flex; align-items: center; justify-content: space-between; background: rgba(0, 229, 255, 0.08); border: 1px solid rgba(0, 229, 255, 0.15); border-radius: 6px; padding: 4px 8px; margin-top: 2px; font-family: var(--font-family-app) !important;">
+                <span style="font-size: 0.65rem; color: #ffffff; font-weight: 700; font-family: var(--font-family-app) !important;">Req Exam:</span>
+                <span style="font-size: 0.78rem; font-weight: 800; color: #ffffff; font-family: var(--font-family-app) !important;"
                   id="predictor-result-required">0%</span>
               </div>
-              <div id="predictor-breakdown-list" style="display: none;"></div>
+              <div id="predictor-breakdown-list" style="display: none; font-family: var(--font-family-app) !important;"></div>
             </div>
           </div>
 
@@ -563,11 +596,19 @@
             </div>
           </div>
 
-          <!-- Upcoming Examination Rail -->
+          <!-- Upcoming Exams Widget -->
           <div class="card col-6" id="dashboard-exams-card" style="font-family: var(--font-family-app) !important; display: flex; flex-direction: column; gap: 12px;">
-            <div class="card-title" style="font-family: var(--font-family-app) !important;">Upcoming Examination Rail</div>
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">Upcoming Exams Widget</div>
             <div id="dashboard-exams-container" style="display: flex; flex-direction: column; gap: 10px; font-family: var(--font-family-app) !important; flex: 1; justify-content: flex-start;">
               <!-- Dyn upcoming exams populated in JS -->
+            </div>
+          </div>
+
+          <!-- Upcoming Assignments Widget -->
+          <div class="card col-6" id="dashboard-assignments-card" style="font-family: var(--font-family-app) !important; display: flex; flex-direction: column; gap: 12px;">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">Upcoming Assignments Widget</div>
+            <div id="dashboard-assignments-container" style="display: flex; flex-direction: column; gap: 10px; font-family: var(--font-family-app) !important; flex: 1; justify-content: flex-start;">
+              <!-- Dyn upcoming assignments populated in JS -->
             </div>
           </div>
 

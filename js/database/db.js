@@ -8,7 +8,7 @@ import { Auth } from '../auth.js';
 import { FirestoreSync } from './firestore-sync.js';
 
 const DB_NAME = 'RajarataCampusLifeDB';
-const DB_VERSION = 11; // Bumped to 11 to support resource management & assignment schema refactoring
+const DB_VERSION = 13; // Bumped to 13 to support defensive migrations, dynamic sanitization, and LWW sync
 
 let dbInstance = null;
 
@@ -382,6 +382,117 @@ export const initDB = () => {
           };
         }
       }
+
+      // v13: Safe Database Version Bump & Migration Orchestration
+      if (oldVersion > 0 && oldVersion < 13) {
+        const trans = request.transaction;
+        
+        // 1. Migrate Attendance store records
+        if (db.objectStoreNames.contains('attendance')) {
+          const store = trans.objectStore('attendance');
+          store.openCursor().onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+              const record = cursor.value;
+              let updated = false;
+
+              if (!record.courseId) {
+                record.courseId = record.subjectCode || '';
+                updated = true;
+              }
+              if (!record.lecture) {
+                record.lecture = {
+                  total: record.lecturesTotal !== undefined ? record.lecturesTotal : 0,
+                  present: record.lecturesAttended !== undefined ? record.lecturesAttended : 0
+                };
+                updated = true;
+              } else {
+                if (record.lecture.total === undefined) { record.lecture.total = record.lecturesTotal !== undefined ? record.lecturesTotal : 0; updated = true; }
+                if (record.lecture.present === undefined) { record.lecture.present = record.lecturesAttended !== undefined ? record.lecturesAttended : 0; updated = true; }
+              }
+              if (!record.practical) {
+                record.practical = {
+                  total: record.practicalsTotal !== undefined ? record.practicalsTotal : 0,
+                  present: record.practicalsAttended !== undefined ? record.practicalsAttended : 0
+                };
+                updated = true;
+              } else {
+                if (record.practical.total === undefined) { record.practical.total = record.practicalsTotal !== undefined ? record.practicalsTotal : 0; updated = true; }
+                if (record.practical.present === undefined) { record.practical.present = record.practicalsAttended !== undefined ? record.practicalsAttended : 0; updated = true; }
+              }
+              if (!record.fieldWork) {
+                record.fieldWork = { total: 0, present: 0 };
+                updated = true;
+              } else {
+                if (record.fieldWork.total === undefined) { record.fieldWork.total = 0; updated = true; }
+                if (record.fieldWork.present === undefined) { record.fieldWork.present = 0; updated = true; }
+              }
+
+              // Sync legacy fields
+              if (record.lecturesTotal !== record.lecture.total) { record.lecturesTotal = record.lecture.total; updated = true; }
+              if (record.lecturesAttended !== record.lecture.present) { record.lecturesAttended = record.lecture.present; updated = true; }
+              if (record.practicalsTotal !== (record.practical.total + record.fieldWork.total)) {
+                record.practicalsTotal = record.practical.total + record.fieldWork.total;
+                updated = true;
+              }
+              if (record.practicalsAttended !== (record.practical.present + record.fieldWork.present)) {
+                record.practicalsAttended = record.practical.present + record.fieldWork.present;
+                updated = true;
+              }
+
+              if (updated) {
+                store.put(record);
+              }
+              cursor.continue();
+            }
+          };
+        }
+
+        // 2. Migrate Subjects store records
+        if (db.objectStoreNames.contains('subjects')) {
+          const store = trans.objectStore('subjects');
+          store.openCursor().onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+              const record = cursor.value;
+              let updated = false;
+
+              if (record.grade === undefined) { record.grade = ''; updated = true; }
+              if (record.gradePoint === undefined) { record.gradePoint = 0.00; updated = true; }
+              if (record.credits === undefined) { record.credits = 3; updated = true; }
+              if (record.targetGrade === undefined) { record.targetGrade = ''; updated = true; }
+              if (record.theoryWeight === undefined) { record.theoryWeight = 70; updated = true; }
+              if (record.practicalWeight === undefined) { record.practicalWeight = 30; updated = true; }
+              
+              if (!record.internalMarks) {
+                record.internalMarks = { ca: 0, quiz: 0, lab: 0 };
+                updated = true;
+              } else {
+                if (record.internalMarks.ca === undefined) { record.internalMarks.ca = 0; updated = true; }
+                if (record.internalMarks.quiz === undefined) { record.internalMarks.quiz = 0; updated = true; }
+                if (record.internalMarks.lab === undefined) { record.internalMarks.lab = 0; updated = true; }
+              }
+
+              if (!record.submodules) {
+                record.submodules = [];
+                updated = true;
+              }
+
+              // Add active user's userId if not present
+              const userId = Auth.getCurrentUserId();
+              if (record.userId === undefined && userId) {
+                record.userId = userId;
+                updated = true;
+              }
+
+              if (updated) {
+                store.put(record);
+              }
+              cursor.continue();
+            }
+          };
+        }
+      }
     };
 
     request.onsuccess = (e) => {
@@ -396,33 +507,134 @@ export const initDB = () => {
   });
 };
 
+const sanitizeRow = (storeName, row) => {
+  if (!row || typeof row !== 'object') return;
+
+  if (storeName === 'subjects') {
+    if (row.grade === undefined) row.grade = '';
+    if (row.gradePoint === undefined) row.gradePoint = 0.00;
+    if (row.credits === undefined) row.credits = 3;
+    if (row.targetGrade === undefined) row.targetGrade = '';
+    if (row.theoryWeight === undefined) row.theoryWeight = 70;
+    if (row.practicalWeight === undefined) row.practicalWeight = 30;
+    if (!row.internalMarks) {
+      row.internalMarks = { ca: 0, quiz: 0, lab: 0 };
+    } else {
+      if (row.internalMarks.ca === undefined) row.internalMarks.ca = 0;
+      if (row.internalMarks.quiz === undefined) row.internalMarks.quiz = 0;
+      if (row.internalMarks.lab === undefined) row.internalMarks.lab = 0;
+    }
+    if (!row.submodules) row.submodules = [];
+  }
+
+  if (storeName === 'attendance') {
+    if (!row.courseId) row.courseId = row.subjectCode || '';
+    if (!row.lecture) {
+      row.lecture = {
+        total: row.lecturesTotal !== undefined ? row.lecturesTotal : 0,
+        present: row.lecturesAttended !== undefined ? row.lecturesAttended : 0
+      };
+    } else {
+      if (row.lecture.total === undefined) row.lecture.total = 0;
+      if (row.lecture.present === undefined) row.lecture.present = 0;
+    }
+    if (!row.practical) {
+      row.practical = {
+        total: row.practicalsTotal !== undefined ? row.practicalsTotal : 0,
+        present: row.practicalsAttended !== undefined ? row.practicalsAttended : 0
+      };
+    } else {
+      if (row.practical.total === undefined) row.practical.total = 0;
+      if (row.practical.present === undefined) row.practical.present = 0;
+    }
+    if (!row.fieldWork) {
+      row.fieldWork = { total: 0, present: 0 };
+    } else {
+      if (row.fieldWork.total === undefined) row.fieldWork.total = 0;
+      if (row.fieldWork.present === undefined) row.fieldWork.present = 0;
+    }
+  }
+
+  if (storeName === 'exams') {
+    if (row.courseId === undefined) row.courseId = row.subjectCode || '';
+    if (row.title === undefined) row.title = row.name || '';
+    if (row.examType === undefined) {
+      const typeUpper = (row.type || '').toUpperCase();
+      if (typeUpper.includes('PRACTICAL')) row.examType = 'PRACTICAL';
+      else if (typeUpper.includes('REPEAT')) row.examType = 'REPEAT';
+      else row.examType = 'THEORY';
+    }
+    if (row.date === undefined) row.date = '';
+    if (row.time === undefined) row.time = '08:30';
+    if (row.venue === undefined) row.venue = 'N/A';
+  }
+
+  if (storeName === 'assignments') {
+    if (row.courseId === undefined) row.courseId = row.subjectCode || '';
+    if (row.deadline === undefined) row.deadline = row.date || '';
+    if (row.status === undefined) row.status = 'Pending';
+    if (row.priority === undefined) row.priority = 'Low';
+  }
+};
+
 /**
  * Standard CRUD Operations
  */
 export const dbOperation = (storeName, mode, callback) => {
   return initDB().then((db) => {
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(storeName, mode);
+      let transaction;
+      try {
+        transaction = db.transaction(storeName, mode);
+      } catch (err) {
+        console.warn(`[DB] Transaction start failed on store "${storeName}":`, err.message);
+        return resolve(null);
+      }
+
       const store = transaction.objectStore(storeName);
       let request;
       
       try {
         request = callback(store);
       } catch (err) {
-        return reject(err);
+        console.warn(`[DB] Callback execution failed on store "${storeName}":`, err.message);
+        return resolve(null);
       }
 
       transaction.oncomplete = () => {
-        resolve(request ? request.result : null);
+        let result = request ? request.result : null;
+        try {
+          if (result) {
+            if (Array.isArray(result)) {
+              result = result.map(row => {
+                if (row && typeof row === 'object') {
+                  const cloned = JSON.parse(JSON.stringify(row));
+                  sanitizeRow(storeName, cloned);
+                  return cloned;
+                }
+                return row;
+              });
+            } else if (typeof result === 'object') {
+              const cloned = JSON.parse(JSON.stringify(result));
+              sanitizeRow(storeName, cloned);
+              result = cloned;
+            }
+          }
+        } catch (sanitizeErr) {
+          console.warn('[DB] Dynamic sanitization error:', sanitizeErr.message);
+        }
+        resolve(result);
       };
 
       transaction.onerror = (e) => {
-        reject(e.target.error);
+        console.warn(`[DB] Transaction error on store "${storeName}":`, e.target.error);
+        resolve(null);
       };
       
       if (request) {
         request.onerror = (e) => {
-          reject(e.target.error);
+          console.warn(`[DB] Request error on store "${storeName}":`, e.target.error);
+          resolve(null);
         };
       }
     });
@@ -462,10 +674,12 @@ export const triggerBackgroundSync = async () => {
 
   // Full cloud push wrapped in the mutex lock.
   sessionStorage.setItem('is_app_syncing', 'true');
+  let syncSuccess = false;
   try {
     const result = await FirestoreSync.pushAllToCloud();
     if (result.success) {
       dispatch('synced');
+      syncSuccess = true;
     } else {
       console.warn('[DB] Background sync incomplete:', result.reason);
       dispatch('error');
@@ -476,6 +690,9 @@ export const triggerBackgroundSync = async () => {
   } finally {
     // Always release the lock so subsequent writes can trigger sync again.
     sessionStorage.removeItem('is_app_syncing');
+    if (syncSuccess) {
+      window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+    }
   }
 };
 
@@ -520,13 +737,15 @@ export const Database = {
   },
 
   add(storeName, data) {
+    if (sessionStorage.getItem('is_app_syncing') !== 'true') {
+      if (storeName !== 'users') {
+        data._updatedAt = new Date().toISOString();
+      }
+    }
     return dbOperation(storeName, 'readwrite', (store) => store.add(data))
       .then(async (result) => {
         // Skip cloud sync if a sync operation is already in flight (prevents recursive loops)
         if (sessionStorage.getItem('is_app_syncing') === 'true') {
-          if (storeName !== 'settings') {
-            window.dispatchEvent(new CustomEvent('subjectsUpdated'));
-          }
           return result;
         }
 
@@ -551,13 +770,15 @@ export const Database = {
   },
 
   put(storeName, data) {
+    if (sessionStorage.getItem('is_app_syncing') !== 'true') {
+      if (storeName !== 'users') {
+        data._updatedAt = new Date().toISOString();
+      }
+    }
     return dbOperation(storeName, 'readwrite', (store) => store.put(data))
       .then(async (result) => {
         // Skip cloud sync if a sync operation is already in flight (prevents recursive loops)
         if (sessionStorage.getItem('is_app_syncing') === 'true') {
-          if (storeName !== 'settings') {
-            window.dispatchEvent(new CustomEvent('subjectsUpdated'));
-          }
           return result;
         }
 
@@ -586,9 +807,6 @@ export const Database = {
       .then(async (result) => {
         // Skip cloud sync if a sync operation is already in flight (prevents recursive loops)
         if (sessionStorage.getItem('is_app_syncing') === 'true') {
-          if (storeName !== 'settings') {
-            window.dispatchEvent(new CustomEvent('subjectsUpdated'));
-          }
           return result;
         }
 

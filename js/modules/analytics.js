@@ -193,6 +193,19 @@ export const AnalyticsModule = {
       }
 
       // D: Dashboard Attendance SVG Ring
+      let totalAttended = 0;
+      let totalSessions = 0;
+      attendance.forEach(a => {
+        if (a.lecture && a.practical && a.fieldWork) {
+          totalAttended += (a.lecture.present || 0) + (a.practical.present || 0) + (a.fieldWork.present || 0);
+          totalSessions += (a.lecture.total || 0) + (a.practical.total || 0) + (a.fieldWork.total || 0);
+        } else {
+          totalAttended += (a.lecturesAttended || 0) + (a.practicalsAttended || 0) + (a.approvedMedicalSessions || 0);
+          totalSessions += (a.lecturesTotal || 0) + (a.practicalsTotal || 0);
+        }
+      });
+      const pct = totalSessions > 0 ? (totalAttended / totalSessions) * 100 : 0;
+
       const attSelect = document.getElementById('dash-attendance-subject-select');
       if (attSelect) {
         const prevVal = attSelect.value;
@@ -211,18 +224,24 @@ export const AnalyticsModule = {
             attSelect.value = subjects[0].code;
           }
         }
-      }
 
-      let pct = 0;
-      const selectedSubCode = attSelect ? attSelect.value : null;
-      if (selectedSubCode) {
-        const rec = attendance.find(a => a.subjectCode === selectedSubCode);
-        if (rec) {
-          const overallAttended = (rec.lecturesAttended || 0) + (rec.practicalsAttended || 0);
-          const approvedMedical = rec.approvedMedicalSessions || 0;
-          const overallTotal = (rec.lecturesTotal || 0) + (rec.practicalsTotal || 0);
-          pct = overallTotal > 0 ? ((overallAttended + approvedMedical) / overallTotal) * 100 : 0;
+        // Show selected subject's attendance inside the sub-text label instead of overriding the main ring!
+        const selectedSubCode = attSelect.value;
+        if (selectedSubCode) {
+          const rec = attendance.find(a => a.subjectCode === selectedSubCode);
+          let subPct = 0;
+          if (rec) {
+            const overallAttended = (rec.lecturesAttended || 0) + (rec.practicalsAttended || 0);
+            const approvedMedical = rec.approvedMedicalSessions || 0;
+            const overallTotal = (rec.lecturesTotal || 0) + (rec.practicalsTotal || 0);
+            subPct = overallTotal > 0 ? ((overallAttended + approvedMedical) / overallTotal) * 100 : 0;
+          }
+          const attSubEl = document.getElementById('dash-metric-att-sub');
+          if (attSubEl) attSubEl.innerText = `${subPct.toFixed(0)}%`;
         }
+      } else {
+        const attSubEl = document.getElementById('dash-metric-att-sub');
+        if (attSubEl) attSubEl.innerText = `${pct.toFixed(0)}%`;
       }
 
       const attRingFill = document.getElementById('dash-metric-att-ring');
@@ -241,11 +260,24 @@ export const AnalyticsModule = {
       const valEl = document.getElementById('dashboard-attendance-text-val');
       if (valEl) valEl.innerText = `${pct.toFixed(0)}%`;
 
-      const attSubEl = document.getElementById('dash-metric-att-sub');
-      if (attSubEl) attSubEl.innerText = `${pct.toFixed(0)}%`;
-
       const attMetricEl = document.getElementById('dash-metric-att');
       if (attMetricEl) attMetricEl.innerText = `${pct.toFixed(0)}%`;
+
+      // Apply dynamic accent glows border automatically to `#dashboard-attendance-summary-card`
+      const attCard = document.getElementById('dashboard-attendance-summary-card');
+      if (attCard) {
+        attCard.style.transition = 'border 0.3s ease, box-shadow 0.3s ease';
+        if (pct >= 80) {
+          attCard.style.border = '1px solid var(--success, #00e676)';
+          attCard.style.boxShadow = '0 0 15px rgba(0, 230, 118, 0.25)';
+        } else if (pct >= 60) {
+          attCard.style.border = '1px solid var(--warning, #ffd600)';
+          attCard.style.boxShadow = '0 0 15px rgba(255, 214, 0, 0.25)';
+        } else {
+          attCard.style.border = '1px solid var(--danger, #ff1744)';
+          attCard.style.boxShadow = '0 0 15px rgba(255, 23, 68, 0.25)';
+        }
+      }
 
       // 2. Bind Section E: "Current Academic Balance"
       const balanceContainer = document.querySelector('.balance-progress-group');
