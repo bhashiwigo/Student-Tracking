@@ -117,8 +117,22 @@ export const NotesModule = {
     try {
       const subjects = await Database.getAll('subjects');
       dropdown.innerHTML = `
-        <option value="">No Course Unit Tag</option>
-        ${subjects.map(s => `<option value="${s.code}">${s.code} - ${s.name}</option>`).join('')}
+        <option value="" style="font-family: var(--font-family-app) !important;">No Course Unit Tag</option>
+        ${subjects.map(s => {
+          if (s.isSubmodule) {
+            const subModule = {
+              courseCode: s.parentSubjectCode,
+              title: s.name || s.moduleTitle || 'Unknown'
+            };
+            return `<option value="${s.code}" style="font-family: var(--font-family-app) !important;">${subModule.courseCode} — ${subModule.title}</option>`;
+          } else {
+            const subject = {
+              code: s.code,
+              name: s.name || 'Unknown'
+            };
+            return `<option value="${s.code}" style="font-family: var(--font-family-app) !important;">${subject.code} — ${subject.name}</option>`;
+          }
+        }).join('')}
       `;
     } catch (err) {
       console.error('Load note subjects failed:', err);
@@ -138,36 +152,47 @@ export const NotesModule = {
 
     try {
       const notes = await Database.getAll('notes');
+      const subjects = await Database.getAll('subjects');
       
-      const filtered = notes.filter(n => {
-        const titleMatch = (n.title || '').toLowerCase().includes(searchVal);
-        const bodyMatch = (n.content || '').toLowerCase().includes(searchVal);
-        const subjectMatch = (n.subjectCode || '').toLowerCase().includes(searchVal);
+      const filtered = notes.filter(note => {
+        if (!searchVal) return true;
+
+        const queryTerms = searchVal.split(',').map(term => term.trim()).filter(term => term !== '');
+        if (queryTerms.length === 0) return true;
+
+        const noteTitle = (note.title || '').toLowerCase();
+        const noteBody = (note.body || note.content || '').toLowerCase();
+        const tagsStr = (Array.isArray(note.tags) ? note.tags.join(', ') : (note.tags || '')).toLowerCase();
         
-        let tagMatch = false;
-        if (Array.isArray(n.tags)) {
-          tagMatch = n.tags.some(t => t && String(t).toLowerCase().includes(searchVal));
-        } else if (typeof n.tags === 'string') {
-          tagMatch = n.tags.toLowerCase().includes(searchVal);
-        }
-        
-        return titleMatch || bodyMatch || subjectMatch || tagMatch;
+        const sub = subjects.find(s => s.code === note.subjectCode);
+        const resolvedSubjectCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : note.subjectCode;
+        const noteSubject = (resolvedSubjectCode || '').toLowerCase();
+
+        return queryTerms.every(term => {
+          return noteTitle.includes(term) ||
+                 noteBody.includes(term) ||
+                 tagsStr.includes(term) ||
+                 noteSubject.includes(term);
+        });
       });
 
       if (filtered.length === 0) {
         sidebar.innerHTML = `
-          <div style="color:var(--text-muted); font-size:0.75rem; text-align:center; padding:12px 0;">No notes found.</div>
+          <div style="color:var(--text-muted); font-size:0.75rem; text-align:center; padding:12px 0; font-family: var(--font-family-app) !important;">No notes found.</div>
         `;
         return;
       }
 
-      sidebar.innerHTML = filtered.map(n => {
-        const displayTitle = n.title ? n.title.trim() : (n.subjectCode ? n.subjectCode + ' Note' : 'Untitled Note');
+      sidebar.innerHTML = filtered.map(note => {
+        const noteTitle = note.title || 'Untitled Page';
+        const sub = subjects.find(s => s.code === note.subjectCode);
+        const resolvedSubjectCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : note.subjectCode;
+        
         return `
-          <div class="note-item-link ${n.id === this.activeNoteId ? 'active' : ''}" data-id="${n.id}">
-            <div style="font-weight:600; text-overflow:ellipsis; overflow:hidden;">${displayTitle}</div>
-            <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">
-              ${n.subjectCode ? n.subjectCode : 'General'} • ${n.date}
+          <div class="note-item-link ${note.id === this.activeNoteId ? 'active' : ''}" data-id="${note.id}" style="font-family: var(--font-family-app) !important;">
+            <div style="font-weight:600; text-overflow:ellipsis; overflow:hidden; font-family: var(--font-family-app) !important;">${noteTitle}</div>
+            <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px; font-family: var(--font-family-app) !important;">
+              ${resolvedSubjectCode ? resolvedSubjectCode : 'General'} • ${note.date}
             </div>
           </div>
         `;

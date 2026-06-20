@@ -1344,7 +1344,7 @@ body[data-theme="light"] .theme-toggle-switch:hover .theme-toggle-track {
   border: 1px solid var(--border-color);
   border-radius: 12px;
   overflow: hidden;
-  height: 520px;
+  height: 560px; /* Enhanced viewbox matrix height */
   box-shadow: var(--shadow-md);
   background: rgba(10, 24, 32, 0.2);
 }
@@ -1369,39 +1369,60 @@ body[data-theme="light"] .theme-toggle-switch:hover .theme-toggle-track {
   flex-direction: column;
   gap: 6px;
   padding: 16px;
-  overflow-y: auto;
+  height: 100%;
+  max-height: 480px; /* Fixed contained boundary */
+  overflow-y: auto;   /* Scroll internally for infinite notes safety */
 }
 
+.note-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+/* Enhanced high-contrast visibility for saved note cards in list */
 .note-item-link {
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 0.8rem;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
   cursor: pointer;
-  color: var(--text-secondary);
+  color: var(--text-primary) !important; /* Forces clean bright text display */
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(0, 229, 255, 0.08); /* Soft contextual layout boundary */
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
-  transition: all 0.2s;
-  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .note-item-link:hover {
-  background: rgba(255, 255, 255, 0.02);
-  color: #ffffff;
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: #ffffff !important;
+  box-shadow: 0 0 10px var(--accent-glow);
+  transform: translateX(2px);
 }
 
 .note-item-link.active {
   background: var(--accent-glow);
   color: var(--accent) !important;
-  border-color: var(--border-color);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow), inset 0 0 6px var(--accent-glow);
+  font-weight: 700;
 }
 
 .note-main-editor {
   display: flex;
   flex-direction: column;
   padding: 24px;
-  gap: 16px;
+  gap: 14px;
   background: transparent;
+  height: 100%;
+  overflow-y: auto; /* Contain form boundaries perfectly */
+}
+
+#btn-save-note {
+  margin-top: auto; /* Force button layout to remain fully visible */
+  flex-shrink: 0;
 }
 
 /* Redesigned Sleek Data Tables */
