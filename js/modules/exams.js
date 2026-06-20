@@ -50,9 +50,13 @@ export const ExamsModule = {
 
     try {
       const subjects = await Database.getAll('subjects');
-      dropdown.innerHTML = subjects.map(s => `
-        <option value="${s.code}" style="font-family: var(--font-family-app) !important;">${s.code} - ${s.name}</option>
-      `).join('') || '<option value="" style="font-family: var(--font-family-app) !important;">No course units added</option>';
+      dropdown.innerHTML = subjects.map(s => {
+        const displayCode = s.isSubmodule ? s.parentSubjectCode : s.code;
+        const displayName = s.name || s.moduleTitle || 'Unknown';
+        return `
+          <option value="${s.code}" style="font-family: var(--font-family-app) !important;">${displayCode} — ${displayName}</option>
+        `;
+      }).join('') || '<option value="" style="font-family: var(--font-family-app) !important;">No course units added</option>';
     } catch (err) {
       console.error('Load exam subjects dropdown failed:', err);
     }
@@ -68,12 +72,13 @@ export const ExamsModule = {
 
     try {
       const exams = await Database.getAll('exams');
+      const subjects = await Database.getAll('subjects');
 
       // Schedule reminders when we fetch the exams
       this.scheduleReminders(exams);
       
       // Render visual Gantt roadmap at the top
-      this.renderGantt(exams);
+      this.renderGantt(exams, subjects);
 
       if (exams.length === 0) {
         container.innerHTML = `
@@ -101,6 +106,9 @@ export const ExamsModule = {
         const titleLabel = ex.title || ex.name || 'Untitled Exam';
         const courseLabel = ex.courseId || ex.subjectCode || 'N/A';
 
+        const sub = subjects.find(s => s.code === courseLabel);
+        const resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseLabel;
+
         return `
           <div class="card col-6" id="exam-card-${ex.id}" style="display: flex; flex-direction: column; gap: 14px; font-family: var(--font-family-app) !important;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; font-family: var(--font-family-app) !important;">
@@ -109,8 +117,8 @@ export const ExamsModule = {
                   <span class="badge" style="background-color: var(--accent-glow); color: var(--accent); font-family: var(--font-family-app) !important;">${typeLabel}</span>
                   <span class="badge ${priorityClass}" style="font-family: var(--font-family-app) !important;">${priority} Priority</span>
                 </div>
-                <h3 style="font-size: 1.1rem; font-weight: 700; font-family: var(--font-family-app) !important;">${titleLabel}</h3>
-                <h4 style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin-top: 2px; font-family: var(--font-family-app) !important;">Course: ${courseLabel}</h4>
+                <h3 style="font-size: 1.1rem; font-weight: 700; font-family: var(--font-family-app) !important;">${resolvedCode} : ${titleLabel}</h3>
+                <h4 style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin-top: 2px; font-family: var(--font-family-app) !important;">Course: ${resolvedCode}</h4>
               </div>
               <div style="text-align: right; font-family: var(--font-family-app) !important;">
                 <div class="exam-countdown" id="countdown-val-${ex.id}" style="font-family: 'JetBrains Mono', monospace, var(--font-family-app) !important; font-weight: 700; font-size: 1.1rem; color: var(--warning);">--:--</div>
@@ -221,7 +229,7 @@ export const ExamsModule = {
     }
   },
 
-  renderGantt(exams) {
+  renderGantt(exams, subjects = []) {
     const ganttContainer = document.getElementById('exams-gantt-container');
     if (!ganttContainer) return;
 
@@ -238,10 +246,14 @@ export const ExamsModule = {
       const prepDays = priority === 'High' ? 7 : priority === 'Medium' ? 4 : 2;
       const startDate = new Date(deadline.getTime() - prepDays * 24 * 60 * 60 * 1000);
       
+      const courseLabel = ex.courseId || ex.subjectCode || 'N/A';
+      const sub = subjects.find(s => s.code === courseLabel);
+      const resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseLabel;
+
       return {
         id: ex.id,
         name: ex.title || ex.name || 'Untitled Exam',
-        subject: ex.courseId || ex.subjectCode || 'N/A',
+        subject: resolvedCode,
         priority: priority,
         startDate: startDate,
         deadline: deadline,

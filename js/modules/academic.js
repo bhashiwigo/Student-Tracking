@@ -564,12 +564,29 @@ export const AcademicModule = {
             const thresholdHours = sub.credits * 30;
             const slqfPct = Math.min(100, (currentSelfStudyHours / thresholdHours) * 100);
 
+            const semesterLabels = {
+              '1-1': 'Year 1 - Sem I',
+              '1-2': 'Year 1 - Sem II',
+              '2-1': 'Year 2 - Sem I',
+              '2-2': 'Year 2 - Sem II',
+              '3-1': 'Year 3 - Sem I',
+              '3-2': 'Year 3 - Sem II',
+              '4-1': 'Year 4 - Sem I',
+              '4-2': 'Year 4 - Sem II'
+            };
+            const semLabel = semesterLabels[sub.semester] || sub.semester || 'N/A';
+
             return `
               <div class="sub-module-isolated-card" style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-top: 12px; box-shadow: var(--shadow-sm); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); display: flex; flex-direction: column; gap: 12px; font-family: var(--font-family-app) !important;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                   <div style="flex: 1;">
-                    <div class="sub-modules-hub-badge" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(0, 229, 255, 0.18); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; font-weight: 600; color: var(--accent); font-family: var(--font-family-app) !important; margin-bottom: 6px;">
-                      Sub-Modules Hub
+                    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; font-family: var(--font-family-app) !important;">
+                      <div class="sub-modules-hub-badge" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(0, 229, 255, 0.18); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; font-weight: 600; color: var(--accent); font-family: var(--font-family-app) !important; margin: 0;">
+                        Sub-Modules Hub
+                      </div>
+                      <div class="badge" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); font-family: var(--font-family-app) !important; margin: 0; white-space: nowrap;">
+                        ${semLabel}
+                      </div>
                     </div>
                     <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0; font-family: var(--font-family-app) !important;">${sub.moduleTitle}</h4>
                   </div>
@@ -663,8 +680,11 @@ export const AcademicModule = {
                 <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 6px; font-family: var(--font-family-app) !important;">
                   Core GPA: <span style="color: var(--accent); font-family: var(--font-family-app) !important;">${coreGPA}</span>
                 </div>
-                <div style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(0, 229, 255, 0.18); border: 1px solid rgba(0, 229, 255, 0.3); font-size: 0.8rem; font-weight: 700; color: var(--accent); font-family: var(--font-family-app) !important;">
-                  ${semesterSubmodules.length}
+                <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 6px; font-family: var(--font-family-app) !important; display: flex; align-items: center; gap: 6px;">
+                  <span style="font-family: var(--font-family-app) !important;">Sub-Modules:</span>
+                  <span style="display: flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 50%; background: rgba(0, 229, 255, 0.18); border: 1px solid rgba(0, 229, 255, 0.3); font-size: 0.75rem; font-weight: 700; color: var(--accent); font-family: var(--font-family-app) !important; padding: 0 4px;">
+                    ${semesterSubmodules.length}
+                  </span>
                 </div>
               </div>
             </div>

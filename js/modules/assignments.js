@@ -32,9 +32,13 @@ export const AssignmentsModule = {
 
     try {
       const subjects = await Database.getAll('subjects');
-      dropdown.innerHTML = subjects.map(s => `
-        <option value="${s.code}" style="font-family: var(--font-family-app) !important;">${s.code} - ${s.name}</option>
-      `).join('') || '<option value="" style="font-family: var(--font-family-app) !important;">No course units added</option>';
+      dropdown.innerHTML = subjects.map(s => {
+        const displayCode = s.isSubmodule ? s.parentSubjectCode : s.code;
+        const displayName = s.name || s.moduleTitle || 'Unknown';
+        return `
+          <option value="${s.code}" style="font-family: var(--font-family-app) !important;">${displayCode} — ${displayName}</option>
+        `;
+      }).join('') || '<option value="" style="font-family: var(--font-family-app) !important;">No course units added</option>';
     } catch (err) {
       console.error('Load assignment subjects dropdown failed:', err);
     }
@@ -46,9 +50,10 @@ export const AssignmentsModule = {
 
     try {
       const assignments = await Database.getAll('assignments');
+      const subjects = await Database.getAll('subjects');
       
       // Render visual Gantt roadmap for assignments
-      this.renderGantt(assignments);
+      this.renderGantt(assignments, subjects);
 
       if (assignments.length === 0) {
         container.innerHTML = `
@@ -85,15 +90,17 @@ export const AssignmentsModule = {
 
         const deadlineVal = as.deadline || as.date || 'N/A';
         const courseVal = as.courseId || as.subjectCode || 'N/A';
+        const sub = subjects.find(s => s.code === courseVal);
+        const resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseVal;
 
         return `
           <div class="task-item col-12 ${as.status === 'Completed' ? 'completed' : ''}" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; font-family: var(--font-family-app) !important;">
             <div style="display: flex; align-items: center; gap: 12px; font-family: var(--font-family-app) !important;">
               <input type="checkbox" class="deadline-checkbox toggle-assign-status" data-id="${as.id}" ${as.status === 'Completed' ? 'checked' : ''} style="margin: 0; font-family: var(--font-family-app) !important;">
               <div style="font-family: var(--font-family-app) !important;">
-                <h4 class="task-label" style="font-weight: 600; font-size: 0.95rem; font-family: var(--font-family-app) !important;">${as.title}</h4>
+                <h4 class="task-label" style="font-weight: 600; font-size: 0.95rem; font-family: var(--font-family-app) !important;">${resolvedCode} : ${as.title}</h4>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; font-family: var(--font-family-app) !important;">
-                  Subject: ${courseVal} • Deadline: ${deadlineVal}
+                  Subject: ${resolvedCode} • Deadline: ${deadlineVal}
                 </div>
               </div>
             </div>
@@ -155,7 +162,7 @@ export const AssignmentsModule = {
     }
   },
 
-  renderGantt(assignments) {
+  renderGantt(assignments, subjects = []) {
     const ganttContainer = document.getElementById('assignments-gantt-container');
     if (!ganttContainer) return;
 
@@ -173,10 +180,14 @@ export const AssignmentsModule = {
       const prepDays = priority === 'High' ? 5 : priority === 'Medium' ? 3 : 1;
       const startDate = new Date(deadline.getTime() - prepDays * 24 * 60 * 60 * 1000);
       
+      const courseVal = as.courseId || as.subjectCode || 'N/A';
+      const sub = subjects.find(s => s.code === courseVal);
+      const resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseVal;
+
       return {
         id: as.id,
         title: as.title,
-        subject: as.courseId || as.subjectCode || 'N/A',
+        subject: resolvedCode,
         priority: priority,
         status: as.status,
         startDate: startDate,

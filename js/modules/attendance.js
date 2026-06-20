@@ -37,9 +37,20 @@ export const AttendanceModule = {
   // Configurable: estimated lectures remaining in semester (default 30 as fallback)
   ESTIMATED_REMAINING: 30,
 
+  activeSemester: '1-1',
+
   init() {
     this.bindEvents();
     window.addEventListener('subjectsUpdated', () => this.render());
+
+    const filter = document.getElementById('attendance-semester-filter');
+    if (filter) {
+      filter.value = this.activeSemester;
+      filter.addEventListener('change', (e) => {
+        this.activeSemester = e.target.value;
+        this.render();
+      });
+    }
   },
 
   bindEvents() {
@@ -54,6 +65,8 @@ export const AttendanceModule = {
       const attendance = await Database.getAll('attendance');
       const subjects   = await Database.getAll('subjects');
 
+      const filteredSubjects = subjects.filter(sub => sub.semester === this.activeSemester);
+
       if (subjects.length === 0) {
         container.innerHTML = `
           <div class="col-12" style="text-align: center; padding: 40px; color: var(--text-muted); font-family: var(--font-family-app) !important;">
@@ -63,7 +76,17 @@ export const AttendanceModule = {
         return;
       }
 
-      container.innerHTML = await Promise.all(subjects.map(async (sub) => {
+      if (filteredSubjects.length === 0) {
+        const semParts = this.activeSemester.split('-');
+        container.innerHTML = `
+          <div class="col-12" style="text-align: center; padding: 40px; color: var(--text-muted); font-family: var(--font-family-app) !important;">
+            No course units added for Year ${semParts[0]} - Semester ${semParts[1] === '1' ? 'I' : 'II'}.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = await Promise.all(filteredSubjects.map(async (sub) => {
         let record = attendance.find(a => a.subjectCode === sub.code);
 
         // Safety initialization if missing
@@ -113,15 +136,27 @@ export const AttendanceModule = {
         const pracColor = pracPct >= 80 ? 'var(--success)' : pracPct >= 60 ? 'var(--warning)' : 'var(--danger)';
         const fieldColor = fieldPct >= 80 ? 'var(--success)' : fieldPct >= 60 ? 'var(--warning)' : 'var(--danger)';
 
+        const displayTitle = sub.isSubmodule 
+          ? `${sub.parentSubjectCode} — ${sub.name}` 
+          : `${sub.code} — ${sub.name}`;
+
+        let yxSx = 'N/A';
+        if (sub.semester && sub.semester.includes('-')) {
+          const parts = sub.semester.split('-');
+          yxSx = `Y${parts[0]} - S${parts[1]}`;
+        }
+
         return `
-          <div class="card col-12" style="flex-direction: column; gap: 14px; padding: 16px; font-family: var(--font-family-app) !important;">
+          <div class="card col-6" style="flex-direction: column; gap: 14px; padding: 16px; font-family: var(--font-family-app) !important;">
             <!-- Subject Header -->
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-family: var(--font-family-app) !important;">
               <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-family: var(--font-family-app) !important;">
-                <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">${sub.code}</h3>
+                <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">${displayTitle}</h3>
                 ${warningBadge}
               </div>
-              <h4 style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; font-family: var(--font-family-app) !important;">${sub.name}</h4>
+              <div class="badge" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-secondary); font-family: var(--font-family-app) !important; font-weight: 600; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; white-space: nowrap;">
+                ${yxSx}
+              </div>
             </div>
 
             <!-- Warning/Status Alert Banner -->

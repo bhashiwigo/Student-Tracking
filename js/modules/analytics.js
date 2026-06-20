@@ -712,7 +712,7 @@ export const AnalyticsModule = {
 
       // 3. Analytics Detailed View (Attendance vs Completion rates per Subject)
       if (analyticsDetailedCanvas) {
-        const subCodes = subjects.map(s => s.code);
+        const subCodes = subjects.map(s => getCleanSubmoduleLabel(s, rawParents));
         const subAtt = subjects.map(sub => {
           const rec = attendance.find(a => a.subjectCode === sub.code);
           if (rec) {
@@ -759,15 +759,34 @@ export const AnalyticsModule = {
                 min: 0,
                 max: 100,
                 grid: { color: 'rgba(128, 128, 128, 0.08)' },
-                ticks: { color: getColor('--text-secondary') }
+                ticks: { 
+                  color: getColor('--text-secondary'),
+                  font: {
+                    family: 'var(--font-family-app) !important'
+                  }
+                }
               },
               x: {
                 grid: { display: false },
-                ticks: { color: getColor('--text-secondary') }
+                ticks: { 
+                  color: getColor('--text-secondary'),
+                  font: {
+                    family: 'var(--font-family-app) !important'
+                  },
+                  maxRotation: 45,
+                  minRotation: 45
+                }
               }
             },
             plugins: {
-              legend: { labels: { color: getColor('--text-primary') } }
+              legend: { 
+                labels: { 
+                  color: getColor('--text-primary'),
+                  font: {
+                    family: 'var(--font-family-app) !important'
+                  }
+                } 
+              }
             }
           }
         });

@@ -1568,8 +1568,8 @@ body.no-accent-lighting::after {
 /* C: GPA Radial progress ring container */
 .radial-ring-container {
   position: relative;
-  width: 100px;
-  height: 100px;
+  width: 140px; /* Upgraded from 100px */
+  height: 140px; /* Upgraded from 100px */
   margin: 10px auto;
   display: flex;
   align-items: center;
@@ -1600,7 +1600,7 @@ body.no-accent-lighting::after {
 .radial-ring-value {
   position: absolute;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 1.6rem;
+  font-size: 2rem; /* Upgraded from 1.6rem */
   font-weight: 800;
   color: #ffffff;
 }
@@ -1631,6 +1631,9 @@ body.no-accent-lighting::after {
   gap: 12px;
   width: 100%;
   margin-top: 6px;
+  max-height: 240px; /* Established layout boundary */
+  overflow-y: auto;  /* Scroll internally when items overflow */
+  padding-right: 4px;
 }
 
 .balance-item {
@@ -1716,6 +1719,9 @@ body.no-accent-lighting::after {
   flex-direction: column;
   gap: 12px;
   width: 100%;
+  max-height: 240px; /* Established layout boundary */
+  overflow-y: auto;  /* Scroll internally when items overflow */
+  padding-right: 4px;
 }
 
 .lab-item {
@@ -2338,4 +2344,17 @@ body[data-theme="light"] .radial-ring-value {
 }
 .shake {
   animation: shake-anim 0.3s ease-in-out;
+}
+
+/* GPA View Curriculum Log Book Table Container */
+#view-gpa .card:has(#gpa-table-body) {
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+/* Smooth Custom Glassmorphic Scrollbars for Internal Blocks */
+.balance-progress-group::-webkit-scrollbar,
+.lab-completion-container::-webkit-scrollbar,
+#view-gpa .card:has(#gpa-table-body)::-webkit-scrollbar {
+  width: 4px;
 }

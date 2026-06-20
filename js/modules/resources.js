@@ -31,9 +31,13 @@ export const ResourcesModule = {
 
     try {
       const subjects = await Database.getAll('subjects');
-      dropdown.innerHTML = subjects.map(s => `
-        <option value="${s.code}" style="font-family: var(--font-family-app) !important;">${s.code} - ${s.name}</option>
-      `).join('') || '<option value="" style="font-family: var(--font-family-app) !important;">No course units added</option>';
+      dropdown.innerHTML = subjects.map(s => {
+        const displayCode = s.isSubmodule ? s.parentSubjectCode : s.code;
+        const displayName = s.name || s.moduleTitle || 'Unknown';
+        return `
+          <option value="${s.code}" style="font-family: var(--font-family-app) !important;">${displayCode} — ${displayName}</option>
+        `;
+      }).join('') || '<option value="" style="font-family: var(--font-family-app) !important;">No course units added</option>';
     } catch (err) {
       console.error('Load resource subjects dropdown failed:', err);
     }
@@ -45,6 +49,7 @@ export const ResourcesModule = {
 
     try {
       const resources = await Database.getAll('resources');
+      const subjects = await Database.getAll('subjects');
       
       if (resources.length === 0) {
         container.innerHTML = `
@@ -68,6 +73,10 @@ export const ResourcesModule = {
         };
         const typeLabel = typeLabels[res.type] || '🔗 Link';
 
+        const subjectCode = res.courseId;
+        const sub = subjects.find(s => s.code === subjectCode);
+        const resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : subjectCode;
+
         return `
           <div class="card col-6" id="resource-card-${res.id}" style="display: flex; flex-direction: column; gap: 14px; font-family: var(--font-family-app) !important;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; font-family: var(--font-family-app) !important;">
@@ -75,14 +84,14 @@ export const ResourcesModule = {
                 <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 6px; font-family: var(--font-family-app) !important;">
                   <span class="badge" style="background-color: var(--accent-glow); color: var(--accent); font-family: var(--font-family-app) !important;">${typeLabel}</span>
                 </div>
-                <h3 style="font-size: 1.1rem; font-weight: 700; font-family: var(--font-family-app) !important;">${res.title}</h3>
-                <h4 style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin-top: 2px; font-family: var(--font-family-app) !important;">Course: ${res.courseId}</h4>
+                <h3 style="font-size: 1.1rem; font-weight: 700; font-family: var(--font-family-app) !important;">${resolvedCode} : ${res.title}</h3>
+                <h4 style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin-top: 2px; font-family: var(--font-family-app) !important;">Course: ${resolvedCode}</h4>
               </div>
             </div>
             
             <div style="border-top: 1px solid var(--border-color); padding-top: 12px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-family-app) !important; display: flex; flex-direction: column; gap: 8px;">
               <div style="font-family: var(--font-family-app) !important; display: flex; align-items: center; gap: 6px; word-break: break-all;">
-                <strong>Link URL:</strong>
+                <strong style="font-family: var(--font-family-app) !important;">Link URL:</strong>
                 <a href="${res.url}" target="_blank" rel="noopener noreferrer" style="color: var(--accent); text-decoration: underline; font-family: var(--font-family-app) !important;">
                   ${res.url}
                 </a>

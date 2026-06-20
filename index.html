@@ -883,7 +883,19 @@
         <div class="page-header" style="font-family: var(--font-family-app) !important;">
           <div style="font-family: var(--font-family-app) !important;">
             <h1 style="font-family: var(--font-family-app) !important;">Attendance Tracker</h1>
-            <p style="font-family: var(--font-family-app) !important;">Track class session counts to secure exam admission eligibility (>80%).</p>
+            <p style="font-family: var(--font-family-app) !important;">Track class session counts to secure exam admission eligibility (&gt;80%).</p>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: center; font-family: var(--font-family-app) !important;">
+            <select class="select-input" id="attendance-semester-filter" style="width: 180px; font-family: var(--font-family-app) !important;">
+              <option value="1-1" style="font-family: var(--font-family-app) !important;">Year 1 - Semester I</option>
+              <option value="1-2" style="font-family: var(--font-family-app) !important;">Year 1 - Semester II</option>
+              <option value="2-1" style="font-family: var(--font-family-app) !important;">Year 2 - Semester I</option>
+              <option value="2-2" style="font-family: var(--font-family-app) !important;">Year 2 - Semester II</option>
+              <option value="3-1" style="font-family: var(--font-family-app) !important;">Year 3 - Semester I</option>
+              <option value="3-2" style="font-family: var(--font-family-app) !important;">Year 3 - Semester II</option>
+              <option value="4-1" style="font-family: var(--font-family-app) !important;">Year 4 - Semester I</option>
+              <option value="4-2" style="font-family: var(--font-family-app) !important;">Year 4 - Semester II</option>
+            </select>
           </div>
         </div>
         <div class="grid-layout" id="attendance-tracker-container">
