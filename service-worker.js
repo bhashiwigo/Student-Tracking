@@ -4,7 +4,7 @@
  */
 
 // Version bump කරන්නකෝ app update කරද්දී (v11, v12, ...)
-const CACHE_NAME = 'campus-life-cache-v11';
+const CACHE_NAME = 'campus-life-cache-v12';
 
 // Core shell assets only — dynamic JS modules auto-cached on request
 const ASSETS_TO_CACHE = [

@@ -288,13 +288,14 @@
         <a href="#" class="nav-link" data-target="exams">Exam Scheduler</a>
         <a href="#" class="nav-link" data-target="practicals">Practical Labs</a>
         <a href="#" class="nav-link" data-target="assignments">Assignments</a>
-        <a href="#" class="nav-link" data-target="gpa">GPA Calculator</a>
+        <a href="#" class="nav-link" data-target="resources" style="font-family: var(--font-family-app) !important;">Academic Resources</a>
         <a href="#" class="nav-link" data-target="attendance">Attendance logs</a>
-        <a href="#" class="nav-link" data-target="sports">Sports & Gym</a>
-        <a href="#" class="nav-link" data-target="study">Focus Planner</a>
-        <a href="#" class="nav-link" data-target="notes">Notebook Pages</a>
+        <a href="#" class="nav-link" data-target="gpa">GPA Calculator</a>
         <a href="#" class="nav-link" data-target="analytics">Analytics Trends</a>
+        <a href="#" class="nav-link" data-target="study">Focus Planner</a>
         <a href="#" class="nav-link" data-target="calendar">Month Planner</a>
+        <a href="#" class="nav-link" data-target="notes">Notebook Pages</a>
+        <a href="#" class="nav-link" data-target="sports">Sports & Gym</a>
         <a href="#" class="nav-link" data-target="settings">Settings</a>
       </nav>
 
@@ -562,6 +563,14 @@
             </div>
           </div>
 
+          <!-- Upcoming Examination Rail -->
+          <div class="card col-6" id="dashboard-exams-card" style="font-family: var(--font-family-app) !important; display: flex; flex-direction: column; gap: 12px;">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">Upcoming Examination Rail</div>
+            <div id="dashboard-exams-container" style="display: flex; flex-direction: column; gap: 10px; font-family: var(--font-family-app) !important; flex: 1; justify-content: flex-start;">
+              <!-- Dyn upcoming exams populated in JS -->
+            </div>
+          </div>
+
           <!-- I: Research Project Roadmap -->
           <div class="card col-6">
             <div class="card-title">Research Project Roadmap</div>
@@ -620,6 +629,23 @@
               <div id="hud-progress-fill" style="width: 0%; height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.5s ease, background-color 0.3s ease;"></div>
             </div>
           </div>
+
+          <!-- Projected Special Honours Interview Selection Score Section -->
+          <div style="display: flex; flex-direction: column; gap: 6px; width: 100%; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 12px; margin-top: 4px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">
+              <span style="font-family: var(--font-family-app) !important;">Projected Special Honours Interview Selection Score</span>
+              <span id="hud-interview-score-text" style="font-family: var(--font-family-app) !important; font-weight: 700;">0.0%</span>
+            </div>
+            <div style="height: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; width: 100%; box-sizing: border-box;">
+              <div id="hud-interview-score-fill" style="width: 0%; height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.5s ease;"></div>
+            </div>
+            <div style="font-size: 0.65rem; color: var(--text-muted); display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-family: var(--font-family-app) !important;">
+              <span id="hud-interview-gpa-part" style="font-family: var(--font-family-app) !important;">GPA (65 Cr, 70% max): 0%</span>
+              <span id="hud-interview-sports-part" style="font-family: var(--font-family-app) !important;">Sports Matches (5% max): 0%</span>
+              <span id="hud-interview-project-part" style="font-family: var(--font-family-app) !important;">Group Project COM 3405/ICT 3411 (5% max): 0%</span>
+              <span id="hud-interview-panel-part" style="font-family: var(--font-family-app) !important;">Viva (20% max): 0%</span>
+            </div>
+          </div>
         </div>
 
         <div class="grid-layout" id="subjects-list-container">
@@ -668,6 +694,21 @@
         <div id="assignments-gantt-container" style="display: none; margin-bottom: 20px; width: 100%;"></div>
         <div class="grid-layout" id="assignments-list-container">
           <!-- Dyn items -->
+        </div>
+      </div>
+
+      <!-- VIEW: ACADEMIC RESOURCES -->
+      <div class="page-view" id="view-resources" style="font-family: var(--font-family-app) !important;">
+        <div class="page-header" style="font-family: var(--font-family-app) !important;">
+          <div style="font-family: var(--font-family-app) !important;">
+            <h1 style="font-family: var(--font-family-app) !important;">Academic Resources</h1>
+            <p style="font-family: var(--font-family-app) !important;">Organize lecture slides, study guides, PDF references, and online links.</p>
+          </div>
+          <button class="btn-solid" id="btn-add-resource" style="font-family: var(--font-family-app) !important;">+ Add Resource</button>
+        </div>
+        
+        <div class="grid-layout" id="resources-list-container" style="font-family: var(--font-family-app) !important;">
+          <!-- Dynamic resource cards injected via ResourcesModule -->
         </div>
       </div>
 
@@ -778,16 +819,30 @@
             </div>
           </div>
 
+          <!-- Course Prefix GPA and Credit Track Progress Card -->
+          <div class="card col-6" id="gpa-prefix-breakdown-card" style="font-family: var(--font-family-app) !important;">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">Course Prefix GPA Breakdown</div>
+            <div id="gpa-prefix-breakdown-container" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem; font-family: var(--font-family-app) !important;">
+              <!-- Dyn prefix rows -->
+            </div>
+          </div>
+          <div class="card col-6" id="gpa-credit-progress-card" style="font-family: var(--font-family-app) !important;">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">BSc & Honours Credit Benchmarks</div>
+            <div id="gpa-credit-progress-container" style="display: flex; flex-direction: column; gap: 12px; font-size: 0.82rem; font-family: var(--font-family-app) !important;">
+              <!-- Dyn credit bars -->
+            </div>
+          </div>
+
           <!-- Predictor HUD Moved to Dashboard Section 1 -->
         </div>
       </div>
 
       <!-- VIEW 07: ATTENDANCE TRACKER -->
       <div class="page-view" id="view-attendance">
-        <div class="page-header">
-          <div>
-            <h1>Attendance Tracker</h1>
-            <p>Track class session counts to secure exam admission eligibility (>80%).</p>
+        <div class="page-header" style="font-family: var(--font-family-app) !important;">
+          <div style="font-family: var(--font-family-app) !important;">
+            <h1 style="font-family: var(--font-family-app) !important;">Attendance Tracker</h1>
+            <p style="font-family: var(--font-family-app) !important;">Track class session counts to secure exam admission eligibility (>80%).</p>
           </div>
         </div>
         <div class="grid-layout" id="attendance-tracker-container">
@@ -833,6 +888,12 @@
           <!-- Pomodoro Widget Card -->
           <div class="card col-4" style="text-align: center;">
             <div class="card-title" id="pomo-type-label-main">Pomodoro Timer</div>
+            <div class="form-group" style="text-align: left; margin-bottom: 12px; font-family: var(--font-family-app) !important;">
+              <label class="form-label" style="font-size: 0.72rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Associated Sub-Module</label>
+              <select id="pomo-subject-select" class="select-input" style="font-size: 0.78rem; padding: 6px 10px; width: 100%; border: 1px solid var(--border-color); background: rgba(0,0,0,0.25); color: var(--text-primary); border-radius: 6px; font-family: var(--font-family-app) !important;">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
             <div
               style="font-family: 'JetBrains Mono', monospace; font-size: 3.5rem; font-weight: 800; margin: 16px 0; color: var(--accent);"
               id="pomo-time-display">25:00</div>
@@ -991,249 +1052,332 @@
             </button>
           </div>
 
-          <!-- Profile Card -->
-          <div class="card col-6">
-            <div class="card-title">Profile Configuration</div>
-            <form id="settings-profile-form" style="display: flex; flex-direction: column; gap: 14px;">
-              <div class="form-group">
-                <label class="form-label">Full Name</label>
-                <input type="text" id="settings-name" class="input-text" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">University</label>
-                <input type="text" id="settings-university" class="input-text" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Faculty</label>
-                <input type="text" id="settings-faculty" class="input-text" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Admission Year</label>
-                <input type="number" id="settings-year" class="input-text" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Active Semester</label>
-                <select id="settings-semester" class="select-input">
-                  <option value="1-1">Year 1 - Semester I</option>
-                  <option value="1-2">Year 1 - Semester II</option>
-                  <option value="2-1">Year 2 - Semester I</option>
-                  <option value="2-2">Year 2 - Semester II</option>
-                  <option value="3-1">Year 3 - Semester I</option>
-                  <option value="3-2">Year 3 - Semester II</option>
-                  <option value="4-1">Year 4 - Semester I</option>
-                  <option value="4-2">Year 4 - Semester II</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">GPA Target</label>
-                <input type="number" id="settings-target-gpa" class="input-text" step="0.05" min="2.0" max="4.0"
-                  required>
-              </div>
-              <button type="submit" class="btn-solid" style="margin-top: 8px;">Save Settings</button>
-            </form>
-          </div>
+          <!-- Left Side Component Track -->
+          <div class="col-6" style="display: flex; flex-direction: column; gap: 20px;">
+            <!-- Profile Card -->
+            <div class="card" style="width: 100%;">
+              <div class="card-title">Profile Configuration</div>
+              <form id="settings-profile-form" style="display: flex; flex-direction: column; gap: 14px;">
+                <div class="form-group">
+                  <label class="form-label">Full Name</label>
+                  <input type="text" id="settings-name" class="input-text" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">University</label>
+                  <input type="text" id="settings-university" class="input-text" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Faculty</label>
+                  <input type="text" id="settings-faculty" class="input-text" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Admission Year</label>
+                  <input type="number" id="settings-year" class="input-text" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Active Semester</label>
+                  <select id="settings-semester" class="select-input">
+                    <option value="1-1">Year 1 - Semester I</option>
+                    <option value="1-2">Year 1 - Semester II</option>
+                    <option value="2-1">Year 2 - Semester I</option>
+                    <option value="2-2">Year 2 - Semester II</option>
+                    <option value="3-1">Year 3 - Semester I</option>
+                    <option value="3-2">Year 3 - Semester II</option>
+                    <option value="4-1">Year 4 - Semester I</option>
+                    <option value="4-2">Year 4 - Semester II</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">GPA Target</label>
+                  <input type="number" id="settings-target-gpa" class="input-text" step="0.05" min="2.0" max="4.0"
+                    required>
+                </div>
 
-          <!-- Backup Card -->
-          <div class="card col-6" style="justify-content: flex-start;">
-            <div class="card-title">Database Storage & Backups</div>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">
-              Rajarata Life runs completely offline. Export your database into a local JSON file to ensure backup
-              safety, or select a previous JSON file to restore records.
-            </p>
-            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px;">
-              <button class="btn-solid" id="btn-backup-export" style="background-color: var(--success);">Export Database
-                to JSON</button>
-              <div
-                style="border: 1px dashed var(--border-color); border-radius: 8px; padding: 16px; text-align: center; position: relative;">
-                <input type="file" id="backup-import-file" accept=".json"
-                  style="position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;">
-                <span style="font-size: 0.8rem; color: var(--text-secondary);">Drag or click here to restore from JSON
-                  file</span>
-              </div>
+                <!-- Additional Academic Info -->
+                <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; margin-top: 6px;">
+                  <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">Additional Academic Info</h4>
+                  
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Student ID / Index No.</label>
+                    <input type="text" id="settings-student-id" class="input-text" style="font-family: var(--font-family-app) !important;">
+                  </div>
+                  
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Registration Number</label>
+                    <input type="text" id="settings-reg-num" class="input-text" style="font-family: var(--font-family-app) !important;">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Degree Programme</label>
+                    <input type="text" id="settings-degree" class="input-text" style="font-family: var(--font-family-app) !important;">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Department</label>
+                    <input type="text" id="settings-dept" class="input-text" style="font-family: var(--font-family-app) !important;">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Batch</label>
+                    <input type="text" id="settings-batch" class="input-text" style="font-family: var(--font-family-app) !important;">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Student Email</label>
+                    <input type="email" id="settings-email" class="input-text" style="font-family: var(--font-family-app) !important;">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Phone Number</label>
+                    <input type="text" id="settings-phone" class="input-text" style="font-family: var(--font-family-app) !important;">
+                  </div>
+                </div>
+
+                <!-- Mentor Section -->
+                <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px;">
+                  <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">Mentor Details</h4>
+                  
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Mentor Name</label>
+                    <input type="text" id="settings-mentor-name" class="input-text" style="font-family: var(--font-family-app) !important;">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Mentor Email</label>
+                    <input type="email" id="settings-mentor-email" class="input-text" style="font-family: var(--font-family-app) !important;">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Mentor Contact</label>
+                    <input type="text" id="settings-mentor-contact" class="input-text" style="font-family: var(--font-family-app) !important;">
+                  </div>
+                </div>
+
+                <!-- Academic Advisor Section -->
+                <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px;">
+                  <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">Academic Advisor Details</h4>
+                  
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Advisor Name</label>
+                    <input type="text" id="settings-advisor-name" class="input-text" style="font-family: var(--font-family-app) !important;">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Advisor Email</label>
+                    <input type="email" id="settings-advisor-email" class="input-text" style="font-family: var(--font-family-app) !important;">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Advisor Contact</label>
+                    <input type="text" id="settings-advisor-contact" class="input-text" style="font-family: var(--font-family-app) !important;">
+                  </div>
+                </div>
+
+                <button type="submit" class="btn-solid" style="margin-top: 8px;">Save Settings</button>
+              </form>
             </div>
           </div>
 
-          <!-- Typography Settings Card -->
-          <div class="card col-6" style="justify-content: flex-start;">
-            <div class="card-title">Typography Settings</div>
-            <div style="display: flex; flex-direction: column; gap: 14px;">
-              <div class="form-group">
-                <label class="form-label">Font Family</label>
-                <select id="settings-font-family" class="select-input">
-                  <option value="Inter">Inter (Default)</option>
-                  <option value="Poppins">Poppins</option>
-                  <option value="Roboto">Roboto</option>
-                  <option value="Open Sans">Open Sans</option>
-                  <option value="Nunito">Nunito</option>
-                  <option value="Montserrat">Montserrat</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Font Size</label>
-                <select id="settings-font-size" class="select-input">
-                  <option value="small">Small</option>
-                  <option value="medium" selected>Medium (Default)</option>
-                  <option value="large">Large</option>
-                  <option value="xlarge">Extra Large</option>
-                </select>
-              </div>
-
-              <!-- Live Preview Section -->
-              <div
-                style="margin-top: 10px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: rgba(255, 255, 255, 0.02);">
+          <!-- Right Side Component Track -->
+          <div class="col-6" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%; gap: 20px; font-family: var(--font-family-app) !important;">
+            <!-- Backup Card -->
+            <div class="card" style="justify-content: flex-start; width: 100%; margin-bottom: 0; font-family: var(--font-family-app) !important;">
+              <div class="card-title" style="font-family: var(--font-family-app) !important;">Database Storage & Backups</div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; font-family: var(--font-family-app) !important;">
+                Rajarata Life runs completely offline. Export your database into a local JSON file to ensure backup
+                safety, or select a previous JSON file to restore records.
+              </p>
+              <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px; font-family: var(--font-family-app) !important;">
+                <button class="btn-solid" id="btn-backup-export" style="background-color: var(--success); font-family: var(--font-family-app) !important;">Export Database to JSON</button>
                 <div
-                  style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
-                  Live Preview</div>
-                <div id="typography-preview-text"
-                  style="font-size: 0.95rem; line-height: 1.5; color: var(--text-primary);">
-                  The quick brown fox jumps over the lazy dog. 1234567890
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Theme Studio Card -->
-          <div class="card col-6" style="justify-content: flex-start;">
-            <div class="card-title">Theme Studio</div>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">
-              Customize your Academic OS. Select a theme variant derived from visual palette parameters and configure
-              visual engine toggles.
-            </p>
-
-            <!-- Visual Theme Grid -->
-            <div style="margin-top: 8px;">
-              <label class="form-label" style="margin-bottom: 8px; display: block;">Select Theme Palette</label>
-              <div class="theme-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                <div class="theme-swatch active" data-theme-id="space-gravity">
-                  <div class="swatch-colors" style="background: linear-gradient(135deg, #0a0f1d 0%, #00e5ff 100%);">
-                  </div>
-                  <span>Space Gravity</span>
-                </div>
-                <div class="theme-swatch" data-theme-id="emerald-aurora">
-                  <div class="swatch-colors" style="background: linear-gradient(135deg, #0e1d20 0%, #45dfb1 100%);">
-                  </div>
-                  <span>Emerald Aurora</span>
-                </div>
-                <div class="theme-swatch" data-theme-id="sunset-amethyst">
-                  <div class="swatch-colors" style="background: linear-gradient(135deg, #0f0714 0%, #e3b6b1 100%);">
-                  </div>
-                  <span>Sunset Amethyst</span>
-                </div>
-                <div class="theme-swatch" data-theme-id="deep-indigo">
-                  <div class="swatch-colors" style="background: linear-gradient(135deg, #030430 0%, #00b4d8 100%);">
-                  </div>
-                  <span>Deep Indigo</span>
-                </div>
-                <div class="theme-swatch" data-theme-id="steel-slate">
-                  <div class="swatch-colors" style="background: linear-gradient(135deg, #121a24 0%, #aab7b7 100%);">
-                  </div>
-                  <span>Steel Slate</span>
-                </div>
-                <div class="theme-swatch" data-theme-id="crimson-obsidian">
-                  <div class="swatch-colors" style="background: linear-gradient(135deg, #080002 0%, #d00018 100%);">
-                  </div>
-                  <span>Crimson Obsidian</span>
+                  style="border: 1px dashed var(--border-color); border-radius: 8px; padding: 16px; text-align: center; position: relative; font-family: var(--font-family-app) !important;">
+                  <input type="file" id="backup-import-file" accept=".json"
+                    style="position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; font-family: var(--font-family-app) !important;">
+                  <span style="font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Drag or click here to restore from JSON file</span>
                 </div>
               </div>
             </div>
 
-            <!-- Visual Toggles -->
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;">
-              <label class="form-label">Engine Configurations</label>
-              <label class="toggle-container"
-                style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
-                <input type="checkbox" id="toggle-glow" checked style="cursor: pointer;">
-                <span>Enable Glow Effects</span>
-              </label>
-              <label class="toggle-container"
-                style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
-                <input type="checkbox" id="toggle-hover-anims" checked style="cursor: pointer;">
-                <span>Enable Animated Hover Effects</span>
-              </label>
-              <label class="toggle-container"
-                style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
-                <input type="checkbox" id="toggle-reflections" checked style="cursor: pointer;">
-                <span>Enable Glass Reflections</span>
-              </label>
-              <label class="toggle-container"
-                style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
-                <input type="checkbox" id="toggle-accent-lighting" checked style="cursor: pointer;">
-                <span>Enable Dynamic Accent Lighting</span>
-              </label>
-            </div>
-
-            <!-- Actions -->
-            <div style="display: flex; gap: 10px; margin-top: 16px;">
-              <button class="btn-solid" id="btn-apply-theme" style="flex: 1; padding: 10px 14px;">Apply Theme</button>
-              <button class="btn-outline" id="btn-reset-theme" style="padding: 10px 14px;">Reset</button>
-            </div>
-          </div>
-
-          <!-- Theme Live Preview Card -->
-          <div class="card col-6" style="justify-content: flex-start;">
-            <div class="card-title">Live Preview Panel</div>
-
-            <!-- Mock Container applying local CSS variables reflecting selection -->
-            <div id="theme-preview-box" class="preview-box-container"
-              style="border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px; background: var(--bg-app); position: relative; overflow: hidden; height: 100%; transition: all 0.3s ease;">
-
-              <!-- Ambient background lighting indicators in preview -->
-              <div class="preview-glow-1"
-                style="position: absolute; top: -20px; left: -20px; width: 80px; height: 80px; background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%); pointer-events: none; border-radius: 50%;">
-              </div>
-              <div class="preview-glow-2"
-                style="position: absolute; bottom: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, var(--accent-secondary-glow) 0%, transparent 70%); pointer-events: none; border-radius: 50%;">
-              </div>
-
-              <!-- Mini Navigation Header -->
-              <div
-                style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <div class="preview-logo-dot"
-                    style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent);">
-                  </div>
-                  <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-primary);">Preview OS</span>
+            <!-- Typography Settings Card -->
+            <div class="card" style="justify-content: flex-start; width: 100%; margin-bottom: 0; font-family: var(--font-family-app) !important;">
+              <div class="card-title" style="font-family: var(--font-family-app) !important;">Typography Settings</div>
+              <div style="display: flex; flex-direction: column; gap: 14px; font-family: var(--font-family-app) !important;">
+                <div class="form-group" style="font-family: var(--font-family-app) !important;">
+                  <label class="form-label" style="font-family: var(--font-family-app) !important;">Font Family</label>
+                  <select id="settings-font-family" class="select-input" style="font-family: var(--font-family-app) !important;">
+                    <option value="Inter">Inter (Default)</option>
+                    <option value="Poppins">Poppins</option>
+                    <option value="Roboto">Roboto</option>
+                    <option value="Open Sans">Open Sans</option>
+                    <option value="Nunito">Nunito</option>
+                    <option value="Montserrat">Montserrat</option>
+                  </select>
                 </div>
-                <div style="display: flex; gap: 8px;">
-                  <span class="preview-nav-item active"
-                    style="font-size: 0.65rem; padding: 4px 8px; border-radius: 4px; background: var(--accent-glow); color: var(--accent); font-weight: 700; border: 1px solid var(--border-color); box-shadow: var(--shadow-glow);">Dash</span>
-                  <span class="preview-nav-item"
-                    style="font-size: 0.65rem; color: var(--text-secondary); padding: 4px 8px;">Logs</span>
+                <div class="form-group" style="font-family: var(--font-family-app) !important;">
+                  <label class="form-label" style="font-family: var(--font-family-app) !important;">Font Size</label>
+                  <select id="settings-font-size" class="select-input" style="font-family: var(--font-family-app) !important;">
+                    <option value="small">Small</option>
+                    <option value="medium" selected>Medium (Default)</option>
+                    <option value="large">Large</option>
+                    <option value="xlarge">Extra Large</option>
+                  </select>
                 </div>
-              </div>
 
-              <!-- Mini Dashboard Widget Card -->
-              <div class="preview-card"
-                style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; box-shadow: var(--shadow-sm); position: relative; transition: all 0.3s ease;">
-                <div class="preview-reflection"
-                  style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(255, 255, 255, 0.015) 0%, rgba(255, 255, 255, 0) 100%); pointer-events: none;">
-                </div>
+                <!-- Live Preview Section -->
                 <div
-                  style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">
-                  <span>Academic Gravity</span>
-                  <span style="color: var(--accent); font-weight: 700;">Active</span>
+                  style="margin-top: 10px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: rgba(255, 255, 255, 0.02); font-family: var(--font-family-app) !important;">
+                  <div
+                    style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; font-family: var(--font-family-app) !important;">
+                    Live Preview</div>
+                  <div id="typography-preview-text"
+                    style="font-size: 0.95rem; line-height: 1.5; color: var(--text-primary); font-family: var(--font-family-app) !important;">
+                    The quick brown fox jumps over the lazy dog. 1234567890
+                  </div>
                 </div>
-                <div style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin-top: 6px;">3.84 GPA
-                </div>
+              </div>
+            </div>
 
-                <!-- Mini Progress Bar -->
-                <div
-                  style="width: 100%; height: 5px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; margin-top: 8px; overflow: hidden;">
-                  <div class="preview-progress-bar"
-                    style="width: 82%; height: 100%; background: linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%); box-shadow: 0 0 6px var(--accent);">
+            <!-- Theme Studio Card -->
+            <div class="card" style="justify-content: flex-start; width: 100%; margin-bottom: 0; font-family: var(--font-family-app) !important;">
+              <div class="card-title" style="font-family: var(--font-family-app) !important;">Theme Studio</div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; font-family: var(--font-family-app) !important;">
+                Customize your Academic OS. Select a theme variant derived from visual palette parameters and configure
+                visual engine toggles.
+              </p>
+
+              <!-- Visual Theme Grid -->
+              <div style="margin-top: 8px; font-family: var(--font-family-app) !important;">
+                <label class="form-label" style="margin-bottom: 8px; display: block; font-family: var(--font-family-app) !important;">Select Theme Palette</label>
+                <div class="theme-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-family: var(--font-family-app) !important;">
+                  <div class="theme-swatch active" data-theme-id="space-gravity" style="font-family: var(--font-family-app) !important;">
+                    <div class="swatch-colors" style="background: linear-gradient(135deg, #0a0f1d 0%, #00e5ff 100%);">
+                    </div>
+                    <span style="font-family: var(--font-family-app) !important;">Space Gravity</span>
+                  </div>
+                  <div class="theme-swatch" data-theme-id="emerald-aurora" style="font-family: var(--font-family-app) !important;">
+                    <div class="swatch-colors" style="background: linear-gradient(135deg, #0e1d20 0%, #45dfb1 100%);">
+                    </div>
+                    <span style="font-family: var(--font-family-app) !important;">Emerald Aurora</span>
+                  </div>
+                  <div class="theme-swatch" data-theme-id="sunset-amethyst" style="font-family: var(--font-family-app) !important;">
+                    <div class="swatch-colors" style="background: linear-gradient(135deg, #0f0714 0%, #e3b6b1 100%);">
+                    </div>
+                    <span style="font-family: var(--font-family-app) !important;">Sunset Amethyst</span>
+                  </div>
+                  <div class="theme-swatch" data-theme-id="deep-indigo" style="font-family: var(--font-family-app) !important;">
+                    <div class="swatch-colors" style="background: linear-gradient(135deg, #030430 0%, #00b4d8 100%);">
+                    </div>
+                    <span style="font-family: var(--font-family-app) !important;">Deep Indigo</span>
+                  </div>
+                  <div class="theme-swatch" data-theme-id="steel-slate" style="font-family: var(--font-family-app) !important;">
+                    <div class="swatch-colors" style="background: linear-gradient(135deg, #121a24 0%, #aab7b7 100%);">
+                    </div>
+                    <span style="font-family: var(--font-family-app) !important;">Steel Slate</span>
+                  </div>
+                  <div class="theme-swatch" data-theme-id="crimson-obsidian" style="font-family: var(--font-family-app) !important;">
+                    <div class="swatch-colors" style="background: linear-gradient(135deg, #080002 0%, #d00018 100%);">
+                    </div>
+                    <span style="font-family: var(--font-family-app) !important;">Crimson Obsidian</span>
                   </div>
                 </div>
               </div>
 
-              <!-- Interactive Controls (Mock Button & Input) -->
-              <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
-                <input type="text" value="Text Field Input" readonly
-                  style="flex: 1; font-size: 0.7rem; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-secondary); pointer-events: none; outline: none;">
-                <button class="preview-btn-solid"
-                  style="font-size: 0.7rem; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: none; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%); color: var(--preview-btn-text); cursor: default; box-shadow: 0 0 8px var(--accent-glow);">Trigger
-                  Action</button>
+              <!-- Visual Toggles -->
+              <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px; font-family: var(--font-family-app) !important;">
+                <label class="form-label" style="font-family: var(--font-family-app) !important;">Engine Configurations</label>
+                <label class="toggle-container"
+                  style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary); font-family: var(--font-family-app) !important;">
+                  <input type="checkbox" id="toggle-glow" checked style="cursor: pointer; font-family: var(--font-family-app) !important;">
+                  <span style="font-family: var(--font-family-app) !important;">Enable Glow Effects</span>
+                </label>
+                <label class="toggle-container"
+                  style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary); font-family: var(--font-family-app) !important;">
+                  <input type="checkbox" id="toggle-hover-anims" checked style="cursor: pointer; font-family: var(--font-family-app) !important;">
+                  <span style="font-family: var(--font-family-app) !important;">Enable Animated Hover Effects</span>
+                </label>
+                <label class="toggle-container"
+                  style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary); font-family: var(--font-family-app) !important;">
+                  <input type="checkbox" id="toggle-reflections" checked style="cursor: pointer; font-family: var(--font-family-app) !important;">
+                  <span style="font-family: var(--font-family-app) !important;">Enable Glass Reflections</span>
+                </label>
+                <label class="toggle-container"
+                  style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary); font-family: var(--font-family-app) !important;">
+                  <input type="checkbox" id="toggle-accent-lighting" checked style="cursor: pointer; font-family: var(--font-family-app) !important;">
+                  <span style="font-family: var(--font-family-app) !important;">Enable Dynamic Accent Lighting</span>
+                </label>
               </div>
 
+              <!-- Actions -->
+              <div style="display: flex; gap: 10px; margin-top: 16px; font-family: var(--font-family-app) !important;">
+                <button class="btn-solid" id="btn-apply-theme" style="flex: 1; padding: 10px 14px; font-family: var(--font-family-app) !important;">Apply Theme</button>
+                <button class="btn-outline" id="btn-reset-theme" style="padding: 10px 14px; font-family: var(--font-family-app) !important;">Reset</button>
+              </div>
+            </div>
+
+            <!-- Theme Live Preview Card -->
+            <div class="card" style="flex: 1; display: flex; flex-direction: column; justify-content: flex-start; margin-bottom: 0; font-family: var(--font-family-app) !important;">
+              <div class="card-title" style="font-family: var(--font-family-app) !important;">Live Preview Panel</div>
+
+              <!-- Mock Container applying local CSS variables reflecting selection -->
+              <div id="theme-preview-box" class="preview-box-container"
+                style="border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px; background: var(--bg-app); position: relative; overflow: hidden; flex: 1; transition: all 0.3s ease; font-family: var(--font-family-app) !important;">
+
+                <!-- Ambient background lighting indicators in preview -->
+                <div class="preview-glow-1"
+                  style="position: absolute; top: -20px; left: -20px; width: 80px; height: 80px; background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%); pointer-events: none; border-radius: 50%;">
+                </div>
+                <div class="preview-glow-2"
+                  style="position: absolute; bottom: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, var(--accent-secondary-glow) 0%, transparent 70%); pointer-events: none; border-radius: 50%;">
+                </div>
+
+                <!-- Mini Navigation Header -->
+                <div
+                  style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-family: var(--font-family-app) !important;">
+                  <div style="display: flex; align-items: center; gap: 6px; font-family: var(--font-family-app) !important;">
+                    <div class="preview-logo-dot"
+                      style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent);">
+                    </div>
+                    <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-family-app) !important;">Preview OS</span>
+                  </div>
+                  <div style="display: flex; gap: 8px; font-family: var(--font-family-app) !important;">
+                    <span class="preview-nav-item active"
+                      style="font-size: 0.65rem; padding: 4px 8px; border-radius: 4px; background: var(--accent-glow); color: var(--accent); font-weight: 700; border: 1px solid var(--border-color); box-shadow: var(--shadow-glow); font-family: var(--font-family-app) !important;">Dash</span>
+                    <span class="preview-nav-item"
+                      style="font-size: 0.65rem; color: var(--text-secondary); padding: 4px 8px; font-family: var(--font-family-app) !important;">Logs</span>
+                  </div>
+                </div>
+
+                <!-- Mini Dashboard Widget Card -->
+                <div class="preview-card"
+                  style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; box-shadow: var(--shadow-sm); position: relative; transition: all 0.3s ease; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                  <div class="preview-reflection"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(255, 255, 255, 0.015) 0%, rgba(255, 255, 255, 0) 100%); pointer-events: none;">
+                  </div>
+                  <div
+                    style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; font-family: var(--font-family-app) !important;">
+                    <span style="font-family: var(--font-family-app) !important;">Academic Gravity</span>
+                    <span style="color: var(--accent); font-weight: 700; font-family: var(--font-family-app) !important;">Active</span>
+                  </div>
+                  <div style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin-top: 6px; font-family: var(--font-family-app) !important;">3.84 GPA</div>
+
+                  <!-- Mini Progress Bar -->
+                  <div
+                    style="width: 100%; height: 5px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; margin-top: 8px; overflow: hidden;">
+                    <div class="preview-progress-bar"
+                      style="width: 82%; height: 100%; background: linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%); box-shadow: 0 0 6px var(--accent);">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Interactive Controls (Mock Button & Input) -->
+                <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px; font-family: var(--font-family-app) !important;">
+                  <input type="text" value="Text Field Input" readonly
+                    style="flex: 1; font-size: 0.7rem; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-secondary); pointer-events: none; outline: none; font-family: var(--font-family-app) !important;">
+                  <button class="preview-btn-solid"
+                    style="font-size: 0.7rem; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: none; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%); color: var(--preview-btn-text); cursor: default; box-shadow: 0 0 8px var(--accent-glow); font-family: var(--font-family-app) !important;">Trigger Action</button>
+                </div>
+
+              </div>
             </div>
           </div>
         </div>
@@ -1341,21 +1485,62 @@
         <div class="modal-body">
           <input type="hidden" id="subject-mode" value="add">
           <div class="form-group">
-            <label class="form-label">Subject Code ID</label>
-            <input type="text" id="sub-code" class="input-text" placeholder="e.g. BOT" required>
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Course Code (Format: ABC 1234)</label>
+            <input type="text" id="sub-code" class="input-text" placeholder="e.g. CHE 1201" pattern="^[A-Z]{3}\s\d{4}$" required style="font-family: var(--font-family-app) !important;">
           </div>
           <div class="form-group">
-            <label class="form-label">Main Subject Title</label>
-            <input type="text" id="sub-name" class="input-text" placeholder="e.g. Botany" required>
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Course Title</label>
+            <input type="text" id="sub-name" class="input-text" placeholder="e.g. General Chemistry" required style="font-family: var(--font-family-app) !important;">
           </div>
           <div class="form-group">
-            <label class="form-label">Subject Description (Optional)</label>
-            <textarea id="sub-description" class="input-text" rows="4" placeholder="Enter brief subject description..." style="resize: vertical; min-height: 80px; font-family: inherit; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; width: 100%; box-sizing: border-box;"></textarea>
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Department</label>
+            <input type="text" id="sub-department" class="input-text" placeholder="e.g. Physical Sciences" style="font-family: var(--font-family-app) !important;">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Year</label>
+            <select id="sub-year" class="select-input" style="font-family: var(--font-family-app) !important;">
+              <option value="1">Year 1</option>
+              <option value="2">Year 2</option>
+              <option value="3">Year 3</option>
+              <option value="4">Year 4</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Semester</label>
+            <select id="sub-semester" class="select-input" style="font-family: var(--font-family-app) !important;">
+              <option value="1">Semester I</option>
+              <option value="2">Semester II</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Credits</label>
+            <input type="number" id="sub-credits" class="input-text" placeholder="e.g. 3" min="1" max="8" style="font-family: var(--font-family-app) !important;">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Course Type</label>
+            <select id="sub-type" class="select-input" style="font-family: var(--font-family-app) !important;">
+              <option value="CORE">CORE</option>
+              <option value="FDN">FDN</option>
+              <option value="IDC">IDC</option>
+              <option value="OPTIONAL">OPTIONAL</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Prerequisites (Comma separated codes)</label>
+            <input type="text" id="sub-prerequisites" class="input-text" placeholder="e.g. CHE 1101, CHE 1102" style="font-family: var(--font-family-app) !important;">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Corequisites (Comma separated codes)</label>
+            <input type="text" id="sub-corequisites" class="input-text" placeholder="e.g. CHE 1202" style="font-family: var(--font-family-app) !important;">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Subject Description (Optional)</label>
+            <textarea id="sub-description" class="input-text" rows="4" placeholder="Enter brief subject description..." style="resize: vertical; min-height: 80px; font-family: var(--font-family-app) !important; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; width: 100%; box-sizing: border-box;"></textarea>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn-outline modal-close-btn">Cancel</button>
-          <button type="submit" class="btn-solid">Save Subject</button>
+          <button type="button" class="btn-outline modal-close-btn" style="font-family: var(--font-family-app) !important;">Cancel</button>
+          <button type="submit" class="btn-solid" style="font-family: var(--font-family-app) !important;">Save Subject</button>
         </div>
       </form>
     </div>
@@ -1434,6 +1619,20 @@
             </select>
           </div>
 
+          <div class="form-group">
+            <label class="form-label">Pre-requisite Module</label>
+            <select id="module-prerequisite" class="select-input">
+              <option value="">None</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Co-requisite Module</label>
+            <select id="module-corequisite" class="select-input">
+              <option value="">None</option>
+            </select>
+          </div>
+
           <div style="margin: 16px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent); border-top: 1px solid var(--border-color); padding-top: 16px;">
             🔬 Component Weights
           </div>
@@ -1486,6 +1685,9 @@
         <div class="modal-body">
           <input type="hidden" id="exam-mode" value="add">
           <input type="hidden" id="exam-id" value="">
+          <div id="exam-validation-warning" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); border-radius: 8px; padding: 12px; margin-bottom: 16px; color: var(--danger); font-weight: 700; font-size: 0.82rem; font-family: var(--font-family-app) !important;">
+            ⚠️ Examination Admission Barred: Attendance Below 80% Bounds.
+          </div>
           <div class="form-group">
             <label class="form-label">Exam Name / Details</label>
             <input type="text" id="exam-name" class="input-text" placeholder="e.g. Botany Mid-Semester Paper" required>
@@ -1506,13 +1708,12 @@
             <label class="form-label">Venue</label>
             <input type="text" id="exam-venue" class="input-text" placeholder="e.g. FAS Hall A" required>
           </div>
-          <div class="form-group">
-            <label class="form-label">Exam Type</label>
-            <select id="exam-type" class="select-input">
-              <option value="Final Theory">Final Theory</option>
-              <option value="Final Practical">Final Practical</option>
-              <option value="Mid-Semester">Mid-Semester</option>
-              <option value="Quiz Spotting">Quiz Spotting</option>
+          <div class="form-group" style="font-family: var(--font-family-app) !important;">
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Exam Type</label>
+            <select id="exam-type" class="select-input" style="font-family: var(--font-family-app) !important;">
+              <option value="THEORY" style="font-family: var(--font-family-app) !important;">Theory</option>
+              <option value="PRACTICAL" style="font-family: var(--font-family-app) !important;">Practical</option>
+              <option value="REPEAT" style="font-family: var(--font-family-app) !important;">Repeat</option>
             </select>
           </div>
           <div class="form-group">
@@ -1613,18 +1814,60 @@
               <option value="High">High</option>
             </select>
           </div>
-          <div class="form-group">
-            <label class="form-label">Progress Status</label>
-            <select id="assign-status" class="select-input">
-              <option value="Pending">Pending</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
+          <div class="form-group" style="font-family: var(--font-family-app) !important;">
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Progress Status</label>
+            <select id="assign-status" class="select-input" style="font-family: var(--font-family-app) !important;">
+              <option value="Pending" style="font-family: var(--font-family-app) !important;">Pending</option>
+              <option value="Submitted" style="font-family: var(--font-family-app) !important;">Submitted</option>
+              <option value="Completed" style="font-family: var(--font-family-app) !important;">Completed</option>
             </select>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-outline modal-close-btn">Cancel</button>
           <button type="submit" class="btn-solid">Save Assignment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add/Edit Resource Modal -->
+  <div class="modal-overlay" id="resource-modal" style="font-family: var(--font-family-app) !important;">
+    <div class="modal-box" style="font-family: var(--font-family-app) !important;">
+      <div class="modal-header" style="font-family: var(--font-family-app) !important;">
+        <h3 id="resource-modal-title" style="font-family: var(--font-family-app) !important;">Add Resource</h3>
+        <button class="btn-icon modal-close-btn" style="font-family: var(--font-family-app) !important;">&times;</button>
+      </div>
+      <form id="resource-form" style="font-family: var(--font-family-app) !important;">
+        <div class="modal-body" style="font-family: var(--font-family-app) !important;">
+          <input type="hidden" id="resource-mode" value="add">
+          <input type="hidden" id="resource-id" value="">
+          <div class="form-group" style="font-family: var(--font-family-app) !important;">
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Resource Title</label>
+            <input type="text" id="resource-title" class="input-text" placeholder="e.g. Organic Chemistry Lecture 1 Slides" required style="font-family: var(--font-family-app) !important;">
+          </div>
+          <div class="form-group" style="font-family: var(--font-family-app) !important;">
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Course Unit Tag</label>
+            <select id="resource-subject" class="select-input" required style="font-family: var(--font-family-app) !important;"></select>
+          </div>
+          <div class="form-group" style="font-family: var(--font-family-app) !important;">
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Resource Type</label>
+            <select id="resource-type" class="select-input" required style="font-family: var(--font-family-app) !important;">
+              <option value="PDF Link" style="font-family: var(--font-family-app) !important;">PDF Link</option>
+              <option value="Lecture Slide Link" style="font-family: var(--font-family-app) !important;">Lecture Slide Link</option>
+              <option value="Video Tutorial Link" style="font-family: var(--font-family-app) !important;">Video Tutorial Link</option>
+              <option value="Online Guide Link" style="font-family: var(--font-family-app) !important;">Online Guide Link</option>
+              <option value="Reference Link" style="font-family: var(--font-family-app) !important;">Reference Link</option>
+            </select>
+          </div>
+          <div class="form-group" style="font-family: var(--font-family-app) !important;">
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Resource Link URL</label>
+            <input type="url" id="resource-url" class="input-text" placeholder="https://example.com/slides.pdf" required style="font-family: var(--font-family-app) !important;">
+          </div>
+        </div>
+        <div class="modal-footer" style="font-family: var(--font-family-app) !important;">
+          <button type="button" class="btn-outline modal-close-btn" style="font-family: var(--font-family-app) !important;">Cancel</button>
+          <button type="submit" class="btn-solid" style="font-family: var(--font-family-app) !important;">Save Resource</button>
         </div>
       </form>
     </div>

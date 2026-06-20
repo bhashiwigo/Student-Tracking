@@ -218,9 +218,10 @@ export const AnalyticsModule = {
       if (selectedSubCode) {
         const rec = attendance.find(a => a.subjectCode === selectedSubCode);
         if (rec) {
-          const lecturesAttended = rec.lecturesAttended || 0;
-          const lecturesTotal = rec.lecturesTotal || 0;
-          pct = lecturesTotal > 0 ? (lecturesAttended / lecturesTotal) * 100 : 0;
+          const overallAttended = (rec.lecturesAttended || 0) + (rec.practicalsAttended || 0);
+          const approvedMedical = rec.approvedMedicalSessions || 0;
+          const overallTotal = (rec.lecturesTotal || 0) + (rec.practicalsTotal || 0);
+          pct = overallTotal > 0 ? ((overallAttended + approvedMedical) / overallTotal) * 100 : 0;
         }
       }
 
@@ -627,8 +628,9 @@ export const AnalyticsModule = {
           const rec = attendance.find(a => a.subjectCode === sub.code);
           if (rec) {
             const overallAttended = (rec.lecturesAttended || 0) + (rec.practicalsAttended || 0);
+            const approvedMedical = rec.approvedMedicalSessions || 0;
             const overallTotal = (rec.lecturesTotal || 0) + (rec.practicalsTotal || 0);
-            return overallTotal > 0 ? (overallAttended / overallTotal) * 100 : 0;
+            return overallTotal > 0 ? ((overallAttended + approvedMedical) / overallTotal) * 100 : 0;
           }
           return 0;
         });
@@ -682,9 +684,10 @@ export const AnalyticsModule = {
         const subAtt = subjects.map(sub => {
           const rec = attendance.find(a => a.subjectCode === sub.code);
           if (rec) {
-            const overallAttended = rec.lecturesAttended + rec.practicalsAttended;
-            const overallTotal = rec.lecturesTotal + rec.practicalsTotal;
-            return overallTotal > 0 ? (overallAttended / overallTotal) * 100 : 0;
+            const overallAttended = (rec.lecturesAttended || 0) + (rec.practicalsAttended || 0);
+            const approvedMedical = rec.approvedMedicalSessions || 0;
+            const overallTotal = (rec.lecturesTotal || 0) + (rec.practicalsTotal || 0);
+            return overallTotal > 0 ? ((overallAttended + approvedMedical) / overallTotal) * 100 : 0;
           }
           return 0;
         });

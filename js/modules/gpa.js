@@ -51,6 +51,7 @@ export const GPAModule = {
     await this.loadSettings();
     this.bindEvents();
     window.addEventListener('subjectsUpdated', () => this.render());
+    this.runGPAEngineUnitTests();
   },
 
   async loadSettings() {
@@ -256,6 +257,62 @@ export const GPAModule = {
       if (displayOverall) displayOverall.innerText = stats.overall.toFixed(2);
       if (displaySemester) displaySemester.innerText = stats.currentSemester.toFixed(2);
 
+      // Render Prefix GPA Breakdown
+      const prefixContainer = document.getElementById('gpa-prefix-breakdown-container');
+      if (prefixContainer) {
+        const prefixGPAs = this.calculatePrefixGPAs(subjects);
+        const prefixes = Object.keys(prefixGPAs).sort();
+        if (prefixes.length === 0) {
+          prefixContainer.innerHTML = '<div style="color:var(--text-muted); font-family: var(--font-family-app) !important;">No graded course units logged.</div>';
+        } else {
+          prefixContainer.innerHTML = prefixes.map(prefix => {
+            const val = prefixGPAs[prefix];
+            return `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border-color); font-family: var(--font-family-app) !important;">
+                <span style="font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">${prefix} Units GPA:</span>
+                <span class="badge" style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 800; background: rgba(0, 229, 255, 0.1); color: var(--accent); font-family: var(--font-family-app) !important;">
+                  ${val.toFixed(2)}
+                </span>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      // Render Credit progress benchmarks
+      const progressContainer = document.getElementById('gpa-credit-progress-container');
+      if (progressContainer) {
+        let earnedCredits = 0;
+        subjects.forEach(sub => {
+          if (sub.grade && sub.grade !== 'E') {
+            earnedCredits += sub.credits || 0;
+          }
+        });
+        const bscPct = Math.min(100, (earnedCredits / 90) * 100);
+        const honsPct = Math.min(100, (earnedCredits / 120) * 100);
+        
+        progressContainer.innerHTML = `
+          <div style="display: flex; flex-direction: column; gap: 4px; font-family: var(--font-family-app) !important;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">
+              <span style="font-family: var(--font-family-app) !important;">BSc Track Progress (${earnedCredits}/90 Cr)</span>
+              <span style="font-family: var(--font-family-app) !important; font-weight: 700;">${bscPct.toFixed(1)}%</span>
+            </div>
+            <div style="height: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; width: 100%;">
+              <div style="width: ${bscPct}%; height: 100%; background: var(--success); border-radius: 4px; transition: width 0.5s ease;"></div>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px; font-family: var(--font-family-app) !important;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">
+              <span style="font-family: var(--font-family-app) !important;">Honours Track Progress (${earnedCredits}/120 Cr)</span>
+              <span style="font-family: var(--font-family-app) !important; font-weight: 700;">${honsPct.toFixed(1)}%</span>
+            </div>
+            <div style="height: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; width: 100%;">
+              <div style="width: ${honsPct}%; height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.5s ease;"></div>
+            </div>
+          </div>
+        `;
+      }
+
       // Trigger Predictor HUD update
       this.updatePredictorHUD();
 
@@ -286,13 +343,14 @@ export const GPAModule = {
 
     for (const sub of subjects) {
       if (sub.grade) {
-        const gp = await this.getGradePoints(sub.grade);
-        totalCredits += sub.credits;
-        weightedGP += (gp * sub.credits);
+        const gp = sub.gradePoint !== undefined ? sub.gradePoint : await this.getGradePoints(sub.grade);
+        const credits = sub.credits || 0;
+        totalCredits += credits;
+        weightedGP += (gp * credits);
 
         if (sub.semester === currentSemesterCode) {
-          semCredits += sub.credits;
-          semWeightedGP += (gp * sub.credits);
+          semCredits += credits;
+          semWeightedGP += (gp * credits);
         }
       }
     }
@@ -301,6 +359,31 @@ export const GPAModule = {
     const currentSemester = semCredits > 0 ? (semWeightedGP / semCredits) : 0.00;
 
     return { overall, currentSemester, totalCredits, weightedGP };
+  },
+
+  calculatePrefixGPAs(subjects) {
+    const prefixGroups = {};
+    for (const sub of subjects) {
+      if (sub.grade) {
+        const code = sub.parentSubjectCode || sub.code || 'CORE';
+        const prefix = code.trim().substring(0, 3).toUpperCase();
+        
+        if (!prefixGroups[prefix]) {
+          prefixGroups[prefix] = { totalCredits: 0, weightedGP: 0 };
+        }
+        const gp = sub.gradePoint !== undefined ? sub.gradePoint : (this.gradeMap[sub.grade] !== undefined ? this.gradeMap[sub.grade] : 0.00);
+        const credits = sub.credits || 0;
+        prefixGroups[prefix].totalCredits += credits;
+        prefixGroups[prefix].weightedGP += (gp * credits);
+      }
+    }
+    
+    const prefixGPAs = {};
+    for (const prefix in prefixGroups) {
+      const group = prefixGroups[prefix];
+      prefixGPAs[prefix] = group.totalCredits > 0 ? (group.weightedGP / group.totalCredits) : 0.00;
+    }
+    return prefixGPAs;
   },
 
   async handleSaveGrade(e) {
@@ -314,6 +397,10 @@ export const GPAModule = {
       const sub = await Database.get('subjects', code);
       if (sub) {
         sub.grade = grade;
+        sub.gradePoint = this.gradeMap[grade] !== undefined ? this.gradeMap[grade] : 0.00;
+        if (sub.credits === undefined) {
+          sub.credits = 3;
+        }
         await Database.put('subjects', sub);
         NotificationService.show('Grade Saved', `Grade for ${code} set to ${grade}.`, 'success');
         
@@ -323,6 +410,54 @@ export const GPAModule = {
       }
     } catch (err) {
       console.error('Save grade failed:', err);
+    }
+  },
+
+  runGPAEngineUnitTests() {
+    console.log('[GPA Engine Tests] Starting arithmetic verification suite...');
+    try {
+      const computeGpaLocal = (subs) => {
+        let totalCredits = 0;
+        let weightedGP = 0;
+        for (const sub of subs) {
+          if (sub.grade) {
+            const gp = this.gradeMap[sub.grade] || 0.00;
+            totalCredits += sub.credits;
+            weightedGP += (gp * sub.credits);
+          }
+        }
+        return totalCredits > 0 ? (weightedGP / totalCredits) : 0.00;
+      };
+
+      // Test Case 1: Equal weights (e.g. 3 credits each)
+      const tc1 = [
+        { credits: 3, grade: 'A' },
+        { credits: 3, grade: 'C' }
+      ];
+      const res1 = computeGpaLocal(tc1).toFixed(2);
+      if (res1 !== '3.00') throw new Error(`Test Case 1 failed: expected 3.00, got ${res1}`);
+
+      // Test Case 2: Mixed weights
+      const tc2 = [
+        { credits: 2, grade: 'A-' },
+        { credits: 3, grade: 'B+' },
+        { credits: 4, grade: 'C+' }
+      ];
+      const res2 = computeGpaLocal(tc2).toFixed(2);
+      if (res2 !== '2.94') throw new Error(`Test Case 2 failed: expected 2.94, got ${res2}`);
+
+      // Test Case 3: Empty/Unevaluated
+      const tc3 = [
+        { credits: 3, grade: '' }
+      ];
+      const res3 = computeGpaLocal(tc3).toFixed(2);
+      if (res3 !== '0.00') throw new Error(`Test Case 3 failed: expected 0.00, got ${res3}`);
+
+      console.log('[GPA Engine Tests] All GPA calculation arithmetic unit tests passed successfully!');
+      return true;
+    } catch (error) {
+      console.error('[GPA Engine Tests] Validation failure:', error.message);
+      return false;
     }
   },
 

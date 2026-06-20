@@ -8,6 +8,8 @@ import { Auth } from './auth.js';
 import { UserDatabase } from './database/userdb.js';
 import { BackupService } from './services/backup.js';
 import { NotificationService } from './services/notifications.js';
+import { initializeApp, getApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 import { AcademicModule } from './modules/academic.js';
 import { ExamsModule } from './modules/exams.js';
@@ -20,6 +22,24 @@ import { StudyModule } from './modules/study.js';
 import { NotesModule } from './modules/notes.js';
 import { AnalyticsModule } from './modules/analytics.js';
 import { ResearchModule } from './modules/research.js';
+import { ResourcesModule } from './modules/resources.js';
+
+try {
+  const firebaseApp = getApps().length === 0 ? initializeApp({
+    apiKey: "AIzaSyB_nhE7dhy1gYPJxRuScPZ9khXnPT5te_E",
+    authDomain: "student-tracking-app-f4570.firebaseapp.com",
+    projectId: "student-tracking-app-f4570",
+    storageBucket: "student-tracking-app-f4570.firebasestorage.app",
+    messagingSenderId: "878719441575",
+    appId: "1:878719441575:web:c37c72c27423e250909982"
+  }) : getApp();
+  if (!window.__firestore) {
+    window.__firestore = getFirestore(firebaseApp);
+  }
+  console.log('[Firebase] Cloud sync layer attached successfully.');
+} catch (e) {
+  console.warn('[Firebase] Fallback activated — running in offline-only mode.', e.message);
+}
 
 window.showCustomConfirm = function(title, message, isDestructive = false) {
   return new Promise((resolve) => {
@@ -252,6 +272,7 @@ const App = {
     NotesModule.init();
     AnalyticsModule.init();
     ResearchModule.init();
+    ResourcesModule.init();
 
     // Trigger initial rendering pass instantly upon bootstrapping
     await this.renderDashboard();
@@ -1054,6 +1075,11 @@ const App = {
         const sem = document.getElementById('settings-semester').value;
         const target = parseFloat(document.getElementById('settings-target-gpa').value) || 3.70;
 
+        const getVal = (id) => {
+          const el = document.getElementById(id);
+          return el ? el.value.trim() : '';
+        };
+
         try {
           const profile = await Database.get('students', 'profile') || { id: 'profile' };
           profile.name = name;
@@ -1061,6 +1087,31 @@ const App = {
           profile.faculty = faculty;
           profile.admissionYear = year;
           profile.currentSemester = sem;
+
+          // Safely build the extended studentInfo structure
+          profile.studentInfo = {
+            studentId: getVal('settings-student-id'),
+            registrationNumber: getVal('settings-reg-num'),
+            degreeProgramme: getVal('settings-degree'),
+            department: getVal('settings-dept'),
+            batch: getVal('settings-batch'),
+            academicYear: year,
+            semester: sem,
+            faculty: faculty,
+            email: getVal('settings-email'),
+            phone: getVal('settings-phone'),
+            mentor: {
+              name: getVal('settings-mentor-name'),
+              email: getVal('settings-mentor-email'),
+              contact: getVal('settings-mentor-contact')
+            },
+            academicAdvisor: {
+              name: getVal('settings-advisor-name'),
+              email: getVal('settings-advisor-email'),
+              contact: getVal('settings-advisor-contact')
+            }
+          };
+
           await Database.put('students', profile);
 
           await Database.put('settings', { key: 'currentSemester', value: sem });
@@ -1290,6 +1341,7 @@ const App = {
     else if (this.currentView === 'study') { StudyModule.render(); }
     else if (this.currentView === 'notes') { NotesModule.render(); }
     else if (this.currentView === 'research') { ResearchModule.render(); }
+    else if (this.currentView === 'resources') { ResourcesModule.render(); }
     else if (this.currentView === 'analytics') { AnalyticsModule.render(); }
     else if (this.currentView === 'calendar') { this.renderCalendar(); }
     else if (this.currentView === 'settings') { this.renderSettings(); }
@@ -1318,8 +1370,13 @@ const App = {
     let totalAttended = 0;
     let totalSessions = 0;
     attendance.forEach(a => {
-      totalAttended += (a.lecturesAttended || 0) + (a.practicalsAttended || 0);
-      totalSessions += (a.lecturesTotal || 0) + (a.practicalsTotal || 0);
+      if (a.lecture && a.practical && a.fieldWork) {
+        totalAttended += (a.lecture.present || 0) + (a.practical.present || 0) + (a.fieldWork.present || 0);
+        totalSessions += (a.lecture.total || 0) + (a.practical.total || 0) + (a.fieldWork.total || 0);
+      } else {
+        totalAttended += (a.lecturesAttended || 0) + (a.practicalsAttended || 0) + (a.approvedMedicalSessions || 0);
+        totalSessions += (a.lecturesTotal || 0) + (a.practicalsTotal || 0);
+      }
     });
     const attPct = totalSessions > 0 ? (totalAttended / totalSessions) * 100 : 0;
     document.getElementById('dash-metric-att').innerText = `${attPct.toFixed(0)}%`;
@@ -1356,6 +1413,112 @@ const App = {
 
     // Call AnalyticsModule.render() to ensure all dashboard charts, balance bars, and progress trackers are updated
     await AnalyticsModule.render();
+
+    // Render upcoming exams widget on dashboard
+    await this.renderDashboardExams(exams);
+  },
+
+  async renderDashboardExams(exams) {
+    const container = document.getElementById('dashboard-exams-container');
+    if (!container) return;
+
+    // Clear active dashboard countdown intervals
+    if (this.dashboardCountdownIntervals) {
+      this.dashboardCountdownIntervals.forEach(clearInterval);
+    }
+    this.dashboardCountdownIntervals = [];
+
+    const now = Date.now();
+
+    // Filter for future-dated exams
+    const futureExams = exams.filter(ex => {
+      const examTime = new Date(`${ex.date}T${ex.time || '08:30'}`).getTime();
+      return !isNaN(examTime) && examTime > now;
+    });
+
+    // Sort chronologically (earliest first)
+    futureExams.sort((a, b) => {
+      const timeA = new Date(`${a.date}T${a.time || '08:30'}`).getTime();
+      const timeB = new Date(`${b.date}T${b.time || '08:30'}`).getTime();
+      return timeA - timeB;
+    });
+
+    // Take top 3 nearest upcoming exams
+    const topExams = futureExams.slice(0, 3);
+
+    if (topExams.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.8rem; font-family: var(--font-family-app) !important;">
+          No upcoming examinations scheduled.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = topExams.map(ex => {
+      const typeLabel = ex.examType || ex.type || 'THEORY';
+      const courseLabel = ex.courseId || ex.subjectCode || 'N/A';
+      const titleLabel = ex.title || ex.name || 'Untitled Exam';
+      const venueLabel = ex.venue || 'N/A';
+      const dateLabel = ex.date;
+      const timeLabel = ex.time || 'N/A';
+
+      return `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(255, 255, 255, 0.02); font-family: var(--font-family-app) !important;">
+          <div style="font-family: var(--font-family-app) !important; min-width: 0; flex: 1;">
+            <div style="font-size: 0.72rem; font-weight: 700; color: var(--accent); font-family: var(--font-family-app) !important; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              ${typeLabel} | ${courseLabel}
+            </div>
+            <div style="font-size: 0.9rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-family-app) !important; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              ${titleLabel}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-secondary); font-family: var(--font-family-app) !important; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              ${dateLabel} @ ${timeLabel} | Venue: ${venueLabel}
+            </div>
+          </div>
+          <div style="text-align: right; font-family: var(--font-family-app) !important; flex-shrink: 0; margin-left: 12px;">
+            <div class="dash-exam-countdown" id="dash-countdown-val-${ex.id}" style="font-family: 'JetBrains Mono', monospace, var(--font-family-app) !important; font-weight: 700; font-size: 0.95rem; color: var(--warning);">
+              --:--
+            </div>
+            <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-family: var(--font-family-app) !important;">Remaining</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Launch countdown timers
+    topExams.forEach(ex => {
+      this.startDashboardCountdownTimer(ex.id, `${ex.date}T${ex.time || '08:30'}`);
+    });
+  },
+
+  startDashboardCountdownTimer(id, targetDateStr) {
+    const el = document.getElementById(`dash-countdown-val-${id}`);
+    if (!el) return;
+
+    const targetTime = new Date(targetDateStr).getTime();
+
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      const diff = targetTime - now;
+
+      if (diff <= 0) {
+        el.innerText = 'STARTED / PASSED';
+        el.style.color = 'var(--text-muted)';
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+      el.innerText = `${days}d ${hours}h ${mins}m`;
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 10000); // 10s updates are fine
+    if (!this.dashboardCountdownIntervals) this.dashboardCountdownIntervals = [];
+    this.dashboardCountdownIntervals.push(interval);
   },
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -1404,6 +1567,30 @@ const App = {
       if (univEl) univEl.value = student.university || '';
       const facEl = document.getElementById('settings-faculty');
       if (facEl) facEl.value = student.faculty || '';
+
+      // Populate new extended studentInfo fields safely (100% backward compatible check)
+      const info = student.studentInfo || {};
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || '';
+      };
+      setVal('settings-student-id', info.studentId || student.studentId || '');
+      setVal('settings-reg-num', info.registrationNumber || '');
+      setVal('settings-degree', info.degreeProgramme || student.degree || '');
+      setVal('settings-dept', info.department || '');
+      setVal('settings-batch', info.batch || '');
+      setVal('settings-email', info.email || '');
+      setVal('settings-phone', info.phone || '');
+
+      const mentor = info.mentor || {};
+      setVal('settings-mentor-name', mentor.name || '');
+      setVal('settings-mentor-email', mentor.email || '');
+      setVal('settings-mentor-contact', mentor.contact || '');
+
+      const advisor = info.academicAdvisor || {};
+      setVal('settings-advisor-name', advisor.name || '');
+      setVal('settings-advisor-email', advisor.email || '');
+      setVal('settings-advisor-contact', advisor.contact || '');
     }
     if (targetGpaSetting) {
       document.getElementById('settings-target-gpa').value = targetGpaSetting.value;

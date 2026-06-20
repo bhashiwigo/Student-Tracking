@@ -32,7 +32,7 @@ const canonicalStringify = (obj) => {
 // Stores to sync (exclude 'students' — handled via users collection)
 const SYNC_STORES = [
   'subjects', 'exams', 'practicals', 'assignments',
-  'attendance', 'sports', 'studyplans', 'notes', 'settings'
+  'attendance', 'sports', 'studyplans', 'notes', 'settings', 'resources'
 ];
 
 // Primary key field for each store (used as Firestore document ID)
@@ -45,7 +45,8 @@ const STORE_KEYS = {
   studyplans:  'id',
   notes:       'id',
   attendance:  'subjectCode',
-  settings:    'key'
+  settings:    'key',
+  resources:   'id'
 };
 
 // Lazy-load Firestore SDK functions from window.__firestore context

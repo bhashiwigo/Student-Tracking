@@ -22,6 +22,13 @@ const DEFAULT_SYLLABUS_CHECKPOINTS = [
 ];
 
 // ── Database overrides for decoupling subjects and sub-modules ────────────────
+const GRADE_MAP = {
+  'A+': 4.00, 'A': 4.00, 'A-': 3.70,
+  'B+': 3.30, 'B': 3.00, 'B-': 2.70,
+  'C+': 2.30, 'C': 2.00, 'C-': 1.70,
+  'D+': 1.30, 'D': 1.00, 'E': 0.00
+};
+
 const originalGetAll = Database.getAll;
 const originalGet = Database.get;
 const originalPut = Database.put;
@@ -53,13 +60,18 @@ Database.getAll = function(storeName) {
               info: sub.lecturerContact,
               theoryWeight: sub.theoryWeight,
               practicalWeight: sub.practicalWeight,
+              type: sub.type || 'theory',
+              prerequisite: sub.prerequisite || '',
+              corequisite: sub.corequisite || '',
               grade: sub.grade || '',
+              gradePoint: sub.gradePoint !== undefined ? sub.gradePoint : (sub.grade && GRADE_MAP[sub.grade] !== undefined ? GRADE_MAP[sub.grade] : 0.00),
               internalMarks: sub.internalMarks || { ca: 0, quiz: 0, lab: 0 },
               syllabusCheckpoints: sub.syllabusCheckpoints || [],
               parentSubjectCode: parent.code,
               isSubmodule: true,
               userId: parent.userId || '',
-              targetGrade: sub.targetGrade || ''
+              targetGrade: sub.targetGrade || '',
+              studyMinutes: sub.studyMinutes || 0
             });
           });
         } else if (!parent.isParent) {
@@ -99,13 +111,18 @@ Database.get = function(storeName, key) {
                 info: sub.lecturerContact,
                 theoryWeight: sub.theoryWeight,
                 practicalWeight: sub.practicalWeight,
+                type: sub.type || 'theory',
+                prerequisite: sub.prerequisite || '',
+                corequisite: sub.corequisite || '',
                 grade: sub.grade || '',
+                gradePoint: sub.gradePoint !== undefined ? sub.gradePoint : (sub.grade && GRADE_MAP[sub.grade] !== undefined ? GRADE_MAP[sub.grade] : 0.00),
                 internalMarks: sub.internalMarks || { ca: 0, quiz: 0, lab: 0 },
                 syllabusCheckpoints: sub.syllabusCheckpoints || [],
                 parentSubjectCode: parent.code,
                 isSubmodule: true,
                 userId: parent.userId || '',
-                targetGrade: sub.targetGrade || ''
+                targetGrade: sub.targetGrade || '',
+                studyMinutes: sub.studyMinutes || 0
               };
             }
           }
@@ -137,10 +154,15 @@ Database.put = function(storeName, value) {
           lecturerContact: value.info || value.lecturerContact,
           theoryWeight: value.theoryWeight,
           practicalWeight: value.practicalWeight,
+          type: value.type || 'theory',
+          prerequisite: value.prerequisite || '',
+          corequisite: value.corequisite || '',
           grade: value.grade,
+          gradePoint: value.gradePoint !== undefined ? value.gradePoint : (value.grade && GRADE_MAP[value.grade] !== undefined ? GRADE_MAP[value.grade] : 0.00),
           internalMarks: value.internalMarks,
           syllabusCheckpoints: value.syllabusCheckpoints,
-          targetGrade: value.targetGrade
+          targetGrade: value.targetGrade,
+          studyMinutes: value.studyMinutes || 0
         };
         
         if (idx !== -1) {
@@ -174,10 +196,15 @@ Database.add = function(storeName, value) {
           lecturerContact: value.info || value.lecturerContact,
           theoryWeight: value.theoryWeight,
           practicalWeight: value.practicalWeight,
+          type: value.type || 'theory',
+          prerequisite: value.prerequisite || '',
+          corequisite: value.corequisite || '',
           grade: value.grade || '',
+          gradePoint: value.gradePoint !== undefined ? value.gradePoint : (value.grade && GRADE_MAP[value.grade] !== undefined ? GRADE_MAP[value.grade] : 0.00),
           internalMarks: value.internalMarks || { ca: 0, quiz: 0, lab: 0 },
           syllabusCheckpoints: value.syllabusCheckpoints || [],
-          targetGrade: value.targetGrade || ''
+          targetGrade: value.targetGrade || '',
+          studyMinutes: value.studyMinutes || 0
         };
         
         parent.submodules.push(subPayload);
@@ -256,6 +283,9 @@ export const AcademicModule = {
     }
 
     window.addEventListener('subjectsUpdated', async (e) => {
+      if (this._isTogglingCheckpoint) {
+        return; // Skip full render for syllabus checklist clicks
+      }
       const subModuleModal = document.getElementById('sub-module-modal');
       if (subModuleModal && subModuleModal.classList.contains('visible')) {
         const selectCode = e.detail?.code || null;
@@ -310,7 +340,7 @@ export const AcademicModule = {
     }
   },
 
-  updateSpecialEligibilityHUD(stats) {
+  async updateSpecialEligibilityHUD(stats) {
     const cgpaDisplay = document.getElementById('global-cgpa-display');
     const statusBadge = document.getElementById('special-status-badge');
     const progressFill = document.getElementById('hud-progress-fill');
@@ -344,6 +374,101 @@ export const AcademicModule = {
     }
     
     this.updateYear4DropdownOptions(cgpa3Year);
+
+    // Dynamic Special Selection Criteria Weight Calculation
+    try {
+      const allSubmodules = await Database.getAll('researchProject/modules');
+      const sports = await Database.getAll('sports');
+      
+      const gradeMap = (GPAModule && GPAModule.gradeMap) || {
+        'A+': 4.00, 'A': 4.00, 'A-': 3.70,
+        'B+': 3.30, 'B': 3.00, 'B-': 2.70,
+        'C+': 2.30, 'C': 2.00, 'C-': 1.70,
+        'D+': 1.30, 'D': 1.00, 'E': 0.00
+      };
+
+      // 1. GPA component for best 65 credits (70% max)
+      const sortedSubsCompleted = allSubmodules
+        .filter(sub => sub.grade)
+        .sort((a, b) => {
+          const gpA = gradeMap[a.grade] || 0;
+          const gpB = gradeMap[b.grade] || 0;
+          return gpB - gpA;
+        });
+
+      let totalCreditsForGPA = 0;
+      let totalGPForGPA = 0;
+      for (const sub of sortedSubsCompleted) {
+        const gp = gradeMap[sub.grade] || 0;
+        const creds = sub.credits || 0;
+        if (totalCreditsForGPA + creds <= 65) {
+          totalCreditsForGPA += creds;
+          totalGPForGPA += gp * creds;
+        } else {
+          const remaining = 65 - totalCreditsForGPA;
+          totalCreditsForGPA += remaining;
+          totalGPForGPA += gp * remaining;
+          break;
+        }
+      }
+      const best65GPA = totalCreditsForGPA > 0 ? (totalGPForGPA / totalCreditsForGPA) : 0.00;
+      const gpaScore = (best65GPA / 4.00) * 70;
+
+      // 2. Sports component (5% max)
+      const matches = sports.filter(s => s.activityType === 'Match');
+      const sportsScore = Math.min(5, matches.length * 1.0);
+
+      // 3. Group Project marks COM 3405 / ICT 3411 (5% max)
+      const projectSub = allSubmodules.find(s => 
+        s.id === 'COM 3405' || s.id === 'ICT 3411' || s.code === 'COM 3405' || s.code === 'ICT 3411' ||
+        (s.moduleTitle && (s.moduleTitle.includes('COM 3405') || s.moduleTitle.includes('ICT 3411')))
+      );
+      let projectScore = 0;
+      if (projectSub) {
+        if (projectSub.grade) {
+          const gp = gradeMap[projectSub.grade] || 0;
+          projectScore = (gp / 4.00) * 5;
+        } else if (projectSub.internalMarks) {
+          const ca = projectSub.internalMarks.ca || 0;
+          const quiz = projectSub.internalMarks.quiz || 0;
+          const lab = projectSub.internalMarks.lab || 0;
+          const avg = (ca + quiz + lab) / 3;
+          projectScore = (avg / 100) * 5;
+        }
+      }
+
+      // 4. Viva/Interview/Focus Factor panel component (20% max)
+      let focusQuality = 85;
+      const qualityValEl = document.getElementById('pomo-quality-val');
+      if (qualityValEl) {
+        const valText = qualityValEl.innerText.replace('%', '');
+        const valParsed = parseFloat(valText);
+        if (!isNaN(valParsed)) focusQuality = valParsed;
+      }
+      const panelScore = (focusQuality / 100) * 20;
+
+      const projectedInterviewScore = gpaScore + sportsScore + projectScore + panelScore;
+
+      // Update UI elements
+      const interviewText = document.getElementById('hud-interview-score-text');
+      const interviewFill = document.getElementById('hud-interview-score-fill');
+      
+      const partGPA = document.getElementById('hud-interview-gpa-part');
+      const partSports = document.getElementById('hud-interview-sports-part');
+      const partProject = document.getElementById('hud-interview-project-part');
+      const partPanel = document.getElementById('hud-interview-panel-part');
+
+      if (interviewText) interviewText.innerText = `${projectedInterviewScore.toFixed(1)}%`;
+      if (interviewFill) interviewFill.style.width = `${projectedInterviewScore}%`;
+
+      if (partGPA) partGPA.innerText = `GPA (65 Cr, 70% max): ${gpaScore.toFixed(1)}%`;
+      if (partSports) partSports.innerText = `Sports Matches (5% max): ${sportsScore.toFixed(1)}%`;
+      if (partProject) partProject.innerText = `Group Project (5% max): ${projectScore.toFixed(1)}%`;
+      if (partPanel) partPanel.innerText = `Viva (20% max): ${panelScore.toFixed(1)}%`;
+
+    } catch (err) {
+      console.error('Error calculating interview score:', err);
+    }
   },
 
   updateYear4DropdownOptions(cgpa3Year) {
@@ -363,8 +488,21 @@ export const AcademicModule = {
   },
 
   async render() {
+    await this.refreshView();
+  },
+
+  async refreshView() {
     const container = document.getElementById('subjects-list-container');
     if (!container) return;
+
+    // Track currently expanded submodule wrappers
+    const expandedCodes = [];
+    container.querySelectorAll('.submodules-wrapper').forEach(wrapper => {
+      if (wrapper.style.display === 'block') {
+        const code = wrapper.id.replace('submodules-wrapper-', '');
+        if (code) expandedCodes.push(code);
+      }
+    });
 
     try {
       const gpaStats = await this._getGPADetails();
@@ -373,13 +511,7 @@ export const AcademicModule = {
       const allSubjects = await originalGetAll.call(Database, 'subjects');
       const parents = allSubjects.filter(s => s.isParent);
 
-      const filteredParents = parents.filter(p => {
-        const hasSemModules = Array.isArray(p.submodules) && p.submodules.some(s => s.semester === this.activeSemester);
-        const hasNoModules = !Array.isArray(p.submodules) || p.submodules.length === 0;
-        return hasSemModules || hasNoModules;
-      });
-
-      if (filteredParents.length === 0) {
+      if (parents.length === 0) {
         container.innerHTML = `
           <div class="col-12" style="text-align: center; padding: 40px; color: var(--text-muted); font-family: var(--font-family-app) !important;">
             No custom subject units logged. Click '+ Add Subject' to configure your academic roadmap.
@@ -395,12 +527,15 @@ export const AcademicModule = {
         'D+': 1.30, 'D': 1.00, 'E': 0.00
       };
 
-      container.innerHTML = filteredParents.map(parent => {
-        const semesterSubmodules = (parent.submodules || []).filter(s => s.semester === this.activeSemester);
+      const allSubmodules = await Database.getAll('researchProject/modules');
+
+      container.innerHTML = parents.map(parent => {
+        const semesterSubmodules = allSubmodules.filter(s => s.parentSubjectCode === parent.code && s.semester === this.activeSemester);
         
         let totalCoreCredits = 0;
         let weightedCoreGP = 0;
-        (parent.submodules || []).forEach(sub => {
+        const parentAllSubmodules = allSubmodules.filter(s => s.parentSubjectCode === parent.code);
+        parentAllSubmodules.forEach(sub => {
           if (sub.grade) {
             const gp = gradeMap[sub.grade] !== undefined ? gradeMap[sub.grade] : 0.00;
             totalCoreCredits += sub.credits || 0;
@@ -412,8 +547,8 @@ export const AcademicModule = {
         let submodulesHTML = '';
         if (semesterSubmodules.length === 0) {
           submodulesHTML = `
-            <div style="font-size: 0.8rem; color: var(--text-muted); font-style: italic; padding: 12px; text-align: center; font-family: var(--font-family-app) !important;">
-              No sub-modules configured for this semester. Click "+ Add Modules" above to configure.
+            <div class="no-modules-fallback" style="font-size: 0.85rem; color: var(--text-secondary); font-style: italic; padding: 16px; text-align: center; font-family: var(--font-family-app) !important;">
+              No modules configured under this curriculum track for the selected active semester.
             </div>
           `;
         } else {
@@ -424,6 +559,10 @@ export const AcademicModule = {
             
             const syllPct = this._calcSyllabusCompletion(checkpoints);
             const doneCount = checkpoints.filter(c => c.done).length;
+
+            const currentSelfStudyHours = (sub.studyMinutes || 0) / 60;
+            const thresholdHours = sub.credits * 30;
+            const slqfPct = Math.min(100, (currentSelfStudyHours / thresholdHours) * 100);
 
             return `
               <div class="sub-module-isolated-card" style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-top: 12px; box-shadow: var(--shadow-sm); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); display: flex; flex-direction: column; gap: 12px; font-family: var(--font-family-app) !important;">
@@ -452,12 +591,12 @@ export const AcademicModule = {
                     </span>
                   </div>
                   <div style="height: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 3px; overflow: hidden; margin-bottom: 12px;">
-                    <div class="syllabus-progress-bar" data-sub-id="${sub.id}" style="width: ${syllPct}%; height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s ease;"></div>
+                    <div class="syllabus-progress-bar" id="tracker-bar-${sub.id}" data-sub-id="${sub.id}" style="width: ${syllPct}%; height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s ease;"></div>
                   </div>
                   <div class="syllabus-checkpoints-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-family: var(--font-family-app) !important;">
                     ${checkpoints.map((cp, idx) => `
                       <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.75rem; color: ${cp.done ? 'var(--text-secondary)' : 'var(--text-primary)'}; font-family: var(--font-family-app) !important;">
-                        <input type="checkbox" class="syll-check" data-sub-id="${sub.id}" data-idx="${idx}" ${cp.done ? 'checked' : ''} style="width: 14px; height: 14px; cursor: pointer; accent-color: var(--accent);">
+                        <input type="checkbox" class="syll-check syllabus-sync-checkbox" data-sub-id="${sub.id}" data-idx="${idx}" ${cp.done ? 'checked' : ''} style="width: 14px; height: 14px; cursor: pointer; accent-color: var(--accent);">
                         <span style="font-family: var(--font-family-app) !important; text-decoration: ${cp.done ? 'line-through' : 'none'};">${cp.label}</span>
                       </label>
                     `).join('')}
@@ -489,6 +628,18 @@ export const AcademicModule = {
                       <div class="marks-progress-bar-fill" style="width: ${sub.internalMarks?.lab || 0}%; height: 100%; background: var(--accent); border-radius: 3px;"></div>
                     </div>
                     <span class="marks-progress-value" style="width: 45px; text-align: right; color: var(--text-primary); font-family: var(--font-family-app) !important;">${sub.internalMarks?.lab || 0}/100</span>
+                  </div>
+                </div>
+
+                <div class="slqf-learning-hours" style="margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; font-family: var(--font-family-app) !important;">
+                  <div class="module-section-title" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">SLQF Self-Study workload</div>
+                  
+                  <div class="marks-progress-row" style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">
+                    <span class="marks-progress-label" style="width: 70px; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Self-Study</span>
+                    <div class="marks-progress-bar-bg" style="flex: 1; height: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 3px; overflow: hidden;">
+                      <div class="marks-progress-bar-fill" style="width: ${slqfPct}%; height: 100%; background: var(--accent); border-radius: 3px;"></div>
+                    </div>
+                    <span class="marks-progress-value" style="width: 75px; text-align: right; color: var(--text-primary); font-family: var(--font-family-app) !important;">${currentSelfStudyHours.toFixed(1)} / ${thresholdHours} hrs</span>
                   </div>
                 </div>
 
@@ -537,11 +688,23 @@ export const AcademicModule = {
       }).join('');
 
       // Bind syllabus checkpoint toggles
-      container.querySelectorAll('.syll-check').forEach(chk => {
+      container.querySelectorAll('.syll-check, .syllabus-sync-checkbox').forEach(chk => {
         chk.addEventListener('change', async () => {
           const subId = chk.getAttribute('data-sub-id');
           const idx = parseInt(chk.getAttribute('data-idx'));
-          await this._toggleCheckpoint(subId, idx, chk.checked);
+          const isChecked = chk.checked;
+          
+          // Apply typography style state directly to the checkbox label span and parent wrapper
+          const labelSpan = chk.nextElementSibling;
+          if (labelSpan) {
+            labelSpan.style.textDecoration = isChecked ? 'line-through' : 'none';
+          }
+          const parentLabel = chk.parentElement;
+          if (parentLabel) {
+            parentLabel.style.color = isChecked ? 'var(--text-secondary)' : 'var(--text-primary)';
+          }
+
+          await this._toggleCheckpoint(subId, idx, isChecked);
         });
       });
 
@@ -599,49 +762,111 @@ export const AcademicModule = {
         });
       });
 
+      // Restore expanded wrappers
+      expandedCodes.forEach(code => {
+        const wrapper = document.getElementById(`submodules-wrapper-${code}`);
+        if (wrapper) {
+          wrapper.style.display = 'block';
+        }
+        const btn = container.querySelector(`.toggle-submodules-btn[data-code="${code}"]`);
+        if (btn) {
+          const arrow = btn.querySelector('.arrow-indicator');
+          if (arrow) arrow.textContent = '▲';
+        }
+      });
+
     } catch (err) {
       console.error('Render subjects failed:', err);
     }
   },
 
   async _toggleCheckpoint(subId, idx, checked) {
+    this._isTogglingCheckpoint = true;
     try {
-      const sub = await Database.get('subjects', subId);
-      if (!sub) return;
+      const allSubjects = await originalGetAll.call(Database, 'subjects');
+      let targetParent = null;
+      let submodule = null;
+      let subIdx = -1;
 
-      if (!Array.isArray(sub.syllabusCheckpoints) || sub.syllabusCheckpoints.length === 0) {
-        sub.syllabusCheckpoints = DEFAULT_SYLLABUS_CHECKPOINTS.map(label => ({ label, done: false }));
+      for (const parent of allSubjects) {
+        if (parent.isParent && Array.isArray(parent.submodules)) {
+          const index = parent.submodules.findIndex(s => s.id === subId);
+          if (index !== -1) {
+            targetParent = parent;
+            submodule = parent.submodules[index];
+            subIdx = index;
+            break;
+          }
+        }
       }
 
-      if (sub.syllabusCheckpoints[idx]) {
-        sub.syllabusCheckpoints[idx].done = checked;
+      if (!targetParent || !submodule) {
+        // Fallback for flat subjects
+        const flatSub = allSubjects.find(s => s.code === subId || s.id === subId);
+        if (flatSub) {
+          if (!Array.isArray(flatSub.syllabusCheckpoints) || flatSub.syllabusCheckpoints.length === 0) {
+            flatSub.syllabusCheckpoints = DEFAULT_SYLLABUS_CHECKPOINTS.map(label => ({ label, done: false }));
+          }
+          if (flatSub.syllabusCheckpoints[idx]) {
+            flatSub.syllabusCheckpoints[idx].done = checked;
+          }
+          await originalPut.call(Database, 'subjects', flatSub);
+          
+          const progressLabel = document.querySelector(`.syllabus-progress-header[data-sub-id="${subId}"]`);
+          const progressBar = document.getElementById(`tracker-bar-${subId}`);
+          const doneCount = flatSub.syllabusCheckpoints.filter(c => c.done).length;
+          const pct = Math.round((doneCount / flatSub.syllabusCheckpoints.length) * 100);
+
+          if (progressLabel) {
+            progressLabel.innerText = `Syllabus Progress: ${doneCount}/${flatSub.syllabusCheckpoints.length} topics (${pct}%)`;
+          }
+          if (progressBar) {
+            progressBar.style.width = `${pct}%`;
+          }
+          const allDone = flatSub.syllabusCheckpoints.every(c => c.done);
+          if (allDone) {
+            NotificationService.show('Syllabus Complete!', `All topics covered for "${flatSub.moduleTitle || flatSub.name}". Excellent work!`, 'success');
+          }
+        }
+        return;
       }
 
-      await Database.put('subjects', sub);
+      if (!Array.isArray(submodule.syllabusCheckpoints) || submodule.syllabusCheckpoints.length === 0) {
+        submodule.syllabusCheckpoints = DEFAULT_SYLLABUS_CHECKPOINTS.map(label => ({ label, done: false }));
+      }
 
-      // Instantly update progress bar and label text in the DOM to prevent visual lag
+      if (submodule.syllabusCheckpoints[idx]) {
+        submodule.syllabusCheckpoints[idx].done = checked;
+      }
+
+      targetParent.submodules[subIdx] = submodule;
+
+      // Isolated data commit pass using originalPut to avoid subjectsUpdated event trigger
+      await originalPut.call(Database, 'subjects', targetParent);
+
+      // Programmatically update the progress bar and label text in the DOM instantly
       const progressLabel = document.querySelector(`.syllabus-progress-header[data-sub-id="${subId}"]`);
-      const progressBar = document.querySelector(`.syllabus-progress-bar[data-sub-id="${subId}"]`);
+      const progressBar = document.getElementById(`tracker-bar-${subId}`);
       
-      const doneCount = sub.syllabusCheckpoints.filter(c => c.done).length;
-      const pct = Math.round((doneCount / sub.syllabusCheckpoints.length) * 100);
+      const doneCount = submodule.syllabusCheckpoints.filter(c => c.done).length;
+      const pct = Math.round((doneCount / submodule.syllabusCheckpoints.length) * 100);
 
       if (progressLabel) {
-        progressLabel.innerText = `Syllabus Progress: ${doneCount}/${sub.syllabusCheckpoints.length} topics (${pct}%)`;
+        progressLabel.innerText = `Syllabus Progress: ${doneCount}/${submodule.syllabusCheckpoints.length} topics (${pct}%)`;
       }
       if (progressBar) {
         progressBar.style.width = `${pct}%`;
       }
 
       // If all done, show notification
-      const allDone = sub.syllabusCheckpoints.every(c => c.done);
+      const allDone = submodule.syllabusCheckpoints.every(c => c.done);
       if (allDone) {
-        NotificationService.show('Syllabus Complete!', `All topics covered for "${sub.moduleTitle}". Excellent work!`, 'success');
+        NotificationService.show('Syllabus Complete!', `All topics covered for "${submodule.moduleTitle}". Excellent work!`, 'success');
       }
-
-      window.dispatchEvent(new CustomEvent('subjectsUpdated'));
     } catch (err) {
       console.error('Toggle syllabus checkpoint failed:', err);
+    } finally {
+      this._isTogglingCheckpoint = false;
     }
   },
 
@@ -663,12 +888,27 @@ export const AcademicModule = {
           codeInput.value = sub.code || '';
           document.getElementById('sub-name').value = sub.name || '';
           document.getElementById('sub-description').value = sub.description || '';
+          document.getElementById('sub-department').value = sub.department || '';
+          document.getElementById('sub-year').value = sub.year || '1';
+          document.getElementById('sub-semester').value = sub.semester || '1';
+          document.getElementById('sub-credits').value = sub.credits !== undefined ? sub.credits : '';
+          document.getElementById('sub-type').value = sub.courseType || 'CORE';
+          document.getElementById('sub-prerequisites').value = Array.isArray(sub.prerequisites) ? sub.prerequisites.join(', ') : '';
+          document.getElementById('sub-corequisites').value = Array.isArray(sub.corequisites) ? sub.corequisites.join(', ') : '';
         }
       } catch (err) {
         console.error('Load subject details failed:', err);
       }
     } else {
       codeInput.removeAttribute('readonly');
+      // Set explicit defaults for add mode
+      document.getElementById('sub-department').value = '';
+      document.getElementById('sub-year').value = '1';
+      document.getElementById('sub-semester').value = '1';
+      document.getElementById('sub-credits').value = '';
+      document.getElementById('sub-type').value = 'CORE';
+      document.getElementById('sub-prerequisites').value = '';
+      document.getElementById('sub-corequisites').value = '';
     }
 
     modal.classList.add('visible');
@@ -691,6 +931,30 @@ export const AcademicModule = {
       return;
     }
 
+    const codeRegex = /^[A-Z]{3}\s\d{4}$/;
+    if (!codeRegex.test(code)) {
+      alert('Course Code must be in the format "ABC 1234" (e.g. CHE 1201).');
+      return;
+    }
+
+    const department = document.getElementById('sub-department').value.trim();
+    const year = document.getElementById('sub-year').value;
+    const semester = document.getElementById('sub-semester').value;
+    const creditsVal = document.getElementById('sub-credits').value.trim();
+    const credits = creditsVal ? parseInt(creditsVal, 10) : 0;
+    const courseType = document.getElementById('sub-type').value;
+
+    const validCourseTypes = ['CORE', 'FDN', 'IDC', 'OPTIONAL'];
+    if (!validCourseTypes.includes(courseType)) {
+      alert('Invalid Course Type selected.');
+      return;
+    }
+
+    const prerequisitesRaw = document.getElementById('sub-prerequisites').value || '';
+    const corequisitesRaw = document.getElementById('sub-corequisites').value || '';
+    const prerequisites = prerequisitesRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    const corequisites = corequisitesRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+
     const subjectData = {
       code,
       name,
@@ -698,6 +962,15 @@ export const AcademicModule = {
       subjectCode: code,
       subjectTitle: name,
       subjectDescription: description,
+      courseCode: code,
+      courseTitle: name,
+      department,
+      year,
+      semester,
+      credits,
+      courseType,
+      prerequisites,
+      corequisites,
       isParent: true,
       userId: ''
     };
@@ -721,6 +994,15 @@ export const AcademicModule = {
           subjectCode: code,
           subjectTitle: name,
           subjectDescription: description,
+          courseCode: code,
+          courseTitle: name,
+          department,
+          year,
+          semester,
+          credits,
+          courseType,
+          prerequisites,
+          corequisites,
           isParent: true,
           submodules: existing.submodules || []
         };
@@ -751,6 +1033,7 @@ export const AcademicModule = {
     document.getElementById('sub-module-id').value = id || '';
 
     await this.refreshParentSubjectSelect();
+    await this.populatePrereqAndCoreqDropdowns(id);
 
     if (id) {
       try {
@@ -765,6 +1048,8 @@ export const AcademicModule = {
           document.getElementById('sub-module-type').value = sub.type || 'theory';
           document.getElementById('module-theory-weight').value = sub.theoryWeight !== undefined ? sub.theoryWeight : '70';
           document.getElementById('module-practical-weight').value = sub.practicalWeight !== undefined ? sub.practicalWeight : '30';
+          document.getElementById('module-prerequisite').value = sub.prerequisite || '';
+          document.getElementById('module-corequisite').value = sub.corequisite || '';
 
           const ca = sub.internalMarks?.ca !== undefined ? sub.internalMarks.ca : 0;
           const quiz = sub.internalMarks?.quiz !== undefined ? sub.internalMarks.quiz : 0;
@@ -781,12 +1066,34 @@ export const AcademicModule = {
       document.getElementById('module-semester-select').value = this.activeSemester;
       document.getElementById('module-theory-weight').value = '70';
       document.getElementById('module-practical-weight').value = '30';
+      document.getElementById('module-prerequisite').value = '';
+      document.getElementById('module-corequisite').value = '';
       document.getElementById('module-ca-marks').value = '0';
       document.getElementById('module-quiz-marks').value = '0';
       document.getElementById('module-lab-marks').value = '0';
     }
 
     modal.classList.add('visible');
+  },
+
+  async populatePrereqAndCoreqDropdowns(currentId = null) {
+    const prereqSelect = document.getElementById('module-prerequisite');
+    const coreqSelect = document.getElementById('module-corequisite');
+    if (!prereqSelect || !coreqSelect) return;
+
+    try {
+      const allSubmodules = await Database.getAll('researchProject/modules');
+      let optionsHtml = '<option value="">None</option>';
+      allSubmodules.forEach(sub => {
+        if (sub.id !== currentId) {
+          optionsHtml += `<option value="${sub.id}">${sub.moduleTitle} (${sub.semester})</option>`;
+        }
+      });
+      prereqSelect.innerHTML = optionsHtml;
+      coreqSelect.innerHTML = optionsHtml;
+    } catch (err) {
+      console.error('Failed to populate dropdowns:', err);
+    }
   },
 
   closeSubModuleModal() {
@@ -831,6 +1138,8 @@ export const AcademicModule = {
     const type = document.getElementById('sub-module-type').value;
     const theoryWeight = parseFloat(document.getElementById('module-theory-weight').value) || 0;
     const practicalWeight = parseFloat(document.getElementById('module-practical-weight').value) || 0;
+    const prerequisite = document.getElementById('module-prerequisite').value;
+    const corequisite = document.getElementById('module-corequisite').value;
 
     const ca = parseFloat(document.getElementById('module-ca-marks').value) || 0;
     const quiz = parseFloat(document.getElementById('module-quiz-marks').value) || 0;
@@ -847,6 +1156,25 @@ export const AcademicModule = {
     }
 
     try {
+      // 8.7 Hand Book validation check: Prerequisite
+      if (prerequisite) {
+        const prereqModule = await Database.get('subjects', prerequisite);
+        const validGrades = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D'];
+        if (!prereqModule || !prereqModule.grade || !validGrades.includes(prereqModule.grade)) {
+          NotificationService.show('Enrolment Failure', 'Required Pre-requisite Module Core Grade Point is below D limit', 'error');
+          return;
+        }
+      }
+
+      // 8.7 Hand Book validation check: Co-requisite
+      if (corequisite) {
+        const coreqModule = await Database.get('subjects', corequisite);
+        if (!coreqModule || coreqModule.semester !== semester) {
+          NotificationService.show('Enrolment Failure', 'Theory and Laboratory co-requisites must be logged concurrently for this semester.', 'error');
+          return;
+        }
+      }
+
       let existingSub = {};
       if (mode === 'edit') {
         existingSub = await Database.get('subjects', id) || {};
@@ -868,7 +1196,10 @@ export const AcademicModule = {
         type,
         theoryWeight,
         practicalWeight,
+        prerequisite,
+        corequisite,
         grade: existingSub.grade || '',
+        gradePoint: existingSub.gradePoint !== undefined ? existingSub.gradePoint : (existingSub.grade && GRADE_MAP[existingSub.grade] !== undefined ? GRADE_MAP[existingSub.grade] : 0.00),
         internalMarks: { ca, quiz, lab },
         syllabusCheckpoints: existingSub.syllabusCheckpoints || DEFAULT_SYLLABUS_CHECKPOINTS.map(label => ({ label, done: false }))
       };

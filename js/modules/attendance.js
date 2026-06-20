@@ -1,7 +1,7 @@
 /**
  * Rajarata Campus Life Manager - Attendance Tracker Modules
  * Logs attendance records and calculates eligibility percentages per subject
- * UPGRADED: Critical Risk Index engine — "X consecutive lectures needed" warning strings
+ * UPGRADED: Multi-track nested attendance structure format (lecture, practical, fieldWork)
  * AUDIT: Verified that no timestamp/date objects are formatted for UI insertion (purely numeric tracking).
  */
 
@@ -27,10 +27,10 @@ function calcCriticalRiskIndex(attended, total, remaining) {
 
   // Must attend every one of the remaining sessions AND still might not be enough
   if (shortfall > remaining) {
-    return `⛔ INELIGIBLE RISK: Even attending all ${remaining} remaining lecture(s) is insufficient to reach 80%.`;
+    return `⛔ INELIGIBLE RISK: Even attending all ${remaining} remaining session(s) is insufficient to reach 80%.`;
   }
 
-  return `⚠ ${shortfall} mandatory consecutive lecture(s) needed to secure 80% exam eligibility threshold.`;
+  return `⚠ ${shortfall} mandatory consecutive session(s) needed to secure 80% exam eligibility threshold.`;
 }
 
 export const AttendanceModule = {
@@ -43,7 +43,7 @@ export const AttendanceModule = {
   },
 
   bindEvents() {
-    // Buttons increments are handled dynamically inside render handlers
+    // Inputs are handled dynamically via event delegation or render binding
   },
 
   async render() {
@@ -56,7 +56,7 @@ export const AttendanceModule = {
 
       if (subjects.length === 0) {
         container.innerHTML = `
-          <div class="col-12" style="text-align: center; padding: 40px; color: var(--text-muted);">
+          <div class="col-12" style="text-align: center; padding: 40px; color: var(--text-muted); font-family: var(--font-family-app) !important;">
             No course units added to track attendance. Add them in Academic view.
           </div>
         `;
@@ -70,128 +70,145 @@ export const AttendanceModule = {
         if (!record) {
           record = {
             subjectCode: sub.code,
-            lecturesAttended: 0,
+            courseId: sub.code,
+            lecture: { total: 30, present: 0 },
+            practical: { total: 10, present: 0 },
+            fieldWork: { total: 0, present: 0 },
             lecturesTotal: 30,
+            lecturesAttended: 0,
+            practicalsTotal: 10,
             practicalsAttended: 0,
-            practicalsTotal: 10
+            approvedMedicalSessions: 0
           };
           await Database.add('attendance', record);
+        } else {
+          // If record exists but is missing new properties
+          let changed = false;
+          if (!record.courseId) { record.courseId = record.subjectCode || ''; changed = true; }
+          if (!record.lecture) { record.lecture = { total: record.lecturesTotal !== undefined ? record.lecturesTotal : 30, present: record.lecturesAttended !== undefined ? record.lecturesAttended : 0 }; changed = true; }
+          if (!record.practical) { record.practical = { total: record.practicalsTotal !== undefined ? record.practicalsTotal : 10, present: record.practicalsAttended !== undefined ? record.practicalsAttended : 0 }; changed = true; }
+          if (!record.fieldWork) { record.fieldWork = { total: 0, present: 0 }; changed = true; }
+          if (changed) {
+            await Database.put('attendance', record);
+          }
         }
 
-        const lectPct = record.lecturesTotal > 0 ? (record.lecturesAttended / record.lecturesTotal) * 100 : 0;
-        const pracPct = record.practicalsTotal > 0 ? (record.practicalsAttended / record.practicalsTotal) * 100 : 0;
+        const lectPct = record.lecture.total > 0 ? (record.lecture.present / record.lecture.total) * 100 : 0;
+        const pracPct = record.practical.total > 0 ? (record.practical.present / record.practical.total) * 100 : 0;
+        const fieldPct = record.fieldWork.total > 0 ? (record.fieldWork.present / record.fieldWork.total) * 100 : 0;
 
-        const overallAttended = record.lecturesAttended + record.practicalsAttended;
-        const overallTotal    = record.lecturesTotal + record.practicalsTotal;
-        const overallPct      = overallTotal > 0 ? (overallAttended / overallTotal) * 100 : 0;
+        const overallPresent = (record.lecture.present || 0) + (record.practical.present || 0) + (record.fieldWork.present || 0);
+        const overallTotal = (record.lecture.total || 0) + (record.practical.total || 0) + (record.fieldWork.total || 0);
+        const overallPct = overallTotal > 0 ? (overallPresent / overallTotal) * 100 : 0;
 
-        // ── Critical Risk Index ──────────────────────────────────────────────
-        // Estimate remaining lectures (from record if provided, else default)
-        const remainingLectures    = record.lecturesRemaining    ?? Math.max(0, 30 - record.lecturesTotal);
-        const remainingPracticals  = record.practicalsRemaining  ?? Math.max(0, 10 - record.practicalsTotal);
-        const totalRemaining       = remainingLectures + remainingPracticals;
-
-        const riskWarning = calcCriticalRiskIndex(overallAttended, overallTotal, totalRemaining);
-
+        // Display status warning alerts and state labels
         const warningBadge = overallPct >= 80
-          ? `<span class="badge low" style="margin-left: 8px; background:rgba(16,185,129,0.15); color:var(--success);">✓ Eligible (${overallPct.toFixed(0)}%)</span>`
-          : overallPct >= 70
-            ? `<span class="badge medium" style="margin-left: 8px;">⚠ Borderline (${overallPct.toFixed(0)}%)</span>`
-            : `<span class="badge high" style="margin-left: 8px;">⛔ At Risk (${overallPct.toFixed(0)}%)</span>`;
+          ? `<span class="badge" style="margin-left: 8px; background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); font-family: var(--font-family-app) !important; font-weight: 600; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem;">Good (${overallPct.toFixed(0)}%)</span>`
+          : overallPct >= 60
+            ? `<span class="badge" style="margin-left: 8px; background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); box-shadow: 0 0 8px rgba(245,158,11,0.2); font-family: var(--font-family-app) !important; font-weight: 600; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem;">Warning (${overallPct.toFixed(0)}%)</span>`
+            : `<span class="badge" style="margin-left: 8px; background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); font-family: var(--font-family-app) !important; font-weight: 600; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem;">Critical (${overallPct.toFixed(0)}%)</span>`;
 
-        // Visual attendance bar segments
-        const lectBarWidth = Math.min(lectPct, 100);
-        const pracBarWidth = Math.min(pracPct, 100);
-        const lectColor    = lectPct >= 80 ? 'var(--success)' : lectPct >= 70 ? 'var(--warning)' : 'var(--danger)';
-        const pracColor    = pracPct >= 80 ? 'var(--success)' : pracPct >= 70 ? 'var(--warning)' : 'var(--danger)';
-
-        // Remaining total bar
-        const totalRemPct = overallTotal > 0
-          ? Math.min((overallTotal / (overallTotal + totalRemaining)) * 100, 100)
-          : 0;
+        // Visual colors
+        const lectColor = lectPct >= 80 ? 'var(--success)' : lectPct >= 60 ? 'var(--warning)' : 'var(--danger)';
+        const pracColor = pracPct >= 80 ? 'var(--success)' : pracPct >= 60 ? 'var(--warning)' : 'var(--danger)';
+        const fieldColor = fieldPct >= 80 ? 'var(--success)' : fieldPct >= 60 ? 'var(--warning)' : 'var(--danger)';
 
         return `
-          <div class="card col-12" style="flex-direction: column; gap: 14px; padding: 16px;">
+          <div class="card col-12" style="flex-direction: column; gap: 14px; padding: 16px; font-family: var(--font-family-app) !important;">
             <!-- Subject Header -->
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-              <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
-                <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary);">${sub.code}</h3>
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-family: var(--font-family-app) !important;">
+              <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-family: var(--font-family-app) !important;">
+                <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">${sub.code}</h3>
                 ${warningBadge}
               </div>
-              <h4 style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">${sub.name}</h4>
+              <h4 style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; font-family: var(--font-family-app) !important;">${sub.name}</h4>
             </div>
 
-            <!-- Critical Risk Index Banner -->
-            ${riskWarning ? `
-              <div style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: var(--danger); font-weight: 600; line-height: 1.5;">
-                ${riskWarning}
+            <!-- Warning/Status Alert Banner -->
+            ${overallPct >= 80 ? `
+              <div style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: #10b981; font-weight: 600; font-family: var(--font-family-app) !important;">
+                ✅ Attendance is within the safe eligibility zone (Good).
+              </div>
+            ` : overallPct >= 60 ? `
+              <div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: #f59e0b; font-weight: 600; box-shadow: 0 0 8px rgba(245,158,11,0.1); font-family: var(--font-family-app) !important;">
+                ⚠️ Attendance is borderline (Warning). Try to attend upcoming sessions to avoid falling below 80%.
               </div>
             ` : `
-              <div style="background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.18); border-radius: 8px; padding: 8px 12px; font-size: 0.76rem; color: var(--success); font-weight: 600;">
-                ✅ Attendance is within the safe eligibility zone. Keep it up!
+              <div style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: #ef4444; font-weight: 600; font-family: var(--font-family-app) !important;">
+                ⛔ ATTENDANCE CRITICAL: Exam admission eligibility is currently barred (Below 60%).
               </div>
             `}
 
             <!-- Progress Bars Row -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; font-family: var(--font-family-app) !important;">
               <!-- Lectures -->
               <div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                  <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing:0.04em;">Lectures</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-family: var(--font-family-app) !important;">
+                  <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing:0.04em; font-family: var(--font-family-app) !important;">Lectures</span>
                   <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 700; color: ${lectColor};">${lectPct.toFixed(0)}%</span>
                 </div>
-                <div style="height: 6px; background: var(--border-color); border-radius: 4px; overflow: hidden; margin-bottom: 6px;">
-                  <div style="width: ${lectBarWidth}%; height: 100%; background: ${lectColor}; border-radius: 4px; transition: width 0.4s ease;"></div>
+                <div style="height: 6px; background: var(--border-color); border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+                  <div style="width: ${Math.min(lectPct, 100)}%; height: 100%; background: ${lectColor}; border-radius: 4px; transition: width 0.4s ease;"></div>
                 </div>
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                  <button class="btn-icon adjust-att-btn" data-code="${sub.code}" data-type="lectures" data-action="dec"
-                    style="width: 26px; height: 26px; font-size: 0.85rem; border-radius: 50%;">−</button>
-                  <span style="font-size: 0.78rem; color: var(--text-muted);">${record.lecturesAttended} / ${record.lecturesTotal}</span>
-                  <button class="btn-icon adjust-att-btn" data-code="${sub.code}" data-type="lectures" data-action="inc"
-                    style="width: 26px; height: 26px; font-size: 0.85rem; border-radius: 50%;">+</button>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--font-family-app) !important;">
+                  <input type="number" class="att-input present-input" data-code="${sub.code}" data-track="lecture" data-field="present" value="${record.lecture.present}" min="0" style="width: 52px; height: 26px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); text-align: center; font-size: 0.8rem; font-family: var(--font-family-app) !important; outline: none; border-color: rgba(255, 255, 255, 0.15);" />
+                  <span style="color: var(--text-muted); font-size: 0.8rem;">/</span>
+                  <input type="number" class="att-input total-input" data-code="${sub.code}" data-track="lecture" data-field="total" value="${record.lecture.total}" min="0" style="width: 52px; height: 26px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); text-align: center; font-size: 0.8rem; font-family: var(--font-family-app) !important; outline: none; border-color: rgba(255, 255, 255, 0.15);" />
                 </div>
               </div>
 
               <!-- Practicals -->
               <div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                  <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing:0.04em;">Practicals</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-family: var(--font-family-app) !important;">
+                  <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing:0.04em; font-family: var(--font-family-app) !important;">Practicals</span>
                   <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 700; color: ${pracColor};">${pracPct.toFixed(0)}%</span>
                 </div>
-                <div style="height: 6px; background: var(--border-color); border-radius: 4px; overflow: hidden; margin-bottom: 6px;">
-                  <div style="width: ${pracBarWidth}%; height: 100%; background: ${pracColor}; border-radius: 4px; transition: width 0.4s ease;"></div>
+                <div style="height: 6px; background: var(--border-color); border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+                  <div style="width: ${Math.min(pracPct, 100)}%; height: 100%; background: ${pracColor}; border-radius: 4px; transition: width 0.4s ease;"></div>
                 </div>
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                  <button class="btn-icon adjust-att-btn" data-code="${sub.code}" data-type="practicals" data-action="dec"
-                    style="width: 26px; height: 26px; font-size: 0.85rem; border-radius: 50%;">−</button>
-                  <span style="font-size: 0.78rem; color: var(--text-muted);">${record.practicalsAttended} / ${record.practicalsTotal}</span>
-                  <button class="btn-icon adjust-att-btn" data-code="${sub.code}" data-type="practicals" data-action="inc"
-                    style="width: 26px; height: 26px; font-size: 0.85rem; border-radius: 50%;">+</button>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--font-family-app) !important;">
+                  <input type="number" class="att-input present-input" data-code="${sub.code}" data-track="practical" data-field="present" value="${record.practical.present}" min="0" style="width: 52px; height: 26px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); text-align: center; font-size: 0.8rem; font-family: var(--font-family-app) !important; outline: none; border-color: rgba(255, 255, 255, 0.15);" />
+                  <span style="color: var(--text-muted); font-size: 0.8rem;">/</span>
+                  <input type="number" class="att-input total-input" data-code="${sub.code}" data-track="practical" data-field="total" value="${record.practical.total}" min="0" style="width: 52px; height: 26px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); text-align: center; font-size: 0.8rem; font-family: var(--font-family-app) !important; outline: none; border-color: rgba(255, 255, 255, 0.15);" />
+                </div>
+              </div>
+
+              <!-- Field Work -->
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-family: var(--font-family-app) !important;">
+                  <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing:0.04em; font-family: var(--font-family-app) !important;">Field Work</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 700; color: ${fieldColor};">${fieldPct.toFixed(0)}%</span>
+                </div>
+                <div style="height: 6px; background: var(--border-color); border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+                  <div style="width: ${Math.min(fieldPct, 100)}%; height: 100%; background: ${fieldColor}; border-radius: 4px; transition: width 0.4s ease;"></div>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--font-family-app) !important;">
+                  <input type="number" class="att-input present-input" data-code="${sub.code}" data-track="fieldWork" data-field="present" value="${record.fieldWork.present}" min="0" style="width: 52px; height: 26px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); text-align: center; font-size: 0.8rem; font-family: var(--font-family-app) !important; outline: none; border-color: rgba(255, 255, 255, 0.15);" />
+                  <span style="color: var(--text-muted); font-size: 0.8rem;">/</span>
+                  <input type="number" class="att-input total-input" data-code="${sub.code}" data-track="fieldWork" data-field="total" value="${record.fieldWork.total}" min="0" style="width: 52px; height: 26px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); text-align: center; font-size: 0.8rem; font-family: var(--font-family-app) !important; outline: none; border-color: rgba(255, 255, 255, 0.15);" />
                 </div>
               </div>
             </div>
 
             <!-- Semester Session Progress -->
-            <div style="margin-top: -2px;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                <span style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Semester Coverage</span>
-                <span style="font-size: 0.68rem; color: var(--text-muted);">${overallTotal} conducted · ~${totalRemaining} remaining</span>
-              </div>
-              <div style="height: 4px; background: var(--border-color); border-radius: 3px; overflow: hidden;">
-                <div style="width: ${totalRemPct}%; height: 100%; background: var(--accent); opacity: 0.5; border-radius: 3px;"></div>
+            <div style="margin-top: 4px; font-family: var(--font-family-app) !important;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-family: var(--font-family-app) !important;">
+                <span style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; font-family: var(--font-family-app) !important;">Semester Coverage</span>
+                <span style="font-size: 0.68rem; color: var(--text-muted); font-family: var(--font-family-app) !important;">${overallPresent} attended / ${overallTotal} conducted</span>
               </div>
             </div>
           </div>
         `;
       })).then(rows => rows.join(''));
 
-      // Bind Counter adjustments buttons
-      container.querySelectorAll('.adjust-att-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const code   = btn.getAttribute('data-code');
-          const type   = btn.getAttribute('data-type');   // lectures or practicals
-          const action = btn.getAttribute('data-action'); // inc or dec
-          this.handleAdjustAttendance(code, type, action);
+      // Bind input changes
+      container.querySelectorAll('.att-input').forEach(input => {
+        input.addEventListener('change', (e) => {
+          const code = input.getAttribute('data-code');
+          const track = input.getAttribute('data-track'); // lecture, practical, fieldWork
+          const field = input.getAttribute('data-field'); // present, total
+          const val = parseInt(input.value) || 0;
+          this.handleUpdateAttendanceField(code, track, field, val);
         });
       });
 
@@ -200,40 +217,51 @@ export const AttendanceModule = {
     }
   },
 
-  async handleAdjustAttendance(code, type, action) {
+  async handleUpdateAttendanceField(code, track, field, val) {
     try {
       const records = await Database.getAll('attendance');
-      const rec     = records.find(r => r.subjectCode === code);
+      const rec = records.find(r => r.subjectCode === code);
       if (!rec) return;
 
-      const prefix      = type === 'lectures' ? 'lectures' : 'practicals';
-      const attendedKey = `${prefix}Attended`;
-      const totalKey    = `${prefix}Total`;
+      if (!rec[track]) {
+        rec[track] = { total: 0, present: 0 };
+      }
+      
+      const cleanVal = Math.max(0, val);
+      rec[track][field] = cleanVal;
 
-      if (action === 'inc') {
-        if (rec[attendedKey] < rec[totalKey]) {
-          rec[attendedKey]++;
-        } else {
-          // Also bump total if user is logging a new session
-          rec[totalKey]++;
-          rec[attendedKey]++;
+      // Business validation: total must be >= present
+      if (field === 'present') {
+        if (rec[track].present > rec[track].total) {
+          rec[track].total = rec[track].present;
         }
-      } else {
-        if (rec[attendedKey] > 0) {
-          rec[attendedKey]--;
+      } else if (field === 'total') {
+        if (rec[track].total < rec[track].present) {
+          rec[track].present = rec[track].total;
         }
       }
 
+      // Sync old fields for backwards compatibility with exams and analytics modules
+      rec.lecturesTotal = rec.lecture.total;
+      rec.lecturesAttended = rec.lecture.present;
+      rec.practicalsTotal = rec.practical.total + rec.fieldWork.total;
+      rec.practicalsAttended = rec.practical.present + rec.fieldWork.present;
+      rec.approvedMedicalSessions = 0;
+
       await Database.put('attendance', rec);
 
-      // Calculate overall stats to fire alert warning on risk dropdowns
-      const overall = rec.lecturesAttended + rec.practicalsAttended;
-      const total   = rec.lecturesTotal + rec.practicalsTotal;
-      const pct     = total > 0 ? (overall / total) * 100 : 0;
+      // Low attendance warnings alerts
+      const overall = rec.lecture.present + rec.practical.present + rec.fieldWork.present;
+      const total = rec.lecture.total + rec.practical.total + rec.fieldWork.total;
+      const pct = total > 0 ? (overall / total) * 100 : 0;
 
-      if (pct < 80 && action === 'dec') {
-        const remaining = (rec.lecturesRemaining ?? 0) + (rec.practicalsRemaining ?? 0);
-        const riskStr   = calcCriticalRiskIndex(overall, total, remaining);
+      if (pct < 80) {
+        const remainingLectures    = rec.lecturesRemaining    ?? Math.max(0, 30 - rec.lecture.total);
+        const remainingPracticals  = rec.practicalsRemaining  ?? Math.max(0, 10 - rec.practical.total);
+        const remainingFieldWork   = rec.fieldWorkRemaining   ?? Math.max(0, 5 - rec.fieldWork.total);
+        const totalRemaining       = remainingLectures + remainingPracticals + remainingFieldWork;
+
+        const riskStr = calcCriticalRiskIndex(overall, total, totalRemaining);
         if (riskStr) {
           NotificationService.show('Low Attendance Warning', riskStr, 'warning');
         }
@@ -243,7 +271,7 @@ export const AttendanceModule = {
       window.dispatchEvent(new CustomEvent('attendanceUpdated'));
 
     } catch (err) {
-      console.error('Adjust attendance failed:', err);
+      console.error('Update attendance field failed:', err);
     }
   }
 };

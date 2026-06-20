@@ -21,6 +21,9 @@ export const StudyModule = {
   init() {
     this.bindEvents();
     this.resetFocusStats(25 * 60);
+    this.populatePomoSubjectsDropdown();
+
+    window.addEventListener('subjectsUpdated', () => this.populatePomoSubjectsDropdown());
 
     // Focus Quality Interruption hooks
     window.addEventListener('blur', () => this.handleWindowBlur());
@@ -322,7 +325,7 @@ export const StudyModule = {
     this.updatePomoDisplay();
   },
 
-  tickTimer() {
+  async tickTimer() {
     if (this.timeLeft > 0) {
       this.timeLeft--;
       this.updatePomoDisplay();
@@ -335,6 +338,10 @@ export const StudyModule = {
       const alarmMsg = this.timerType === 'focus' ? 'Well done, take a rest.' : 'Ready to resume focus?';
       
       NotificationService.show(alarmTitle, alarmMsg, 'study');
+      
+      if (this.timerType === 'focus') {
+        await this.saveFocusMinutes();
+      }
       this.startBreak();
     }
   },
@@ -370,6 +377,45 @@ export const StudyModule = {
     const overlay = document.getElementById('focus-hud-overlay');
     if (overlay) {
       overlay.classList.remove('active');
+    }
+  },
+
+  async populatePomoSubjectsDropdown() {
+    const select = document.getElementById('pomo-subject-select');
+    if (!select) return;
+    try {
+      const submodules = await Database.getAll('subjects');
+      const subs = submodules.filter(s => s.isSubmodule);
+      const prevVal = select.value;
+      
+      select.innerHTML = subs.map(s => `
+        <option value="${s.id}">${s.parentSubjectCode} - ${s.name}</option>
+      `).join('') || '<option value="">No sub-modules added</option>';
+
+      if (prevVal && subs.some(s => s.id === prevVal)) {
+        select.value = prevVal;
+      }
+    } catch (err) {
+      console.error('Failed to populate Pomodoro subjects dropdown:', err);
+    }
+  },
+
+  async saveFocusMinutes() {
+    const select = document.getElementById('pomo-subject-select');
+    if (!select) return;
+    const subId = select.value;
+    if (!subId) return;
+
+    try {
+      const sub = await Database.get('subjects', subId);
+      if (sub) {
+        const completedMinutes = Math.round(this.sessionTotalSeconds / 60);
+        sub.studyMinutes = (sub.studyMinutes || 0) + completedMinutes;
+        await Database.put('subjects', sub);
+        window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+      }
+    } catch (err) {
+      console.error('Failed to save focus minutes:', err);
     }
   }
 };

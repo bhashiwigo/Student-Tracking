@@ -6,6 +6,7 @@
 
 import { Database } from '../database/db.js';
 import { NotificationService } from '../services/notifications.js';
+import { Auth } from '../auth.js';
 
 export const AssignmentsModule = {
   init() {
@@ -32,8 +33,8 @@ export const AssignmentsModule = {
     try {
       const subjects = await Database.getAll('subjects');
       dropdown.innerHTML = subjects.map(s => `
-        <option value="${s.code}">${s.code} - ${s.name}</option>
-      `).join('') || '<option value="">No course units added</option>';
+        <option value="${s.code}" style="font-family: var(--font-family-app) !important;">${s.code} - ${s.name}</option>
+      `).join('') || '<option value="" style="font-family: var(--font-family-app) !important;">No course units added</option>';
     } catch (err) {
       console.error('Load assignment subjects dropdown failed:', err);
     }
@@ -51,7 +52,7 @@ export const AssignmentsModule = {
 
       if (assignments.length === 0) {
         container.innerHTML = `
-          <div class="col-12" style="text-align: center; padding: 40px; color: var(--text-muted);">
+          <div class="col-12" style="text-align: center; padding: 40px; color: var(--text-muted); font-family: var(--font-family-app) !important;">
             No course assignments logged.
           </div>
         `;
@@ -62,7 +63,9 @@ export const AssignmentsModule = {
       const sorted = assignments.sort((a, b) => {
         if (a.status === 'Completed' && b.status !== 'Completed') return 1;
         if (a.status !== 'Completed' && b.status === 'Completed') return -1;
-        return new Date(a.date) - new Date(b.date);
+        const dateA = a.deadline || a.date;
+        const dateB = b.deadline || b.date;
+        return new Date(dateA) - new Date(dateB);
       });
 
       container.innerHTML = sorted.map(as => {
@@ -74,32 +77,35 @@ export const AssignmentsModule = {
         const priorityClass = priorityClasses[as.priority] || 'low';
 
         const statusBadges = {
-          'Pending': `<span class="badge" style="background-color: var(--border-color); color: var(--text-secondary);">${as.status}</span>`,
-          'In Progress': `<span class="badge" style="background-color: var(--accent-glow); color: var(--accent);">${as.status}</span>`,
-          'Completed': `<span class="badge" style="background-color: rgba(16, 185, 129, 0.15); color: var(--success);">${as.status}</span>`
+          'Pending': `<span class="badge" style="background-color: var(--border-color); color: var(--text-secondary); font-family: var(--font-family-app) !important;">${as.status}</span>`,
+          'Submitted': `<span class="badge" style="background-color: var(--accent-glow); color: var(--accent); font-family: var(--font-family-app) !important;">${as.status}</span>`,
+          'Completed': `<span class="badge" style="background-color: rgba(16, 185, 129, 0.15); color: var(--success); font-family: var(--font-family-app) !important;">${as.status}</span>`
         };
         const statusBadge = statusBadges[as.status] || as.status;
 
+        const deadlineVal = as.deadline || as.date || 'N/A';
+        const courseVal = as.courseId || as.subjectCode || 'N/A';
+
         return `
-          <div class="task-item col-12 ${as.status === 'Completed' ? 'completed' : ''}" style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <input type="checkbox" class="deadline-checkbox toggle-assign-status" data-id="${as.id}" ${as.status === 'Completed' ? 'checked' : ''} style="margin: 0;">
-              <div>
-                <h4 class="task-label" style="font-weight: 600; font-size: 0.95rem;">${as.title}</h4>
-                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
-                  Subject: ${as.subjectCode} • Deadline: ${as.date}
+          <div class="task-item col-12 ${as.status === 'Completed' ? 'completed' : ''}" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; font-family: var(--font-family-app) !important;">
+            <div style="display: flex; align-items: center; gap: 12px; font-family: var(--font-family-app) !important;">
+              <input type="checkbox" class="deadline-checkbox toggle-assign-status" data-id="${as.id}" ${as.status === 'Completed' ? 'checked' : ''} style="margin: 0; font-family: var(--font-family-app) !important;">
+              <div style="font-family: var(--font-family-app) !important;">
+                <h4 class="task-label" style="font-weight: 600; font-size: 0.95rem; font-family: var(--font-family-app) !important;">${as.title}</h4>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; font-family: var(--font-family-app) !important;">
+                  Subject: ${courseVal} • Deadline: ${deadlineVal}
                 </div>
               </div>
             </div>
             
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <span class="badge ${priorityClass}">${as.priority} Priority</span>
+            <div style="display: flex; align-items: center; gap: 12px; font-family: var(--font-family-app) !important;">
+              <span class="badge ${priorityClass}" style="font-family: var(--font-family-app) !important;">${as.priority} Priority</span>
               ${statusBadge}
-              <div style="display: flex; gap: 4px;">
-                <button class="btn-icon edit-assign-btn" data-id="${as.id}" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              <div style="display: flex; gap: 4px; font-family: var(--font-family-app) !important;">
+                <button class="btn-icon edit-assign-btn" data-id="${as.id}" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-family: var(--font-family-app) !important;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="font-family: var(--font-family-app) !important;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                 </button>
-                <button class="btn-icon delete-assign-btn" data-id="${as.id}" style="width: 28px; height: 28px; font-size: 0.8rem; color: var(--danger); display: flex; align-items: center; justify-content: center;">✕</button>
+                <button class="btn-icon delete-assign-btn" data-id="${as.id}" style="width: 28px; height: 28px; font-size: 0.8rem; color: var(--danger); display: flex; align-items: center; justify-content: center; font-family: var(--font-family-app) !important;">✕</button>
               </div>
             </div>
           </div>
@@ -161,7 +167,8 @@ export const AssignmentsModule = {
     ganttContainer.style.display = 'block';
 
     const timelineData = assignments.map(as => {
-      const deadline = new Date(`${as.date}T23:59:59`);
+      const deadlineVal = as.deadline || as.date;
+      const deadline = new Date(`${deadlineVal}T23:59:59`);
       const priority = as.priority || 'Medium';
       const prepDays = priority === 'High' ? 5 : priority === 'Medium' ? 3 : 1;
       const startDate = new Date(deadline.getTime() - prepDays * 24 * 60 * 60 * 1000);
@@ -169,12 +176,12 @@ export const AssignmentsModule = {
       return {
         id: as.id,
         title: as.title,
-        subject: as.subjectCode,
+        subject: as.courseId || as.subjectCode || 'N/A',
         priority: priority,
         status: as.status,
         startDate: startDate,
         deadline: deadline,
-        dateStr: as.date
+        dateStr: deadlineVal
       };
     });
 
@@ -209,13 +216,13 @@ export const AssignmentsModule = {
       }
 
       return `
-        <div style="display: flex; align-items: center; gap: 12px; min-width: 600px;">
-          <div style="width: 180px; flex-shrink: 0; font-size: 0.78rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; ${item.status === 'Completed' ? 'text-decoration: line-through; opacity: 0.5;' : ''}">
-            <strong style="color: var(--text-primary);">${item.subject}</strong> - <span style="color: var(--text-secondary);">${item.title}</span>
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 600px; font-family: var(--font-family-app) !important;">
+          <div style="width: 180px; flex-shrink: 0; font-size: 0.78rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; font-family: var(--font-family-app) !important; ${item.status === 'Completed' ? 'text-decoration: line-through; opacity: 0.5;' : ''}">
+            <strong style="color: var(--text-primary); font-family: var(--font-family-app) !important;">${item.subject}</strong> - <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">${item.title}</span>
           </div>
-          <div style="flex: 1; height: 30px; background: rgba(255,255,255,0.02); border-radius: 4px; position: relative; border: 1px solid var(--border-color);">
-            <div style="position: absolute; left: ${leftPct}%; width: ${widthPct}%; top: 4px; height: 20px; background: ${color}; opacity: ${item.status === 'Completed' ? 0.2 : 0.35}; border-radius: 3px; border-left: 3px solid ${color}; display: flex; align-items: center; padding: 0 6px; box-sizing: border-box;">
-              <span style="font-size: 0.65rem; font-weight: 700; color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
+          <div style="flex: 1; height: 30px; background: rgba(255,255,255,0.02); border-radius: 4px; position: relative; border: 1px solid var(--border-color); font-family: var(--font-family-app) !important;">
+            <div style="position: absolute; left: ${leftPct}%; width: ${widthPct}%; top: 4px; height: 20px; background: ${color}; opacity: ${item.status === 'Completed' ? 0.2 : 0.35}; border-radius: 3px; border-left: 3px solid ${color}; display: flex; align-items: center; padding: 0 6px; box-sizing: border-box; font-family: var(--font-family-app) !important;">
+              <span style="font-size: 0.65rem; font-weight: 700; color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: var(--font-family-app) !important;">
                 ${item.status === 'Completed' ? '✓ Completed' : `${item.priority} Prep`} (due ${item.dateStr})
               </span>
             </div>
@@ -225,20 +232,20 @@ export const AssignmentsModule = {
     }).join('');
 
     ganttContainer.innerHTML = `
-      <div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-x: auto; margin-bottom: 24px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--accent);">
+      <div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-x: auto; margin-bottom: 24px; font-family: var(--font-family-app) !important;">
+        <div style="display: flex; justify-content: space-between; align-items: center; font-family: var(--font-family-app) !important;">
+          <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--accent); font-family: var(--font-family-app) !important;">
             🗓️ Visual Gantt Assignment Roadmap
           </span>
-          <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 500;">
+          <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 500; font-family: var(--font-family-app) !important;">
             Preparation timelines staggered by assignment priority and completion status
           </span>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <div style="display: flex; align-items: center; gap: 12px; min-width: 600px;">
-            <div style="width: 180px; flex-shrink: 0;"></div>
-            <div style="flex: 1; display: flex; justify-content: space-between; padding: 0 4px; font-size: 0.68rem; color: var(--text-muted); font-weight: 600;">
-              ${markers.map(m => `<span>${m}</span>`).join('')}
+        <div style="display: flex; flex-direction: column; gap: 8px; font-family: var(--font-family-app) !important;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 600px; font-family: var(--font-family-app) !important;">
+            <div style="width: 180px; flex-shrink: 0; font-family: var(--font-family-app) !important;"></div>
+            <div style="flex: 1; display: flex; justify-content: space-between; padding: 0 4px; font-size: 0.68rem; color: var(--text-muted); font-weight: 600; font-family: var(--font-family-app) !important;">
+              ${markers.map(m => `<span style="font-family: var(--font-family-app) !important;">${m}</span>`).join('')}
             </div>
           </div>
           ${rowsHtml}
@@ -263,11 +270,13 @@ export const AssignmentsModule = {
       try {
         const as = await Database.get('assignments', id);
         if (as) {
-          document.getElementById('assign-title').value = as.title;
-          document.getElementById('assign-subject').value = as.subjectCode;
-          document.getElementById('assign-date').value = as.date;
-          document.getElementById('assign-priority').value = as.priority;
-          document.getElementById('assign-status').value = as.status;
+          document.getElementById('assign-title').value = as.title || '';
+          document.getElementById('assign-subject').value = as.courseId || as.subjectCode || '';
+          document.getElementById('assign-date').value = as.deadline || as.date || '';
+          document.getElementById('assign-priority').value = as.priority || 'Medium';
+          let currentStatus = as.status || 'Pending';
+          if (currentStatus === 'In Progress') currentStatus = 'Submitted';
+          document.getElementById('assign-status').value = currentStatus;
         }
       } catch (err) {
         console.error('Load assignment details failed:', err);
@@ -301,7 +310,25 @@ export const AssignmentsModule = {
       return;
     }
 
-    const assignmentData = { id, title, subjectCode, date, priority, status };
+    const allowedStatuses = ['Pending', 'Submitted', 'Completed'];
+    if (!allowedStatuses.includes(status)) {
+      alert(`Invalid Assignment Status: must be one of ${allowedStatuses.join(', ')}`);
+      return;
+    }
+
+    const userId = Auth.getCurrentUserId() || '';
+    const assignmentData = {
+      id,
+      title,
+      courseId: subjectCode,
+      deadline: date,
+      priority,
+      status,
+      userId,
+      // Legacy fields for backward compatibility
+      subjectCode,
+      date
+    };
 
     try {
       if (mode === 'add') {

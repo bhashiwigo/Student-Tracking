@@ -8,7 +8,7 @@ import { Auth } from '../auth.js';
 import { FirestoreSync } from './firestore-sync.js';
 
 const DB_NAME = 'RajarataCampusLifeDB';
-const DB_VERSION = 5; // Bumped to 5 to add 'researchConfig' store
+const DB_VERSION = 11; // Bumped to 11 to support resource management & assignment schema refactoring
 
 let dbInstance = null;
 
@@ -26,6 +26,7 @@ export const initDB = () => {
 
     request.onupgradeneeded = (e) => {
       const db = e.target.result;
+      const oldVersion = e.oldVersion;
 
       // Users Authentication Store (NEW in v2)
       if (!db.objectStoreNames.contains('users')) {
@@ -90,6 +91,296 @@ export const initDB = () => {
       // Research Config Store (v5)
       if (!db.objectStoreNames.contains('researchConfig')) {
         db.createObjectStore('researchConfig', { keyPath: 'id' });
+      }
+
+      // Academic Resources Store (v11)
+      if (!db.objectStoreNames.contains('resources')) {
+        db.createObjectStore('resources', { keyPath: 'id' });
+      }
+
+      // v6: Student Profile Migration pass
+      if (oldVersion > 0 && oldVersion < 6) {
+        const trans = request.transaction;
+        if (db.objectStoreNames.contains('students')) {
+          const store = trans.objectStore('students');
+          store.openCursor().onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+              const record = cursor.value;
+              if (!record.studentInfo) {
+                record.studentInfo = {
+                  studentId: record.studentId || '',
+                  registrationNumber: '',
+                  degreeProgramme: record.degree || '',
+                  department: '',
+                  batch: '',
+                  academicYear: record.admissionYear || '',
+                  semester: record.currentSemester || '1-1',
+                  faculty: record.faculty || '',
+                  email: '',
+                  phone: '',
+                  mentor: { name: '', email: '', contact: '' },
+                  academicAdvisor: { name: '', email: '', contact: '' }
+                };
+                store.put(record);
+              }
+              cursor.continue();
+            }
+          };
+        }
+      }
+
+      // v7: Course/Subject Profile Migration pass
+      if (oldVersion > 0 && oldVersion < 7) {
+        const trans = request.transaction;
+        if (db.objectStoreNames.contains('subjects')) {
+          const store = trans.objectStore('subjects');
+          store.openCursor().onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+              const record = cursor.value;
+              let updated = false;
+              if (record.isParent) {
+                if (!record.courseCode) { record.courseCode = record.code || ''; updated = true; }
+                if (!record.courseTitle) { record.courseTitle = record.name || ''; updated = true; }
+                if (!record.department) { record.department = ''; updated = true; }
+                if (!record.year) { record.year = '1'; updated = true; }
+                if (!record.courseType) { record.courseType = 'CORE'; updated = true; }
+                if (!record.prerequisites) { record.prerequisites = []; updated = true; }
+                if (!record.corequisites) { record.corequisites = []; updated = true; }
+              }
+              if (updated) {
+                store.put(record);
+              }
+              cursor.continue();
+            }
+          };
+        }
+      }
+
+      // v8: GPA Engine Upgrade Migration pass (grade, gradePoint, credits per record row)
+      if (oldVersion > 0 && oldVersion < 8) {
+        const trans = request.transaction;
+        if (db.objectStoreNames.contains('subjects')) {
+          const store = trans.objectStore('subjects');
+          const GRADE_MAP = {
+            'A+': 4.00, 'A': 4.00, 'A-': 3.70,
+            'B+': 3.30, 'B': 3.00, 'B-': 2.70,
+            'C+': 2.30, 'C': 2.00, 'C-': 1.70,
+            'D+': 1.30, 'D': 1.00, 'E': 0.00
+          };
+          store.openCursor().onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+              const record = cursor.value;
+              let updated = false;
+
+              // Ensure parent attributes exist
+              if (record.grade === undefined) { record.grade = ''; updated = true; }
+              if (record.gradePoint === undefined) { record.gradePoint = 0.00; updated = true; }
+              if (record.credits === undefined) { record.credits = 0; updated = true; }
+
+              // Ensure nested submodules attributes exist
+              if (Array.isArray(record.submodules)) {
+                record.submodules.forEach(sub => {
+                  if (sub.grade === undefined) { sub.grade = ''; updated = true; }
+                  if (sub.gradePoint === undefined) {
+                    sub.gradePoint = (sub.grade && GRADE_MAP[sub.grade] !== undefined) ? GRADE_MAP[sub.grade] : 0.00;
+                    updated = true;
+                  }
+                  if (sub.credits === undefined) { sub.credits = 3; updated = true; }
+                });
+              }
+
+              if (updated) {
+                store.put(record);
+              }
+              cursor.continue();
+            }
+          };
+        }
+      }
+
+      // v9: Attendance multi-track nested structure (lecture, practical, fieldWork)
+      if (oldVersion > 0 && oldVersion < 9) {
+        const trans = request.transaction;
+        if (db.objectStoreNames.contains('attendance')) {
+          const store = trans.objectStore('attendance');
+          store.openCursor().onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+              const record = cursor.value;
+              let updated = false;
+
+              if (!record.courseId) {
+                record.courseId = record.subjectCode || '';
+                updated = true;
+              }
+              if (!record.lecture) {
+                record.lecture = {
+                  total: record.lecturesTotal !== undefined ? record.lecturesTotal : 30,
+                  present: record.lecturesAttended !== undefined ? record.lecturesAttended : 0
+                };
+                updated = true;
+              }
+              if (!record.practical) {
+                record.practical = {
+                  total: record.practicalsTotal !== undefined ? record.practicalsTotal : 10,
+                  present: record.practicalsAttended !== undefined ? record.practicalsAttended : 0
+                };
+                updated = true;
+              }
+              if (!record.fieldWork) {
+                record.fieldWork = {
+                  total: 0,
+                  present: 0
+                };
+                updated = true;
+              }
+
+              // Keep backward compatibility fields in sync
+              if (record.lecturesTotal !== record.lecture.total) {
+                record.lecturesTotal = record.lecture.total;
+                updated = true;
+              }
+              if (record.lecturesAttended !== record.lecture.present) {
+                record.lecturesAttended = record.lecture.present;
+                updated = true;
+              }
+              if (record.practicalsTotal !== (record.practical.total + record.fieldWork.total)) {
+                record.practicalsTotal = record.practical.total + record.fieldWork.total;
+                updated = true;
+              }
+              if (record.practicalsAttended !== (record.practical.present + record.fieldWork.present)) {
+                record.practicalsAttended = record.practical.present + record.fieldWork.present;
+                updated = true;
+              }
+              if (record.approvedMedicalSessions !== 0) {
+                record.approvedMedicalSessions = 0;
+                updated = true;
+              }
+
+              if (updated) {
+                store.put(record);
+              }
+              cursor.continue();
+            }
+          };
+        }
+      }
+
+      // v10: Exam model schema extension (courseId, title, date, time, venue, examType)
+      if (oldVersion > 0 && oldVersion < 10) {
+        const trans = request.transaction;
+        if (db.objectStoreNames.contains('exams')) {
+          const store = trans.objectStore('exams');
+          store.openCursor().onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+              const record = cursor.value;
+              let updated = false;
+
+              if (record.courseId === undefined) {
+                record.courseId = record.subjectCode || '';
+                updated = true;
+              }
+              if (record.title === undefined) {
+                record.title = record.name || '';
+                updated = true;
+              }
+              if (record.examType === undefined) {
+                // Enum constraint check: THEORY, PRACTICAL, REPEAT
+                const typeUpper = (record.type || '').toUpperCase();
+                if (typeUpper.includes('PRACTICAL')) {
+                  record.examType = 'PRACTICAL';
+                } else if (typeUpper.includes('REPEAT')) {
+                  record.examType = 'REPEAT';
+                } else {
+                  record.examType = 'THEORY'; // Default Theory
+                }
+                updated = true;
+              }
+
+              // Keep legacy fields in sync for backward compatibility
+              if (record.name === undefined) {
+                record.name = record.title || '';
+                updated = true;
+              }
+              if (record.subjectCode === undefined) {
+                record.subjectCode = record.courseId || '';
+                updated = true;
+              }
+              if (record.type === undefined) {
+                record.type = record.examType || '';
+                updated = true;
+              }
+
+              // Sync userId if not set
+              const userId = Auth.getCurrentUserId();
+              if (record.userId === undefined && userId) {
+                record.userId = userId;
+                updated = true;
+              }
+
+              if (updated) {
+                store.put(record);
+              }
+              cursor.continue();
+            }
+          };
+        }
+      }
+
+      // v11: Academic Resources metadata store + Assignments entity schema upgrade
+      if (oldVersion > 0 && oldVersion < 11) {
+        const trans = request.transaction;
+        if (db.objectStoreNames.contains('assignments')) {
+          const store = trans.objectStore('assignments');
+          store.openCursor().onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+              const record = cursor.value;
+              let updated = false;
+
+              // Map old subjectCode to courseId
+              if (record.courseId === undefined) {
+                record.courseId = record.subjectCode || '';
+                updated = true;
+              }
+              // Map old date to deadline
+              if (record.deadline === undefined) {
+                record.deadline = record.date || '';
+                updated = true;
+              }
+              // Validate status enum: [Pending, Submitted, Completed]
+              const oldStatus = record.status || 'Pending';
+              let newStatus = 'Pending';
+              if (oldStatus === 'Completed') {
+                newStatus = 'Completed';
+              } else if (oldStatus === 'In Progress' || oldStatus === 'Submitted') {
+                newStatus = 'Submitted';
+              } else {
+                newStatus = 'Pending';
+              }
+              if (record.status !== newStatus) {
+                record.status = newStatus;
+                updated = true;
+              }
+
+              // Sync userId if not set
+              const userId = Auth.getCurrentUserId();
+              if (record.userId === undefined && userId) {
+                record.userId = userId;
+                updated = true;
+              }
+
+              if (updated) {
+                store.put(record);
+              }
+              cursor.continue();
+            }
+          };
+        }
       }
     };
 
