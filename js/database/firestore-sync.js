@@ -33,7 +33,7 @@ const canonicalStringify = (obj) => {
 const SYNC_STORES = [
   'subjects', 'exams', 'practicals', 'assignments',
   'attendance', 'sports', 'studyplans', 'notes', 'settings', 'resources',
-  'focus_sessions', 'user_habits'
+  'focus_sessions', 'user_habits', 'researchProject', 'researchConfig'
 ];
 
 // Primary key field for each store (used as Firestore document ID)
@@ -49,7 +49,9 @@ const STORE_KEYS = {
   settings:    'key',
   resources:   'id',
   focus_sessions: 'id',
-  user_habits: 'id'
+  user_habits: 'id',
+  researchProject: 'id',
+  researchConfig: 'id'
 };
 
 // Lazy-load Firestore SDK functions from window.__firestore context
@@ -87,7 +89,7 @@ export const FirestoreSync = {
     const fns = getFirestoreFns();
     if (!fns) return { success: false, reason: 'Firebase SDK not loaded' };
 
-    const { doc, setDoc, serverTimestamp, collection, getDocs } = fns;
+    const { doc, setDoc, serverTimestamp, collection, getDocs, writeBatch } = fns;
     const db = window.__firestore;
     const userId = Auth.getCurrentUserId();
 
@@ -154,6 +156,9 @@ export const FirestoreSync = {
           // Union of keys
           const allKeys = new Set([...localMap.keys(), ...remoteMap.keys()]);
 
+          let batch = writeBatch(db);
+          let batchOps = 0;
+
           for (const key of allKeys) {
             const localRec = localMap.get(key);
             const remoteRec = remoteMap.get(key);
@@ -161,7 +166,8 @@ export const FirestoreSync = {
             if (localRec && !remoteRec) {
               // Exists locally only -> push to cloud
               const docRef = doc(db, colPath, key);
-              await setDoc(docRef, { ...localRec, _syncedAt: serverTimestamp() });
+              batch.set(docRef, { ...localRec, _syncedAt: serverTimestamp() });
+              batchOps++;
               synced++;
             } else if (!localRec && remoteRec) {
               // Exists remotely only -> pull to local
@@ -176,7 +182,8 @@ export const FirestoreSync = {
               if (localTime > remoteTime) {
                 // Local is newer -> push to cloud
                 const docRef = doc(db, colPath, key);
-                await setDoc(docRef, { ...localRec, _syncedAt: serverTimestamp() });
+                batch.set(docRef, { ...localRec, _syncedAt: serverTimestamp() });
+                batchOps++;
                 synced++;
               } else if (remoteTime > localTime) {
                 // Remote is newer -> pull to local
@@ -188,11 +195,22 @@ export const FirestoreSync = {
                 if (canonicalStringify(localRec) !== canonicalStringify(remoteRec)) {
                   // Fallback: push local to remote
                   const docRef = doc(db, colPath, key);
-                  await setDoc(docRef, { ...localRec, _syncedAt: serverTimestamp() });
+                  batch.set(docRef, { ...localRec, _syncedAt: serverTimestamp() });
+                  batchOps++;
                   synced++;
                 }
               }
             }
+
+            if (batchOps >= 400) {
+              await batch.commit();
+              batch = writeBatch(db);
+              batchOps = 0;
+            }
+          }
+
+          if (batchOps > 0) {
+            await batch.commit();
           }
         } catch (err) {
           console.warn(`[FirestoreSync] Bidirectional sync failed for store "${storeName}":`, err.message);
@@ -205,7 +223,28 @@ export const FirestoreSync = {
         const user = allUsers.find(u => u.userId === userId);
         if (user) {
           await setDoc(doc(db, 'users', userId), {
-            ...user, _syncedAt: serverTimestamp()
+            userId: user.userId || '',
+            name: user.name || '',
+            university: user.university || '',
+            faculty: user.faculty || '',
+            course: user.course || '',
+            admissionYear: user.admissionYear || '',
+            currentSemester: user.currentSemester || '',
+            pinHash: user.pinHash || '',
+            studentId: user.studentId || '',
+            registrationNumber: user.registrationNumber || '',
+            degreeProgramme: user.degreeProgramme || '',
+            department: user.department || '',
+            batch: user.batch || '',
+            email: user.email || '',
+            phone: user.phone || '',
+            mentorName: user.mentorName || '',
+            mentorEmail: user.mentorEmail || '',
+            mentorContact: user.mentorContact || '',
+            advisorName: user.advisorName || '',
+            advisorEmail: user.advisorEmail || '',
+            advisorContact: user.advisorContact || '',
+            _syncedAt: serverTimestamp()
           });
           synced++;
         }
@@ -311,13 +350,48 @@ export const FirestoreSync = {
    */
   async syncRecord(storeName, record) {
     if (!this.isReady()) return;
-    if (!SYNC_STORES.includes(storeName)) return;
+    if (storeName !== 'users' && !SYNC_STORES.includes(storeName)) return;
 
     const fns = getFirestoreFns();
     if (!fns) return;
 
     const { doc, setDoc, serverTimestamp } = fns;
     const db = window.__firestore;
+
+    if (storeName === 'users') {
+      const userId = record.userId;
+      if (!userId) return;
+      try {
+        await setDoc(doc(db, 'users', userId), {
+          userId: record.userId || '',
+          name: record.name || '',
+          university: record.university || '',
+          faculty: record.faculty || '',
+          course: record.course || '',
+          admissionYear: record.admissionYear || '',
+          currentSemester: record.currentSemester || '',
+          pinHash: record.pinHash || '',
+          studentId: record.studentId || '',
+          registrationNumber: record.registrationNumber || '',
+          degreeProgramme: record.degreeProgramme || '',
+          department: record.department || '',
+          batch: record.batch || '',
+          email: record.email || '',
+          phone: record.phone || '',
+          mentorName: record.mentorName || '',
+          mentorEmail: record.mentorEmail || '',
+          mentorContact: record.mentorContact || '',
+          advisorName: record.advisorName || '',
+          advisorEmail: record.advisorEmail || '',
+          advisorContact: record.advisorContact || '',
+          _syncedAt: serverTimestamp()
+        });
+      } catch (err) {
+        console.debug(`[FirestoreSync] Background sync failed (users/${userId}):`, err.message);
+      }
+      return;
+    }
+
     const colPath = this.getUserCollectionPath(storeName);
     if (!colPath) return;
 

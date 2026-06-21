@@ -1148,6 +1148,39 @@ const App = {
 
           await Database.put('students', profile);
 
+          // Update corresponding record in the local 'users' store
+          const userId = Auth.getCurrentUserId();
+          if (userId) {
+            const allUsers = await Database.getAll('users');
+            const user = allUsers.find(u => u.userId === userId);
+            if (user) {
+              user.name = name;
+              user.university = university;
+              user.faculty = faculty;
+              user.course = getVal('settings-degree');
+              user.admissionYear = year;
+              user.currentSemester = sem;
+
+              user.studentId = getVal('settings-student-id');
+              user.registrationNumber = getVal('settings-reg-num');
+              user.degreeProgramme = getVal('settings-degree');
+              user.department = getVal('settings-dept');
+              user.batch = getVal('settings-batch');
+              user.email = getVal('settings-email');
+              user.phone = getVal('settings-phone');
+
+              user.mentorName = getVal('settings-mentor-name');
+              user.mentorEmail = getVal('settings-mentor-email');
+              user.mentorContact = getVal('settings-mentor-contact');
+
+              user.advisorName = getVal('settings-advisor-name');
+              user.advisorEmail = getVal('settings-advisor-email');
+              user.advisorContact = getVal('settings-advisor-contact');
+
+              await Database.put('users', user);
+            }
+          }
+
           await Database.put('settings', { key: 'currentSemester', value: sem });
           await Database.put('settings', { key: 'gpaTarget', value: target });
 
@@ -1835,29 +1868,32 @@ const App = {
       const facEl = document.getElementById('settings-faculty');
       if (facEl) facEl.value = student.faculty || '';
 
-      // Populate new extended studentInfo fields safely (100% backward compatible check)
+      // Populate new extended studentInfo fields safely from users store/info
       const info = student.studentInfo || {};
       const setVal = (id, val) => {
         const el = document.getElementById(id);
         if (el) el.value = val || '';
       };
-      setVal('settings-student-id', info.studentId || student.studentId || '');
-      setVal('settings-reg-num', info.registrationNumber || '');
-      setVal('settings-degree', info.degreeProgramme || student.degree || '');
-      setVal('settings-dept', info.department || '');
-      setVal('settings-batch', info.batch || '');
-      setVal('settings-email', info.email || '');
-      setVal('settings-phone', info.phone || '');
+      
+      const userId = Auth.getCurrentUserId();
+      const allUsers = await Database.getAll('users');
+      const user = allUsers.find(u => u.userId === userId) || {};
 
-      const mentor = info.mentor || {};
-      setVal('settings-mentor-name', mentor.name || '');
-      setVal('settings-mentor-email', mentor.email || '');
-      setVal('settings-mentor-contact', mentor.contact || '');
+      setVal('settings-student-id', user.studentId || info.studentId || student.studentId || '');
+      setVal('settings-reg-num', user.registrationNumber || info.registrationNumber || '');
+      setVal('settings-degree', user.degreeProgramme || user.course || info.degreeProgramme || student.degree || '');
+      setVal('settings-dept', user.department || info.department || '');
+      setVal('settings-batch', user.batch || info.batch || '');
+      setVal('settings-email', user.email || info.email || '');
+      setVal('settings-phone', user.phone || info.phone || '');
 
-      const advisor = info.academicAdvisor || {};
-      setVal('settings-advisor-name', advisor.name || '');
-      setVal('settings-advisor-email', advisor.email || '');
-      setVal('settings-advisor-contact', advisor.contact || '');
+      setVal('settings-mentor-name', user.mentorName || (info.mentor && info.mentor.name) || '');
+      setVal('settings-mentor-email', user.mentorEmail || (info.mentor && info.mentor.email) || '');
+      setVal('settings-mentor-contact', user.mentorContact || (info.mentor && info.mentor.contact) || '');
+
+      setVal('settings-advisor-name', user.advisorName || (info.academicAdvisor && info.academicAdvisor.name) || '');
+      setVal('settings-advisor-email', user.advisorEmail || (info.academicAdvisor && info.academicAdvisor.email) || '');
+      setVal('settings-advisor-contact', user.advisorContact || (info.academicAdvisor && info.academicAdvisor.contact) || '');
     }
     if (targetGpaSetting) {
       document.getElementById('settings-target-gpa').value = targetGpaSetting.value;
