@@ -6,6 +6,7 @@
 
 import { Database } from '../database/db.js';
 import { NotificationService } from '../services/notifications.js';
+import { Auth } from '../auth.js';
 
 export const StudyModule = {
   pomodoroTimer: null,
@@ -17,11 +18,13 @@ export const StudyModule = {
   blurStartTime: null,
   blurCount: 0,
   sessionTotalSeconds: 25 * 60,
+  currentStreak: 0,
 
   init() {
     this.bindEvents();
     this.resetFocusStats(25 * 60);
     this.populatePomoSubjectsDropdown();
+    this.updateStreakCount();
 
     window.addEventListener('subjectsUpdated', () => this.populatePomoSubjectsDropdown());
 
@@ -121,9 +124,23 @@ export const StudyModule = {
     if (exitFocusBtn) {
       exitFocusBtn.addEventListener('click', () => this.exitFullscreenFocus());
     }
+
+    const refForm = document.getElementById('pomo-reflection-form');
+    if (refForm) {
+      refForm.addEventListener('submit', (e) => this.handleSaveReflection(e));
+    }
+
+    const closeRefBtn = document.getElementById('pomo-reflection-close');
+    if (closeRefBtn) {
+      closeRefBtn.addEventListener('click', () => {
+        const modal = document.getElementById('pomo-reflection-modal');
+        if (modal) modal.classList.remove('visible');
+      });
+    }
   },
 
   async render() {
+    this.updateStreakCount();
     const container = document.getElementById('study-plans-list-container');
     if (!container) return;
 
@@ -334,15 +351,41 @@ export const StudyModule = {
       clearInterval(this.pomodoroTimer);
       this.isTimerRunning = false;
       
-      const alarmTitle = this.timerType === 'focus' ? 'Focus Interval Complete!' : 'Break Over!';
-      const alarmMsg = this.timerType === 'focus' ? 'Well done, take a rest.' : 'Ready to resume focus?';
-      
-      NotificationService.show(alarmTitle, alarmMsg, 'study');
+      this.playChime();
       
       if (this.timerType === 'focus') {
-        await this.saveFocusMinutes();
+        const alarmTitle = 'Focus Interval Complete!';
+        const alarmMsg = 'Well done, take a rest.';
+        NotificationService.show(alarmTitle, alarmMsg, 'study');
+        
+        // Open reflection modal before switching to break
+        this.openReflectionModal();
+      } else {
+        const alarmTitle = 'Break Over!';
+        const alarmMsg = 'Ready to resume focus?';
+        NotificationService.show(alarmTitle, alarmMsg, 'study');
+        
+        // Break over, automatically transition back to focus
+        this.timerType = 'focus';
+        this.timeLeft = 25 * 60;
+        
+        const typeLabel = document.getElementById('pomo-type-label');
+        if (typeLabel) {
+          typeLabel.innerText = 'Focus Interval';
+        }
+
+        const typeLabelMain = document.getElementById('pomo-type-label-main');
+        if (typeLabelMain) {
+          typeLabelMain.innerText = 'Pomodoro Timer (Focus)';
+        }
+
+        const breakBtn = document.getElementById('pomo-break');
+        if (breakBtn) {
+          breakBtn.innerText = 'Take Break';
+        }
+
+        this.resetPomodoro();
       }
-      this.startBreak();
     }
   },
 
@@ -400,22 +443,181 @@ export const StudyModule = {
     }
   },
 
-  async saveFocusMinutes() {
-    const select = document.getElementById('pomo-subject-select');
-    if (!select) return;
-    const subId = select.value;
-    if (!subId) return;
+  playChime() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Dual chime audio synthesizer wave generation
+      const osc1 = audioCtx.createOscillator();
+      const gain1 = audioCtx.createGain();
+      osc1.connect(gain1);
+      gain1.connect(audioCtx.destination);
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+      gain1.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+      osc1.start(audioCtx.currentTime);
+      osc1.stop(audioCtx.currentTime + 0.6);
+
+      const osc2 = audioCtx.createOscillator();
+      const gain2 = audioCtx.createGain();
+      osc2.connect(gain2);
+      gain2.connect(audioCtx.destination);
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.15); // E5
+      gain2.gain.setValueAtTime(0.15, audioCtx.currentTime + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.75);
+      osc2.start(audioCtx.currentTime + 0.15);
+      osc2.stop(audioCtx.currentTime + 0.75);
+    } catch (err) {
+      console.warn('Ambient chime audio failed:', err);
+    }
+  },
+
+  openReflectionModal() {
+    const modal = document.getElementById('pomo-reflection-modal');
+    const form = document.getElementById('pomo-reflection-form');
+    if (modal && form) {
+      form.reset();
+      modal.classList.add('visible');
+    }
+  },
+
+  async handleSaveReflection(e) {
+    e.preventDefault();
+    const subSelect = document.getElementById('pomo-subject-select');
+    const noteInput = document.getElementById('pomo-reflection-notes');
+    if (!subSelect || !noteInput) return;
+
+    const subModuleId = subSelect.value;
+    const notes = noteInput.value.trim();
+    const duration = Math.round(this.sessionTotalSeconds / 60) || 25; // standard completed duration
+    const date = new Date().toISOString();
+    const userId = Auth.getCurrentUserId() || '';
+
+    // Calculate streak
+    await this.updateStreakCount();
+    const newStreak = this.currentStreak + 1;
+
+    const sessionData = {
+      id: 'fs-' + Date.now(),
+      subModuleId,
+      duration,
+      date,
+      notes,
+      streak: newStreak,
+      userId
+    };
 
     try {
-      const sub = await Database.get('subjects', subId);
-      if (sub) {
-        const completedMinutes = Math.round(this.sessionTotalSeconds / 60);
-        sub.studyMinutes = (sub.studyMinutes || 0) + completedMinutes;
-        await Database.put('subjects', sub);
-        window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+      // 1. Commit to focus_sessions
+      await Database.add('focus_sessions', sessionData);
+
+      // 2. Increment sub-module self-study minutes
+      if (subModuleId) {
+        const sub = await Database.get('subjects', subModuleId);
+        if (sub) {
+          sub.studyMinutes = (sub.studyMinutes || 0) + duration;
+          await Database.put('subjects', sub);
+        }
+      }
+
+      // Hide modal
+      const modal = document.getElementById('pomo-reflection-modal');
+      if (modal) modal.classList.remove('visible');
+
+      NotificationService.show('Session Saved', 'Great job! Focus session details logged.', 'success');
+
+      // Trigger redraw of analytics / contribution grids / calendar monthly review
+      window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+      window.dispatchEvent(new CustomEvent('focusSessionsUpdated'));
+
+      // Switch to break mode
+      this.timerType = 'break';
+      this.timeLeft = 5 * 60;
+      
+      const typeLabel = document.getElementById('pomo-type-label');
+      if (typeLabel) {
+        typeLabel.innerText = 'Short Rest Break';
+      }
+
+      const typeLabelMain = document.getElementById('pomo-type-label-main');
+      if (typeLabelMain) {
+        typeLabelMain.innerText = 'Pomodoro Timer (Break)';
+      }
+
+      const breakBtn = document.getElementById('pomo-break');
+      if (breakBtn) {
+        breakBtn.innerText = 'Focus Mode';
+      }
+
+      this.resetPomodoro();
+      await this.updateStreakCount();
+
+    } catch (err) {
+      console.error('Failed to save focus session:', err);
+    }
+  },
+
+  async updateStreakCount() {
+    const userId = Auth.getCurrentUserId();
+    if (!userId) return;
+
+    try {
+      const sessions = await Database.getAll('focus_sessions');
+      const userSessions = sessions.filter(s => s.userId === userId);
+      
+      // Sort sessions descending by date
+      userSessions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      let streak = 0;
+      if (userSessions.length > 0) {
+        let tempStreak = 0;
+        
+        // Filter unique dates to find daily streaks
+        const uniqueDates = [];
+        const dateSet = new Set();
+        userSessions.forEach(s => {
+          const dStr = s.date.slice(0, 10);
+          if (!dateSet.has(dStr)) {
+            dateSet.add(dStr);
+            uniqueDates.push(new Date(dStr));
+          }
+        });
+
+        if (uniqueDates.length > 0) {
+          const today = new Date();
+          today.setHours(0,0,0,0);
+          
+          let checkDate = new Date(uniqueDates[0]);
+          const diff = Math.abs(today - checkDate);
+          const diffDays = diff / (1000 * 60 * 60 * 24);
+
+          // If the last session is today or yesterday, streak is active
+          if (diffDays <= 1) {
+            tempStreak = 1;
+            for (let i = 1; i < uniqueDates.length; i++) {
+              const prev = new Date(uniqueDates[i - 1]);
+              const curr = new Date(uniqueDates[i]);
+              const dayDiff = (prev - curr) / (1000 * 60 * 60 * 24);
+              if (dayDiff <= 1.1) { // roughly 1 day difference
+                tempStreak++;
+              } else {
+                break;
+              }
+            }
+          }
+        }
+        streak = tempStreak;
+      }
+      
+      this.currentStreak = streak;
+      const streakValEl = document.getElementById('pomo-streak-val');
+      if (streakValEl) {
+        streakValEl.innerText = `${streak}`;
       }
     } catch (err) {
-      console.error('Failed to save focus minutes:', err);
+      console.error('Failed to calculate focus streak:', err);
     }
   }
 };

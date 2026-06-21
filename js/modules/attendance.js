@@ -126,15 +126,27 @@ export const AttendanceModule = {
 
         // Display status warning alerts and state labels
         const warningBadge = overallPct >= 80
-          ? `<span class="badge" style="margin-left: 8px; background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); font-family: var(--font-family-app) !important; font-weight: 600; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem;">Good (${overallPct.toFixed(0)}%)</span>`
+          ? `<span class="badge" style="margin-left: 8px; background: var(--accent-glow) !important; color: var(--accent) !important; border: 1px solid var(--border-color); font-family: var(--font-family-app) !important; font-weight: 600; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; transition: background 0.3s ease, color 0.3s ease;">Good (<strong>${overallPct.toFixed(0)}%</strong>)</span>`
           : overallPct >= 60
-            ? `<span class="badge" style="margin-left: 8px; background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); box-shadow: 0 0 8px rgba(245,158,11,0.2); font-family: var(--font-family-app) !important; font-weight: 600; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem;">Warning (${overallPct.toFixed(0)}%)</span>`
-            : `<span class="badge" style="margin-left: 8px; background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); font-family: var(--font-family-app) !important; font-weight: 600; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem;">Critical (${overallPct.toFixed(0)}%)</span>`;
+            ? `<span class="badge" style="margin-left: 8px; background: rgba(208, 0, 24, 0.15) !important; color: var(--danger) !important; border: 1px solid var(--danger); font-family: var(--font-family-app) !important; font-weight: 600; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem;">Warning (<strong>${overallPct.toFixed(0)}%</strong>)</span>`
+            : `<span class="badge" style="margin-left: 8px; background: rgba(208, 0, 24, 0.15) !important; color: var(--danger) !important; border: 1px solid var(--danger); font-family: var(--font-family-app) !important; font-weight: 600; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem;">Critical (<strong>${overallPct.toFixed(0)}%</strong>)</span>`;
 
-        // Visual colors
-        const lectColor = lectPct >= 80 ? 'var(--success)' : lectPct >= 60 ? 'var(--warning)' : 'var(--danger)';
-        const pracColor = pracPct >= 80 ? 'var(--success)' : pracPct >= 60 ? 'var(--warning)' : 'var(--danger)';
-        const fieldColor = fieldPct >= 80 ? 'var(--success)' : fieldPct >= 60 ? 'var(--warning)' : 'var(--danger)';
+        // Visual colors & Fills (enforce dynamic theme accents when overall is Good (>=80%), fallback to danger warnings when <80%)
+        const isSafe = overallPct >= 80;
+        const lectColor = isSafe ? 'var(--accent)' : 'var(--danger)';
+        const lectFill = isSafe 
+          ? 'linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%) !important'
+          : 'var(--danger) !important';
+
+        const pracColor = isSafe ? 'var(--accent)' : 'var(--danger)';
+        const pracFill = isSafe 
+          ? 'linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%) !important'
+          : 'var(--danger) !important';
+
+        const fieldColor = isSafe ? 'var(--accent)' : 'var(--danger)';
+        const fieldFill = isSafe 
+          ? 'linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%) !important'
+          : 'var(--danger) !important';
 
         let displayTitle = sub.isSubmodule 
           ? `${sub.parentSubjectCode} — ${sub.name}` 
@@ -164,15 +176,16 @@ export const AttendanceModule = {
 
             <!-- Warning/Status Alert Banner -->
             ${overallPct >= 80 ? `
-              <div style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: #10b981; font-weight: 600; font-family: var(--font-family-app) !important;">
-                ✅ Attendance is within the safe eligibility zone (Good).
+              <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; font-weight: 600; font-family: var(--font-family-app) !important; display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; flex-shrink: 0; transition: stroke 0.3s ease;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>Attendance is within the safe eligibility zone (Good).</span>
               </div>
             ` : overallPct >= 60 ? `
-              <div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: #f59e0b; font-weight: 600; box-shadow: 0 0 8px rgba(245,158,11,0.1); font-family: var(--font-family-app) !important;">
+              <div style="background: rgba(208, 0, 24, 0.08); border: 1px solid var(--danger); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: var(--danger); font-weight: 600; font-family: var(--font-family-app) !important;">
                 ⚠️ Attendance is borderline (Warning). Try to attend upcoming sessions to avoid falling below 80%.
               </div>
             ` : `
-              <div style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: #ef4444; font-weight: 600; font-family: var(--font-family-app) !important;">
+              <div style="background: rgba(208, 0, 24, 0.08); border: 1px solid var(--danger); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: var(--danger); font-weight: 600; font-family: var(--font-family-app) !important;">
                 ⛔ ATTENDANCE CRITICAL: Exam admission eligibility is currently barred (Below 60%).
               </div>
             `}
@@ -183,10 +196,10 @@ export const AttendanceModule = {
               <div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-family: var(--font-family-app) !important;">
                   <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing:0.04em; font-family: var(--font-family-app) !important;">Lectures</span>
-                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 700; color: ${lectColor};">${lectPct.toFixed(0)}%</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 700; color: ${lectColor} !important; transition: color 0.3s ease;">${lectPct.toFixed(0)}%</span>
                 </div>
                 <div style="height: 6px; background: var(--border-color); border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
-                  <div style="width: ${Math.min(lectPct, 100)}%; height: 100%; background: ${lectColor}; border-radius: 4px; transition: width 0.4s ease;"></div>
+                  <div style="width: ${Math.min(lectPct, 100)}%; height: 100%; background: ${lectFill}; border-radius: 4px; transition: width 0.4s ease;"></div>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--font-family-app) !important;">
                   <input type="number" class="att-input present-input" data-code="${sub.code}" data-track="lecture" data-field="present" value="${record.lecture.present}" min="0" style="width: 52px; height: 26px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); text-align: center; font-size: 0.8rem; font-family: var(--font-family-app) !important; outline: none; border-color: rgba(255, 255, 255, 0.15);" />
@@ -199,10 +212,10 @@ export const AttendanceModule = {
               <div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-family: var(--font-family-app) !important;">
                   <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing:0.04em; font-family: var(--font-family-app) !important;">Practicals</span>
-                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 700; color: ${pracColor};">${pracPct.toFixed(0)}%</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 700; color: ${pracColor} !important; transition: color 0.3s ease;">${pracPct.toFixed(0)}%</span>
                 </div>
                 <div style="height: 6px; background: var(--border-color); border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
-                  <div style="width: ${Math.min(pracPct, 100)}%; height: 100%; background: ${pracColor}; border-radius: 4px; transition: width 0.4s ease;"></div>
+                  <div style="width: ${Math.min(pracPct, 100)}%; height: 100%; background: ${pracFill}; border-radius: 4px; transition: width 0.4s ease;"></div>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--font-family-app) !important;">
                   <input type="number" class="att-input present-input" data-code="${sub.code}" data-track="practical" data-field="present" value="${record.practical.present}" min="0" style="width: 52px; height: 26px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); text-align: center; font-size: 0.8rem; font-family: var(--font-family-app) !important; outline: none; border-color: rgba(255, 255, 255, 0.15);" />
@@ -215,10 +228,10 @@ export const AttendanceModule = {
               <div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-family: var(--font-family-app) !important;">
                   <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing:0.04em; font-family: var(--font-family-app) !important;">Field Work</span>
-                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 700; color: ${fieldColor};">${fieldPct.toFixed(0)}%</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 700; color: ${fieldColor} !important; transition: color 0.3s ease;">${fieldPct.toFixed(0)}%</span>
                 </div>
                 <div style="height: 6px; background: var(--border-color); border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
-                  <div style="width: ${Math.min(fieldPct, 100)}%; height: 100%; background: ${fieldColor}; border-radius: 4px; transition: width 0.4s ease;"></div>
+                  <div style="width: ${Math.min(fieldPct, 100)}%; height: 100%; background: ${fieldFill}; border-radius: 4px; transition: width 0.4s ease;"></div>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--font-family-app) !important;">
                   <input type="number" class="att-input present-input" data-code="${sub.code}" data-track="fieldWork" data-field="present" value="${record.fieldWork.present}" min="0" style="width: 52px; height: 26px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); text-align: center; font-size: 0.8rem; font-family: var(--font-family-app) !important; outline: none; border-color: rgba(255, 255, 255, 0.15);" />

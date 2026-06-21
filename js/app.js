@@ -24,6 +24,19 @@ import { AnalyticsModule } from './modules/analytics.js';
 import { ResearchModule } from './modules/research.js';
 import { ResourcesModule } from './modules/resources.js';
 
+window.getCurrentThemeColors = function() {
+  const theme = document.body.getAttribute('data-studio-theme') || 'space-gravity';
+  const colors = {
+    'space-gravity': { accent: '#00e5ff', secondary: '#00e676', glow: 'rgba(0, 229, 255, 0.2)' },
+    'emerald-aurora': { accent: '#45dfb1', secondary: '#80ed99', glow: 'rgba(69, 223, 177, 0.22)' },
+    'sunset-amethyst': { accent: '#e3b6b1', secondary: '#522c5d', glow: 'rgba(227, 182, 177, 0.22)' },
+    'deep-indigo': { accent: '#00b4d8', secondary: '#90e0ef', glow: 'rgba(0, 180, 216, 0.22)' },
+    'steel-slate': { accent: '#aab7b7', secondary: '#d4d8dd', glow: 'rgba(170, 183, 183, 0.25)' },
+    'crimson-obsidian': { accent: '#d00018', secondary: '#ff5252', glow: 'rgba(208, 0, 24, 0.28)' }
+  };
+  return colors[theme] || colors['space-gravity'];
+};
+
 try {
   const firebaseApp = getApps().length === 0 ? initializeApp({
     apiKey: "AIzaSyB_nhE7dhy1gYPJxRuScPZ9khXnPT5te_E",
@@ -1271,7 +1284,12 @@ const App = {
           NotificationService.show('Theme Applied', 'Theme Studio settings updated.', 'success');
           // Wait one animation frame so the browser commits the new
           // data-studio-theme CSS variables before charts sample getColor().
-          requestAnimationFrame(() => AnalyticsModule.render());
+          requestAnimationFrame(() => {
+            AnalyticsModule.render();
+            GPAModule.render();
+            AcademicModule.render();
+            AttendanceModule.render();
+          });
         } catch (err) {
           console.error('Save Theme Studio settings error:', err);
         }
@@ -1292,7 +1310,12 @@ const App = {
           this.applyThemeStudio('space-gravity', true, true, true, true);
           NotificationService.show('Theme Reset', 'Default Space Gravity theme restored.', 'info');
           // Wait one frame so CSS variable reset propagates before charts recolor.
-          requestAnimationFrame(() => AnalyticsModule.render());
+          requestAnimationFrame(() => {
+            AnalyticsModule.render();
+            GPAModule.render();
+            AcademicModule.render();
+            AttendanceModule.render();
+          });
         } catch (err) {
           console.error(err);
         }
@@ -1333,6 +1356,9 @@ const App = {
   // ────────────────────────────────────────────────────────────────────────────
 
   navigateTo(viewId) {
+    if (viewId === 'focus') {
+      viewId = 'study';
+    }
     this.currentView = viewId;
 
     // Use cached NodeList — avoids re-querying the DOM on every nav click
@@ -1922,6 +1948,130 @@ const App = {
       cell.className = 'calendar-cell other-month';
       cell.innerHTML = `<span class="calendar-date-number">${n}</span>`;
       grid.appendChild(cell);
+    }
+
+    // --- Month Selector Dropdown ---
+    const selector = document.getElementById('calendar-month-selector');
+    if (selector) {
+      if (selector.options.length === 0) {
+        const today = new Date();
+        // Generate options: 12 months past, current, 12 months future
+        for (let i = -12; i <= 12; i++) {
+          const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+          const opt = document.createElement('option');
+          opt.value = `${d.getFullYear()}-${d.getMonth()}`;
+          opt.innerText = d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+          selector.appendChild(opt);
+        }
+
+        selector.addEventListener('change', (e) => {
+          const [y, m] = e.target.value.split('-').map(Number);
+          this.currentDate.setFullYear(y);
+          this.currentDate.setMonth(m);
+          this.renderCalendar();
+        });
+      }
+      selector.value = `${year}-${month}`;
+    }
+
+    // --- Monthly Historical Review HUD Card ---
+    try {
+      const focusSessions = await Database.getAll('focus_sessions');
+      const userId = Auth.getCurrentUserId();
+
+      // Focus hours in the selected month
+      const monthFocus = focusSessions.filter(s => {
+        if (!s.date || s.userId !== userId) return false;
+        const d = new Date(s.date);
+        return d.getFullYear() === year && d.getMonth() === month;
+      });
+      const totalFocusMinutes = monthFocus.reduce((sum, s) => sum + (s.duration || 0), 0);
+      const focusHours = (totalFocusMinutes / 60).toFixed(1);
+
+      // Tasks in the selected month (assignments + study plans)
+      const monthAssignments = assignments.filter(a => {
+        if (!a.deadline || a.userId !== userId) return false;
+        const d = new Date(a.deadline);
+        return d.getFullYear() === year && d.getMonth() === month;
+      });
+      const monthStudyPlans = studyplans.filter(p => {
+        if (!p.date) return false;
+        const d = new Date(p.date);
+        return d.getFullYear() === year && d.getMonth() === month;
+      });
+
+      const totalTasks = monthAssignments.length + monthStudyPlans.length;
+      const completedTasks = monthAssignments.filter(a => a.status === 'Completed').length + monthStudyPlans.filter(p => p.completed).length;
+      const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 100;
+
+      // Overdue, missed, or uncompleted tasks from previous months
+      const prevDateThreshold = new Date(year, month, 1);
+      const overdueAssignments = assignments.filter(a => {
+        if (!a.deadline || a.userId !== userId) return false;
+        const d = new Date(a.deadline);
+        return d < prevDateThreshold && a.status !== 'Completed';
+      });
+      const overdueStudyPlans = studyplans.filter(p => {
+        if (!p.date) return false;
+        const d = new Date(p.date);
+        return d < prevDateThreshold && !p.completed;
+      });
+
+      const reviewCard = document.getElementById('calendar-monthly-review-card');
+      if (reviewCard) {
+        let overdueHTML = '';
+        if (overdueAssignments.length === 0 && overdueStudyPlans.length === 0) {
+          overdueHTML = `
+            <div style="font-size: 0.78rem; color: var(--success); font-weight: 600; font-family: var(--font-family-app) !important;">
+              ✓ No overdue or missed tasks from previous months.
+            </div>
+          `;
+        } else {
+          overdueHTML = `
+            <div style="display: flex; flex-direction: column; gap: 8px; max-height: 120px; overflow-y: auto;">
+              ${overdueAssignments.map(a => `
+                <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: #ff5252; font-family: var(--font-family-app) !important;">
+                  <span style="font-family: var(--font-family-app) !important;">📬 Assignment: ${a.title} (due ${a.deadline})</span>
+                  <strong>MISSED</strong>
+                </div>
+              `).join('')}
+              ${overdueStudyPlans.map(p => `
+                <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: #ff5252; font-family: var(--font-family-app) !important;">
+                  <span style="font-family: var(--font-family-app) !important;">📚 Study Plan: ${p.title} (date ${p.date})</span>
+                  <strong>INCOMPLETE</strong>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+
+        reviewCard.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 12px; width: 100%;">
+            <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); font-family: var(--font-family-app) !important;">📊 Monthly Historical Review HUD</span>
+            <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">Completion Rate: <span style="color: var(--accent);">${completionRate}%</span></span>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; width: 100%; margin-top: 4px;">
+            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; border-right: 1px solid rgba(255, 255, 255, 0.05); padding-right: 20px;">
+              <div style="display: flex; justify-content: space-between; font-family: var(--font-family-app) !important;">
+                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Completed Tasks:</span>
+                <strong style="font-family: var(--font-family-app) !important;">${completedTasks} / ${totalTasks}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-family: var(--font-family-app) !important;">
+                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Focus Hours Logged:</span>
+                <strong style="font-family: var(--font-family-app) !important;">${focusHours} hrs</strong>
+              </div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px; margin-bottom: 4px; font-family: var(--font-family-app) !important;">Overdue & Missed Items</div>
+              ${overdueHTML}
+            </div>
+          </div>
+        `;
+      }
+    } catch (err) {
+      console.error('Failed to render Monthly Historical Review HUD:', err);
     }
   },
 

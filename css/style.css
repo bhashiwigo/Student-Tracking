@@ -18,6 +18,7 @@
   --border-hover: rgba(0, 229, 255, 0.35);
 
   --accent: #00e5ff;
+  --accent-rgb-fallback: 0, 229, 255;
   /* Cyber Teal */
   --accent-glow: rgba(0, 229, 255, 0.2);
   --accent-secondary: #00e676;
@@ -55,6 +56,7 @@ body[data-studio-theme="emerald-aurora"] {
   --border-color: rgba(69, 223, 177, 0.18);
   --border-hover: rgba(69, 223, 177, 0.38);
   --accent: #45dfb1;
+  --accent-rgb-fallback: 69, 223, 177;
   --accent-glow: rgba(69, 223, 177, 0.22);
   --accent-secondary: #80ed99;
   --accent-secondary-glow: rgba(128, 237, 153, 0.2);
@@ -72,6 +74,7 @@ body[data-studio-theme="sunset-amethyst"] {
   --border-color: rgba(227, 182, 177, 0.2);
   --border-hover: rgba(227, 182, 177, 0.4);
   --accent: #e3b6b1;
+  --accent-rgb-fallback: 227, 182, 177;
   --accent-glow: rgba(227, 182, 177, 0.22);
   --accent-secondary: #522c5d;
   --accent-secondary-glow: rgba(82, 44, 93, 0.22);
@@ -89,6 +92,7 @@ body[data-studio-theme="deep-indigo"] {
   --border-color: rgba(0, 180, 216, 0.2);
   --border-hover: rgba(0, 180, 216, 0.4);
   --accent: #00b4d8;
+  --accent-rgb-fallback: 0, 180, 216;
   --accent-glow: rgba(0, 180, 216, 0.22);
   --accent-secondary: #90e0ef;
   --accent-secondary-glow: rgba(144, 224, 239, 0.2);
@@ -106,6 +110,7 @@ body[data-studio-theme="steel-slate"] {
   --border-color: rgba(170, 183, 183, 0.22);
   --border-hover: rgba(170, 183, 183, 0.42);
   --accent: #aab7b7;
+  --accent-rgb-fallback: 170, 183, 183;
   --accent-glow: rgba(170, 183, 183, 0.25);
   --accent-secondary: #d4d8dd;
   --accent-secondary-glow: rgba(212, 216, 221, 0.2);
@@ -123,6 +128,7 @@ body[data-studio-theme="crimson-obsidian"] {
   --border-color: rgba(208, 0, 24, 0.22);
   --border-hover: rgba(208, 0, 24, 0.48);
   --accent: #d00018;
+  --accent-rgb-fallback: 208, 0, 24;
   --accent-glow: rgba(208, 0, 24, 0.28);
   --accent-secondary: #ff5252;
   --accent-secondary-glow: rgba(255, 82, 82, 0.28);
@@ -1613,7 +1619,7 @@ body.no-accent-lighting::after {
   stroke: var(--accent);
   stroke-width: 7;
   stroke-linecap: round;
-  transition: stroke-dashoffset 0.6s ease;
+  transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease, filter 0.3s ease;
   filter: drop-shadow(0 0 4px var(--accent));
 }
 
@@ -1626,22 +1632,56 @@ body.no-accent-lighting::after {
 }
 
 /* D: Attendance SVG ring — dynamic colour states */
-/* Default (good ≥80%): accent colour inherited from .ring-fill */
+/* Defer stroke properties entirely to JS drawing loop querying theme CSS variables */
 .att-ring-fill {
-  stroke: var(--success);
-  filter: drop-shadow(0 0 4px var(--success));
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease, filter 0.3s ease;
 }
 
-/* Warning state 60-79% */
-.att-ring-fill.att-warn {
-  stroke: #f59e0b;
-  filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.6));
+/* Dynamic Progress Bar Fill Nodes Styling */
+#hud-progress-fill {
+  background: var(--accent) !important;
+  transition: width 0.5s ease, background 0.3s ease !important;
+}
+#hud-progress-fill.unlocked {
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%) !important;
+}
+#hud-interview-score-fill,
+#progress-completion-fill {
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%) !important;
+  transition: width 0.5s ease, background 0.3s ease !important;
 }
 
-/* Danger state <60% */
-.att-ring-fill.att-danger {
-  stroke: var(--accent-secondary, #ff5252);
-  filter: drop-shadow(0 0 4px rgba(255, 82, 82, 0.6));
+/* Focus Grid Heatmap Tiles */
+.heatmap-tile {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+.heatmap-tile.tile-empty {
+  background: rgba(255, 255, 255, 0.04);
+}
+.heatmap-tile.tile-low {
+  background: var(--accent-glow);
+}
+.heatmap-tile.tile-mid-low {
+  background: rgba(var(--accent-rgb-fallback, 0, 229, 255), 0.5);
+}
+.heatmap-tile.tile-mid-high {
+  background: rgba(var(--accent-rgb-fallback, 0, 229, 255), 0.75);
+}
+.heatmap-tile.tile-peak {
+  background: var(--accent) !important;
+}
+
+/* Text Numeric Highlights color override */
+#gpa-display-semester {
+  color: var(--accent) !important;
+  transition: color 0.3s ease;
 }
 
 /* E: Current Academic Balance Horizontal Progress Bars */
@@ -2294,8 +2334,8 @@ body[data-theme="light"] .input-text:focus,
 body[data-theme="light"] .select-input:focus,
 body[data-theme="light"] .textarea-input:focus {
   background-color: #ffffff;
-  border-color: #000000;
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 /* Command Palette contrast correction */
@@ -2377,4 +2417,27 @@ body[data-theme="light"] .radial-ring-value {
 .lab-completion-container::-webkit-scrollbar,
 #view-gpa .card:has(#gpa-table-body)::-webkit-scrollbar {
   width: 4px;
+}
+
+/* Glow and pulse animation for crimson risk badges */
+@keyframes critical-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(255, 23, 68, 0.25);
+    border-color: var(--danger);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 23, 68, 0.6);
+    border-color: #ff5252;
+  }
+}
+
+.critical-risk-badge {
+  animation: critical-pulse 2.5s infinite;
+}
+
+/* Attendance Summary Widget Card override to enforce uniform glassmorphic style */
+#dashboard-attendance-summary-card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: var(--shadow-md), inset 0 1px 1px rgba(255, 255, 255, 0.05) !important;
 }

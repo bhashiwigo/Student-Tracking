@@ -8,7 +8,7 @@ import { Auth } from '../auth.js';
 import { FirestoreSync } from './firestore-sync.js';
 
 const DB_NAME = 'RajarataCampusLifeDB';
-const DB_VERSION = 13; // Bumped to 13 to support defensive migrations, dynamic sanitization, and LWW sync
+const DB_VERSION = 14; // Bumped to 14 to support focus_sessions and user_habits stores
 
 let dbInstance = null;
 
@@ -96,6 +96,16 @@ export const initDB = () => {
       // Academic Resources Store (v11)
       if (!db.objectStoreNames.contains('resources')) {
         db.createObjectStore('resources', { keyPath: 'id' });
+      }
+
+      // Focus Sessions Store (v14)
+      if (!db.objectStoreNames.contains('focus_sessions')) {
+        db.createObjectStore('focus_sessions', { keyPath: 'id' });
+      }
+
+      // User Habits Store (v14)
+      if (!db.objectStoreNames.contains('user_habits')) {
+        db.createObjectStore('user_habits', { keyPath: 'id' });
       }
 
       // v6: Student Profile Migration pass
@@ -574,6 +584,19 @@ const sanitizeRow = (storeName, row) => {
     if (row.deadline === undefined) row.deadline = row.date || '';
     if (row.status === undefined) row.status = 'Pending';
     if (row.priority === undefined) row.priority = 'Low';
+  }
+
+  if (storeName === 'focus_sessions') {
+    if (row.subModuleId === undefined) row.subModuleId = '';
+    if (row.duration === undefined) row.duration = 25;
+    if (row.date === undefined) row.date = '';
+    if (row.notes === undefined) row.notes = '';
+    if (row.streak === undefined) row.streak = 0;
+  }
+
+  if (storeName === 'user_habits') {
+    if (row.habitName === undefined) row.habitName = '';
+    if (row.completionDatesArray === undefined) row.completionDatesArray = [];
   }
 };
 

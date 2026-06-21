@@ -25,6 +25,23 @@ let dashboardRadarChart       = null;
 let analyticsDetailedChart    = null;
 let studySessionStatsChart    = null;
 
+const adjustOpacity = (color, opacity) => {
+  if (!color) return `rgba(255,255,255,${opacity})`;
+  if (color.startsWith('rgb')) {
+    const nums = color.match(/[\d.]+/g);
+    if (nums && nums.length >= 3) {
+      return `rgba(${nums[0]}, ${nums[1]}, ${nums[2]}, ${opacity})`;
+    }
+  }
+  if (color.startsWith('#')) {
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }
+  return color;
+};
+
 // Default RUSL Grade boundary thresholds (minimum raw marks out of 100)
 const RUSL_GRADE_BOUNDARIES = {
   'A+': 90, 'A': 85, 'A-': 80,
@@ -112,6 +129,7 @@ export const AnalyticsModule = {
     window.addEventListener('subjectsUpdated',      scheduleRender);
     window.addEventListener('attendanceUpdated',    scheduleRender);
     window.addEventListener('calendarItemsUpdated', scheduleRender);
+    window.addEventListener('focusSessionsUpdated', scheduleRender);
 
     // Intercept predictor dropdown changes
     const selectPredictor = document.getElementById('predictor-subject-select');
@@ -135,6 +153,7 @@ export const AnalyticsModule = {
   },
 
   async render() {
+    const themeColors = window.getCurrentThemeColors ? window.getCurrentThemeColors() : { accent: '#00e5ff', secondary: '#00e676', glow: 'rgba(0, 229, 255, 0.2)' };
     const dashboardTrendCanvas    = document.getElementById('chart-dashboard-gpa');
     const analyticsDetailedCanvas = document.getElementById('chart-analytics-detailed');
     const studyStatsCanvas        = document.getElementById('chart-analytics-study');
@@ -190,6 +209,9 @@ export const AnalyticsModule = {
         const percent = Math.min((currentCumGpa / 4.0) * 100, 100);
         const dashOffset = 251.2 - (percent / 100) * 251.2;
         gpaRingFill.style.strokeDashoffset = dashOffset;
+        const accentColor = getColor('--accent') || '#00e5ff';
+        gpaRingFill.style.stroke = accentColor;
+        gpaRingFill.style.filter = `drop-shadow(0 0 4px ${accentColor})`;
       }
 
       // D: Dashboard Attendance SVG Ring
@@ -245,15 +267,51 @@ export const AnalyticsModule = {
       }
 
       const attRingFill = document.getElementById('dash-metric-att-ring');
-      if (attRingFill) {
-        const dashOffset = 251.2 - (Math.min(pct, 100) / 100) * 251.2;
-        attRingFill.style.strokeDashoffset = dashOffset;
+      const attCard = document.getElementById('dashboard-attendance-summary-card');
+      if (attRingFill || attCard) {
+        const accent = getColor('--accent') || '#00e5ff';
+        const secondary = getColor('--accent-secondary') || '#00e676';
+        
+        const parseToRgb = (str) => {
+          if (!str) return [0, 229, 255];
+          if (str.startsWith('#')) {
+            const hex = str.slice(1);
+            const full = hex.length <= 4 ? hex.split('').map(c => c + c).join('') : hex;
+            return [
+              parseInt(full.slice(0, 2), 16),
+              parseInt(full.slice(2, 4), 16),
+              parseInt(full.slice(4, 6), 16)
+            ];
+          }
+          const m = str.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+          if (m) {
+            return [parseInt(m[1]), parseInt(m[2]), parseInt(m[3])];
+          }
+          return [0, 229, 255];
+        };
 
-        attRingFill.classList.remove('att-warn', 'att-danger');
+        const rgbAccent = parseToRgb(accent);
+        const rgbSec = parseToRgb(secondary);
+
+        let finalStroke = accent;
+        let finalShadow = `rgba(${rgbAccent[0]}, ${rgbAccent[1]}, ${rgbAccent[2]}, 0.25)`;
+
         if (pct < 60) {
-          attRingFill.classList.add('att-danger');
+          finalStroke = secondary;
+          finalShadow = `rgba(${rgbSec[0]}, ${rgbSec[1]}, ${rgbSec[2]}, 0.25)`;
         } else if (pct < 80) {
-          attRingFill.classList.add('att-warn');
+          const r = Math.round(rgbAccent[0] * 0.6 + rgbSec[0] * 0.4);
+          const g = Math.round(rgbAccent[1] * 0.6 + rgbSec[1] * 0.4);
+          const b = Math.round(rgbAccent[2] * 0.6 + rgbSec[2] * 0.4);
+          finalStroke = `rgb(${r}, ${g}, ${b})`;
+          finalShadow = `rgba(${r}, ${g}, ${b}, 0.25)`;
+        }
+
+        if (attRingFill) {
+          const dashOffset = 251.2 - (Math.min(pct, 100) / 100) * 251.2;
+          attRingFill.style.strokeDashoffset = dashOffset;
+          attRingFill.style.stroke = finalStroke;
+          attRingFill.style.filter = `drop-shadow(0 0 4px ${finalStroke})`;
         }
       }
 
@@ -262,22 +320,6 @@ export const AnalyticsModule = {
 
       const attMetricEl = document.getElementById('dash-metric-att');
       if (attMetricEl) attMetricEl.innerText = `${pct.toFixed(0)}%`;
-
-      // Apply dynamic accent glows border automatically to `#dashboard-attendance-summary-card`
-      const attCard = document.getElementById('dashboard-attendance-summary-card');
-      if (attCard) {
-        attCard.style.transition = 'border 0.3s ease, box-shadow 0.3s ease';
-        if (pct >= 80) {
-          attCard.style.border = '1px solid var(--success, #00e676)';
-          attCard.style.boxShadow = '0 0 15px rgba(0, 230, 118, 0.25)';
-        } else if (pct >= 60) {
-          attCard.style.border = '1px solid var(--warning, #ffd600)';
-          attCard.style.boxShadow = '0 0 15px rgba(255, 214, 0, 0.25)';
-        } else {
-          attCard.style.border = '1px solid var(--danger, #ff1744)';
-          attCard.style.boxShadow = '0 0 15px rgba(255, 23, 68, 0.25)';
-        }
-      }
 
       // 2. Bind Section E: "Current Academic Balance"
       const balanceContainer = document.querySelector('.balance-progress-group');
@@ -384,6 +426,8 @@ export const AnalyticsModule = {
           return lab * (practicalWeight / 100) * credits;
         });
 
+        const themeColors = window.getCurrentThemeColors ? window.getCurrentThemeColors() : { accent: '#00e5ff', secondary: '#00e676' };
+
         dashboardGPATrendChart = new Chart(dashboardTrendCanvas.getContext('2d'), {
           type: 'line',
           data: {
@@ -392,22 +436,22 @@ export const AnalyticsModule = {
               {
                 label: 'Weighted Theory Component',
                 data: theoryData,
-                borderColor: getColor('--accent-secondary') || '#00e676',
-                backgroundColor: getColor('--accent-secondary', 0.02) || 'rgba(0, 230, 118, 0.02)',
+                borderColor: themeColors.secondary,
+                backgroundColor: adjustOpacity(themeColors.secondary, 0.02),
                 tension: 0.35,
                 borderWidth: 2,
                 fill: true,
-                pointBackgroundColor: getColor('--accent-secondary') || '#00e676'
+                pointBackgroundColor: themeColors.secondary
               },
               {
                 label: 'Weighted Practical Component',
                 data: practicalData,
-                borderColor: getColor('--accent'),
-                backgroundColor: getColor('--accent', 0.05),
+                borderColor: themeColors.accent,
+                backgroundColor: adjustOpacity(themeColors.accent, 0.05),
                 tension: 0.35,
                 borderWidth: 2,
                 fill: true,
-                pointBackgroundColor: getColor('--accent')
+                pointBackgroundColor: themeColors.accent
               }
             ]
           },
@@ -426,36 +470,36 @@ export const AnalyticsModule = {
         if (practicalSubjects.length === 0) {
           labContainer.innerHTML = `
             <div class="lab-item">
-              <div class="lab-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <div class="lab-header">
                 <span>Botany 1</span>
-                <span style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 2px 8px; color: #000000; font-weight: 800; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">0%</span>
+                <span>0%</span>
               </div>
               <div class="lab-bar-bg">
                 <div class="lab-bar-fill" style="width: 0%;"></div>
               </div>
             </div>
             <div class="lab-item">
-              <div class="lab-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <div class="lab-header">
                 <span>Report 2</span>
-                <span style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 2px 8px; color: #000000; font-weight: 800; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">0%</span>
+                <span>0%</span>
               </div>
               <div class="lab-bar-bg">
                 <div class="lab-bar-fill" style="width: 0%;"></div>
               </div>
             </div>
             <div class="lab-item">
-              <div class="lab-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <div class="lab-header">
                 <span>Zoology</span>
-                <span style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 2px 8px; color: #000000; font-weight: 800; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">0%</span>
+                <span>0%</span>
               </div>
               <div class="lab-bar-bg">
                 <div class="lab-bar-fill" style="width: 0%;"></div>
               </div>
             </div>
             <div class="lab-item">
-              <div class="lab-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <div class="lab-header">
                 <span>Lab</span>
-                <span style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 2px 8px; color: #000000; font-weight: 800; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">0%</span>
+                <span>0%</span>
               </div>
               <div class="lab-bar-bg">
                 <div class="lab-bar-fill" style="width: 0%;"></div>
@@ -470,9 +514,9 @@ export const AnalyticsModule = {
             const percentage = totalLabs > 0 ? Math.round((completedLabs / totalLabs) * 100) : 0;
             return `
               <div class="lab-item">
-                <div class="lab-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="lab-header">
                   <span>${getCleanSubmoduleLabel(s, rawParents)}</span>
-                  <span style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 2px 8px; color: #000000; font-weight: 800; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">${percentage}%</span>
+                  <span>${percentage}%</span>
                 </div>
                 <div class="lab-bar-bg">
                   <div class="lab-bar-fill" style="width: ${percentage}%;"></div>
@@ -563,7 +607,7 @@ export const AnalyticsModule = {
             labels: ['Completed', 'In Progress', 'Pending'],
             datasets: [{
               data: [completedCount, progressCount, pendingCount],
-              backgroundColor: [getColor('--success'), getColor('--accent'), getColor('--accent-secondary')],
+              backgroundColor: [themeColors.secondary, themeColors.accent, adjustOpacity(themeColors.accent, 0.45)],
               borderWidth: 1,
               borderColor: 'var(--border-color)'
             }]
@@ -614,13 +658,13 @@ export const AnalyticsModule = {
               {
                 label: 'Study Hours',
                 data: studyData,
-                backgroundColor: getColor('--success'),
+                backgroundColor: themeColors.secondary,
                 borderRadius: 4
               },
               {
                 label: 'Sports Hours',
                 data: sportsData,
-                backgroundColor: getColor('--accent-secondary'),
+                backgroundColor: themeColors.accent,
                 borderRadius: 4
               }
             ]
@@ -631,12 +675,12 @@ export const AnalyticsModule = {
             scales: {
               y: {
                 beginAtZero: true,
-                grid: { color: 'rgba(128, 128, 128, 0.08)' },
-                ticks: { color: getColor('--text-secondary') }
+                grid: { color: adjustOpacity(themeColors.accent, 0.08) },
+                ticks: { color: 'var(--text-secondary)', font: { family: 'var(--font-family-app)' } }
               },
               x: {
                 grid: { display: false },
-                ticks: { color: getColor('--text-secondary') }
+                ticks: { color: 'var(--text-secondary)', font: { family: 'var(--font-family-app)' } }
               }
             },
             plugins: {
@@ -675,18 +719,18 @@ export const AnalyticsModule = {
               {
                 label: 'Credits weight (%)',
                 data: radarCredits.length > 0 ? radarCredits : [0],
-                backgroundColor: getColor('--accent', 0.15),
-                borderColor: getColor('--accent'),
+                backgroundColor: adjustOpacity(themeColors.accent, 0.15),
+                borderColor: themeColors.accent,
                 borderWidth: 1.5,
-                pointBackgroundColor: getColor('--accent')
+                pointBackgroundColor: themeColors.accent
               },
               {
                 label: 'Attendance rate (%)',
                 data: radarAtt.length > 0 ? radarAtt : [0],
-                backgroundColor: getColor('--success', 0.15),
-                borderColor: getColor('--success'),
+                backgroundColor: adjustOpacity(themeColors.secondary, 0.15),
+                borderColor: themeColors.secondary,
                 borderWidth: 1.5,
-                pointBackgroundColor: getColor('--success')
+                pointBackgroundColor: themeColors.secondary
               }
             ]
           },
@@ -695,9 +739,9 @@ export const AnalyticsModule = {
             maintainAspectRatio: false,
             scales: {
               r: {
-                angleLines: { color: 'rgba(128, 128, 128, 0.15)' },
-                grid: { color: 'rgba(128, 128, 128, 0.15)' },
-                pointLabels: { color: getColor('--text-secondary'), font: { size: 9 } },
+                angleLines: { color: adjustOpacity(themeColors.accent, 0.15) },
+                grid: { color: adjustOpacity(themeColors.accent, 0.15) },
+                pointLabels: { color: 'var(--text-secondary)', font: { size: 9, family: 'var(--font-family-app)' } },
                 ticks: { display: false },
                 suggestedMin: 0,
                 suggestedMax: 100
@@ -740,13 +784,13 @@ export const AnalyticsModule = {
               {
                 label: 'Attendance Rate (%)',
                 data: subAtt.length > 0 ? subAtt : [0],
-                backgroundColor: getColor('--success'),
+                backgroundColor: themeColors.secondary,
                 borderRadius: 6
               },
               {
                 label: 'Grade Points Equivalency (%)',
                 data: subGrades.length > 0 ? subGrades : [0],
-                backgroundColor: getColor('--accent'),
+                backgroundColor: themeColors.accent,
                 borderRadius: 6
               }
             ]
@@ -758,20 +802,20 @@ export const AnalyticsModule = {
               y: {
                 min: 0,
                 max: 100,
-                grid: { color: 'rgba(128, 128, 128, 0.08)' },
+                grid: { color: adjustOpacity(themeColors.accent, 0.08) },
                 ticks: { 
-                  color: getColor('--text-secondary'),
+                  color: 'var(--text-secondary)',
                   font: {
-                    family: 'var(--font-family-app) !important'
+                    family: 'var(--font-family-app)'
                   }
                 }
               },
               x: {
                 grid: { display: false },
                 ticks: { 
-                  color: getColor('--text-secondary'),
+                  color: 'var(--text-secondary)',
                   font: {
-                    family: 'var(--font-family-app) !important'
+                    family: 'var(--font-family-app)'
                   },
                   maxRotation: 45,
                   minRotation: 45
@@ -781,9 +825,9 @@ export const AnalyticsModule = {
             plugins: {
               legend: { 
                 labels: { 
-                  color: getColor('--text-primary'),
+                  color: 'var(--text-primary)',
                   font: {
-                    family: 'var(--font-family-app) !important'
+                    family: 'var(--font-family-app)'
                   }
                 } 
               }
@@ -812,7 +856,7 @@ export const AnalyticsModule = {
             datasets: [{
               label: 'Study Hours',
               data: hours.length > 0 ? hours : [0],
-              backgroundColor: getColor('--success'),
+              backgroundColor: themeColors.accent,
               borderRadius: 6
             }]
           },
@@ -822,12 +866,12 @@ export const AnalyticsModule = {
             scales: {
               y: {
                 beginAtZero: true,
-                grid: { color: 'rgba(128, 128, 128, 0.08)' },
-                ticks: { color: getColor('--text-secondary') }
+                grid: { color: adjustOpacity(themeColors.accent, 0.08) },
+                ticks: { color: 'var(--text-secondary)', font: { family: 'var(--font-family-app)' } }
               },
               x: {
                 grid: { display: false },
-                ticks: { color: getColor('--text-secondary') }
+                ticks: { color: 'var(--text-secondary)', font: { family: 'var(--font-family-app)' } }
               }
             },
             plugins: {
@@ -835,6 +879,98 @@ export const AnalyticsModule = {
             }
           }
         });
+      }
+
+      // --- Daily Productivity Score HUD ---
+      const productivityText = document.getElementById('productivity-score-text');
+      const productivityRing = document.getElementById('productivity-score-ring');
+      if (productivityText || productivityRing) {
+        const userId = Auth.getCurrentUserId();
+        
+        // Calculate assignments completion ratio
+        const userAssignments = assignments.filter(a => a.userId === userId);
+        const completedAssigns = userAssignments.filter(a => a.status === 'Completed').length;
+        const totalAssigns = userAssignments.length;
+        const assignmentRatio = totalAssigns > 0 ? (completedAssigns / totalAssigns) : 1.0;
+
+        // Calculate focus sessions ratio (target 50 mins today)
+        const focusSessions = await Database.getAll('focus_sessions');
+        const userFocus = focusSessions.filter(s => s.userId === userId);
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const focusToday = userFocus.filter(s => s.date.slice(0, 10) === todayStr);
+        const focusMinutesToday = focusToday.reduce((sum, s) => sum + (s.duration || 0), 0);
+        const focusRatio = Math.min(focusMinutesToday / 50, 1.0);
+
+        // Daily Productivity Score = 40% Attendance + 40% Assignments + 20% Focus
+        const attendanceScoreVal = pct; // already calculated attendance percentage
+        const productivityScore = Math.round((0.4 * (attendanceScoreVal / 100) + 0.4 * assignmentRatio + 0.2 * focusRatio) * 100);
+
+        if (productivityText) {
+          productivityText.innerText = `${productivityScore}%`;
+        }
+        if (productivityRing) {
+          const dashOffset = 314.16 - (productivityScore / 100) * 314.16;
+          productivityRing.style.strokeDashoffset = dashOffset;
+        }
+
+        // Populate breakdown values
+        const bdAttendance = document.getElementById('productivity-breakdown-attendance');
+        const bdAssignments = document.getElementById('productivity-breakdown-assignments');
+        const bdFocus = document.getElementById('productivity-breakdown-focus');
+
+        if (bdAttendance) bdAttendance.innerText = `${attendanceScoreVal.toFixed(0)}%`;
+        if (bdAssignments) bdAssignments.innerText = `${(assignmentRatio * 100).toFixed(0)}%`;
+        if (bdFocus) bdFocus.innerText = `${focusMinutesToday} mins / 50 mins`;
+      }
+
+      // --- Focus Grid Contribution Heatmap (52 Weeks x 7 Days) ---
+      const heatmapContainer = document.getElementById('focus-contribution-heatmap');
+      if (heatmapContainer) {
+        heatmapContainer.innerHTML = '';
+        const userId = Auth.getCurrentUserId();
+        const focusSessions = await Database.getAll('focus_sessions');
+        const userFocus = focusSessions.filter(s => s.userId === userId);
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        
+        // Start at Sunday 52 weeks ago
+        const startDate = new Date(today);
+        startDate.setDate(today.getDate() - 364);
+        const startDay = startDate.getDay();
+        startDate.setDate(startDate.getDate() - startDay); // Shift to Sunday
+        
+        const fragment = document.createDocumentFragment();
+        for (let i = 0; i < 364; i++) {
+          const cellDate = new Date(startDate);
+          cellDate.setDate(startDate.getDate() + i);
+          const dateString = cellDate.toISOString().slice(0, 10);
+          
+          const daySessions = userFocus.filter(s => s.date.slice(0, 10) === dateString);
+          const dayMinutes = daySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+          
+          const square = document.createElement('div');
+          square.className = 'heatmap-tile';
+          
+          let cellClass = 'tile-empty';
+          if (dayMinutes > 0 && dayMinutes < 25) {
+            cellClass = 'tile-low';
+          } else if (dayMinutes >= 25 && dayMinutes < 50) {
+            cellClass = 'tile-mid-low';
+          } else if (dayMinutes >= 50 && dayMinutes < 75) {
+            cellClass = 'tile-mid-high';
+          } else if (dayMinutes >= 75) {
+            cellClass = 'tile-peak';
+          }
+          square.classList.add(cellClass);
+          square.style.border = '1px solid rgba(255, 255, 255, 0.02)';
+          
+          const formattedDate = cellDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+          square.title = `${formattedDate} • ${dayMinutes} focus minutes logged`;
+          
+          fragment.appendChild(square);
+        }
+        heatmapContainer.appendChild(fragment);
       }
 
     } catch (err) {

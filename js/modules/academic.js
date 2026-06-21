@@ -359,18 +359,18 @@ export const AcademicModule = {
     
     if (cgpa3Year >= 3.00) {
       statusBadge.innerHTML = '🔓 Special Honours Eligible';
-      statusBadge.style.background = 'rgba(0, 229, 255, 0.15)';
+      statusBadge.style.background = 'var(--accent-glow)';
       statusBadge.style.color = 'var(--accent)';
       statusBadge.style.border = '1px solid var(--accent)';
-      statusBadge.style.boxShadow = '0 0 10px rgba(0, 229, 255, 0.25)';
-      progressFill.style.backgroundColor = 'var(--success)';
+      statusBadge.style.boxShadow = 'var(--shadow-glow)';
+      progressFill.classList.add('unlocked');
     } else {
       statusBadge.innerHTML = '🔒 General Bound (GPA &lt; 3.0)';
-      statusBadge.style.background = 'rgba(255, 255, 255, 0.08)';
+      statusBadge.style.background = 'rgba(255, 255, 255, 0.04)';
       statusBadge.style.color = 'var(--text-secondary)';
       statusBadge.style.border = '1px solid var(--border-color)';
       statusBadge.style.boxShadow = 'none';
-      progressFill.style.backgroundColor = 'var(--accent)';
+      progressFill.classList.remove('unlocked');
     }
     
     this.updateYear4DropdownOptions(cgpa3Year);
@@ -508,7 +508,10 @@ export const AcademicModule = {
       const gpaStats = await this._getGPADetails();
       this.updateSpecialEligibilityHUD(gpaStats);
 
-      const allSubjects = await originalGetAll.call(Database, 'subjects');
+      const [allSubjects, attendance] = await Promise.all([
+        originalGetAll.call(Database, 'subjects'),
+        Database.getAll('attendance')
+      ]);
       const parents = allSubjects.filter(s => s.isParent);
 
       if (parents.length === 0) {
@@ -576,6 +579,21 @@ export const AcademicModule = {
             };
             const semLabel = semesterLabels[sub.semester] || sub.semester || 'N/A';
 
+            const attRecord = attendance.find(a => a.subjectCode === sub.id);
+            let attendancePct = 100;
+            if (attRecord) {
+              const present = (attRecord.lecture?.present || 0) + (attRecord.practical?.present || 0) + (attRecord.fieldWork?.present || 0);
+              const total = (attRecord.lecture?.total || 0) + (attRecord.practical?.total || 0) + (attRecord.fieldWork?.total || 0);
+              if (total > 0) {
+                attendancePct = (present / total) * 100;
+              }
+            }
+            const riskBadgeHTML = attendancePct < 80 ? `
+              <div class="critical-risk-badge" style="background: rgba(255, 23, 68, 0.18); border: 1px solid var(--danger); color: var(--danger); border-radius: 6px; padding: 4px 10px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; box-shadow: 0 0 10px rgba(255, 23, 68, 0.2); width: fit-content; font-family: var(--font-family-app) !important; white-space: nowrap;">
+                CRITICAL ELIGIBILITY RISK: EXAMINATION BARRED
+              </div>
+            ` : '';
+
             return `
               <div class="sub-module-isolated-card" style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-top: 12px; box-shadow: var(--shadow-sm); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); display: flex; flex-direction: column; gap: 12px; font-family: var(--font-family-app) !important;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -587,6 +605,7 @@ export const AcademicModule = {
                       <div class="badge" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); font-family: var(--font-family-app) !important; margin: 0; white-space: nowrap;">
                         ${semLabel}
                       </div>
+                      ${riskBadgeHTML}
                     </div>
                     <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0; font-family: var(--font-family-app) !important;">${sub.moduleTitle}</h4>
                   </div>
