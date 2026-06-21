@@ -27,10 +27,10 @@ function calcCriticalRiskIndex(attended, total, remaining) {
 
   // Must attend every one of the remaining sessions AND still might not be enough
   if (shortfall > remaining) {
-    return `⛔ INELIGIBLE RISK: Even attending all ${remaining} remaining session(s) is insufficient to reach 80%.`;
+    return `INELIGIBLE RISK: Even attending all ${remaining} remaining session(s) is insufficient to reach 80%.`;
   }
 
-  return `⚠ ${shortfall} mandatory consecutive session(s) needed to secure 80% exam eligibility threshold.`;
+  return `WARNING: ${shortfall} mandatory consecutive session(s) needed to secure 80% exam eligibility threshold.`;
 }
 
 export const AttendanceModule = {
@@ -181,12 +181,14 @@ export const AttendanceModule = {
                 <span>Attendance is within the safe eligibility zone (Good).</span>
               </div>
             ` : overallPct >= 60 ? `
-              <div style="background: rgba(208, 0, 24, 0.08); border: 1px solid var(--danger); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: var(--danger); font-weight: 600; font-family: var(--font-family-app) !important;">
-                ⚠️ Attendance is borderline (Warning). Try to attend upcoming sessions to avoid falling below 80%.
+              <div style="background: rgba(208, 0, 24, 0.08); border: 1px solid var(--danger); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: var(--danger); font-weight: 600; font-family: var(--font-family-app) !important; display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="alert-svg" style="flex-shrink: 0;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <span>Attendance is borderline (Warning). Try to attend upcoming sessions to avoid falling below 80%.</span>
               </div>
             ` : `
-              <div style="background: rgba(208, 0, 24, 0.08); border: 1px solid var(--danger); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: var(--danger); font-weight: 600; font-family: var(--font-family-app) !important;">
-                ⛔ ATTENDANCE CRITICAL: Exam admission eligibility is currently barred (Below 60%).
+              <div style="background: rgba(208, 0, 24, 0.08); border: 1px solid var(--danger); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: var(--danger); font-weight: 600; font-family: var(--font-family-app) !important; display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="alert-svg" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                <span>ATTENDANCE CRITICAL: Exam admission eligibility is currently barred (Below 60%).</span>
               </div>
             `}
 

@@ -42,6 +42,10 @@ Database.getAll = function(storeName) {
   if (storeName === 'subjects-raw') {
     return originalGetAll.call(Database, 'subjects');
   }
+
+  if (storeName === 'submodules') {
+    return Database.getAll('subjects').then(list => (list || []).filter(s => s.isSubmodule));
+  }
   
   if ((storeName === 'subjects' || storeName === 'researchProject/modules') && !isSync) {
     return originalGetAll.call(Database, 'subjects').then(records => {
@@ -358,14 +362,14 @@ export const AcademicModule = {
     progressText.innerText = `${pct.toFixed(1)}%`;
     
     if (cgpa3Year >= 3.00) {
-      statusBadge.innerHTML = '🔓 Special Honours Eligible';
+      statusBadge.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lock-svg" style="margin-right: 6px; vertical-align: middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>Special Honours Eligible';
       statusBadge.style.background = 'var(--accent-glow)';
       statusBadge.style.color = 'var(--accent)';
       statusBadge.style.border = '1px solid var(--accent)';
       statusBadge.style.boxShadow = 'var(--shadow-glow)';
       progressFill.classList.add('unlocked');
     } else {
-      statusBadge.innerHTML = '🔒 General Bound (GPA &lt; 3.0)';
+      statusBadge.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lock-svg" style="margin-right: 6px; vertical-align: middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>General Bound (GPA &lt; 3.0)';
       statusBadge.style.background = 'rgba(255, 255, 255, 0.04)';
       statusBadge.style.color = 'var(--text-secondary)';
       statusBadge.style.border = '1px solid var(--border-color)';

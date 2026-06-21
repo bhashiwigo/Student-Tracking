@@ -500,14 +500,16 @@ export const GPAModule = {
         const actualCGPA = earnedPoints / totalCredits;
         if (actualCGPA >= targetVal) {
           resultsContainer.innerHTML = `
-            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 6px; padding: 10px; color: var(--success); font-weight: 600; text-align: center;">
-              🎉 Target achieved! Your current CGPA (${actualCGPA.toFixed(2)}) meets or exceeds your target.
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 6px; padding: 10px; color: var(--success); font-weight: 600; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="alert-svg"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Target achieved! Your current CGPA (${actualCGPA.toFixed(2)}) meets or exceeds your target.</span>
             </div>
           `;
         } else {
           resultsContainer.innerHTML = `
-            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; padding: 10px; color: var(--danger); font-weight: 600; text-align: center;">
-              ⛔ Target CGPA of ${targetVal.toFixed(2)} is impossible. All logged subjects are already graded.
+            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; padding: 10px; color: var(--danger); font-weight: 600; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="alert-svg"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+              <span>Target CGPA of ${targetVal.toFixed(2)} is impossible. All logged subjects are already graded.</span>
             </div>
           `;
         }
@@ -517,19 +519,19 @@ export const GPAModule = {
       const avgNeededGPA = pointsNeeded / remainingCredits;
 
       let alertClass = 'low';
-      let alertLabel = '✓ Very Safe';
+      let alertLabel = 'Very Safe';
       let color = 'var(--success)';
       if (avgNeededGPA > 4.0) {
         alertClass = 'high';
-        alertLabel = '⛔ Impossible';
+        alertLabel = 'Impossible';
         color = 'var(--danger)';
       } else if (avgNeededGPA > 3.7) {
         alertClass = 'medium';
-        alertLabel = '⚠ Critical Target';
+        alertLabel = 'Critical Target';
         color = 'var(--warning)';
       } else if (avgNeededGPA > 3.0) {
         alertClass = 'medium';
-        alertLabel = '⚠ Challenging';
+        alertLabel = 'Challenging';
         color = 'var(--accent)';
       }
 
@@ -559,7 +561,7 @@ export const GPAModule = {
           const semName = SEMESTER_NAMES[sem] || `Semester ${sem}`;
           let statusText = `Average ${avgNeededGPA.toFixed(2)} GPA needed`;
           if (avgNeededGPA > 4.0) {
-            statusText = '⚠️ Mathematically Out of Range';
+            statusText = 'Mathematically Out of Range';
           } else if (avgNeededGPA <= 0) {
             statusText = 'Already achieved (GPA 0.00)';
           }
@@ -674,7 +676,10 @@ export const GPAModule = {
       } else {
         resultBox.innerHTML = `
           <div style="font-weight: 700; color: #ffffff; font-size: 0.82rem; display: flex; flex-direction: column; gap: 4px;">
-            <span>📈 Simulated Overall CGPA Upgrade:</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="alert-svg"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+              <span>Simulated Overall CGPA Upgrade:</span>
+            </span>
             <span style="font-size: 1.1rem; color: var(--accent); font-family: 'JetBrains Mono', monospace; margin: 4px 0;">
               ${originalGPA.toFixed(2)} ➔ ${simulatedGPA.toFixed(2)} (+${diff.toFixed(2)})
             </span>
@@ -834,7 +839,7 @@ export const GPAModule = {
             parent.style.padding = '4px 8px';
           }
           if (requiredExamScore === 'Already Achieved') {
-            resReqEl.innerText = 'Achieved 🎉';
+            resReqEl.innerHTML = '<span style="display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="alert-svg"><polyline points="20 6 9 17 4 12"></polyline></svg>Achieved</span>';
             resReqEl.style.color = '#00e676';
           } else {
             resReqEl.innerText = `${requiredExamScore.toFixed(1)}%`;

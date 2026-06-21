@@ -45,7 +45,7 @@ export const StudyModule = {
     if (this.isTimerRunning && this.timerType === 'focus') {
       this.blurStartTime = Date.now();
       this.blurCount++;
-      NotificationService.show('Focus Interruption Detected', '⚠️ Stay focused on your studies! Avoid leaving the workspace tab.', 'warning');
+      NotificationService.show('Focus Interruption Detected', 'Stay focused on your studies! Avoid leaving the workspace tab.', 'warning');
     }
   },
 
@@ -174,7 +174,9 @@ export const StudyModule = {
             </div>
           </div>
           <div style="display:flex; gap:4px;">
-            <button class="btn-icon delete-plan-btn" data-id="${pl.id}" style="width:28px; height:28px; font-size:0.8rem; color:var(--danger);">✕</button>
+            <button class="btn-icon delete-plan-btn" data-id="${pl.id}" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:var(--danger);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
           </div>
         </div>
       `).join('');

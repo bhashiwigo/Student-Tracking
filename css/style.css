@@ -2441,3 +2441,61 @@ body[data-theme="light"] .radial-ring-value {
   border: 1px solid var(--border-color) !important;
   box-shadow: var(--shadow-md), inset 0 1px 1px rgba(255, 255, 255, 0.05) !important;
 }
+#dashboard-attendance-summary-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-hover) !important;
+  box-shadow: var(--shadow-lg), var(--shadow-glow), inset 0 1px 4px var(--accent-glow) !important;
+}
+
+/* Premium Minimalist SVG Icons Transitions & Hover Effects */
+.nav-link svg,
+.btn-icon svg.close-svg,
+.focus-hub-icon svg.hub-svg,
+.delete-milestone-btn svg.close-svg,
+.delete-plan-btn svg.close-svg,
+.delete-assign-btn svg.close-svg,
+.delete-sport-goal-btn svg.close-svg,
+.modal-title-svg,
+.lock-svg,
+.alert-svg {
+  transition: transform 0.2s ease, color 0.2s ease, filter 0.2s ease;
+  flex-shrink: 0;
+}
+
+.nav-link:hover svg,
+.btn-icon:hover svg.close-svg,
+.focus-hub-item:hover svg.hub-svg,
+.delete-milestone-btn:hover svg.close-svg,
+.delete-plan-btn:hover svg.close-svg,
+.delete-assign-btn:hover svg.close-svg,
+.delete-sport-goal-btn:hover svg.close-svg {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 4px var(--accent-glow));
+}
+
+/* --- Live Theme Preview Panel Refactoring Overrides --- */
+.preview-progress-bar {
+  width: 82%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, rgba(255, 255, 255, 0.25) 100%) !important;
+  box-shadow: 0 0 10px var(--accent-glow) !important;
+}
+
+.preview-btn-solid {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-hover) !important;
+  background: var(--accent) !important;
+  color: #030a0e !important; /* Preserves explicit dark readability */
+  box-shadow: 0 0 12px var(--accent-glow) !important;
+  cursor: default;
+  transition: all 0.3s ease;
+}
+
+.preview-glow-1,
+.preview-glow-2 {
+  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%) !important;
+}
+

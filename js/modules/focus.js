@@ -120,7 +120,7 @@ export const FocusModule = {
       this.currentStreak = streak;
       const streakValEl = document.getElementById('focus-streak-val');
       if (streakValEl) {
-        streakValEl.innerText = `${streak} 🔥`;
+        streakValEl.innerText = `${streak}`;
       }
     } catch (err) {
       console.error('Failed to calculate focus streak:', err);

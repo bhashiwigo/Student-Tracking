@@ -249,8 +249,9 @@
               style="letter-spacing:6px; font-size:1.2rem; text-align:center;" autocomplete="new-password">
           </div>
 
-          <div class="auth-pin-hint">
-            🔒 Your PIN keeps your data private on shared devices
+          <div class="auth-pin-hint" style="display: flex; align-items: center; gap: 6px; justify-content: center;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lock-svg"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span>Your PIN keeps your data private on shared devices</span>
           </div>
 
           <div style="display:flex; gap:10px; margin-top:4px;">
@@ -291,20 +292,62 @@
       </div>
 
       <nav class="nav-group">
-        <a href="#" class="nav-link active" data-target="dashboard">Dashboard</a>
-        <a href="#" class="nav-link" data-target="academic">Academic Manager</a>
-        <a href="#" class="nav-link" data-target="exams">Exam Scheduler</a>
-        <a href="#" class="nav-link" data-target="practicals">Practical Labs</a>
-        <a href="#" class="nav-link" data-target="assignments">Assignments</a>
-        <a href="#" class="nav-link" data-target="resources" style="font-family: var(--font-family-app) !important;">Academic Resources</a>
-        <a href="#" class="nav-link" data-target="attendance">Attendance logs</a>
-        <a href="#" class="nav-link" data-target="gpa">GPA Calculator</a>
-        <a href="#" class="nav-link" data-target="analytics">Analytics Trends</a>
-        <a href="#" class="nav-link" data-target="study">Focus Planner</a>
-        <a href="#" class="nav-link" data-target="calendar">Month Planner</a>
-        <a href="#" class="nav-link" data-target="notes">Notebook Pages</a>
-        <a href="#" class="nav-link" data-target="sports">Sports & Gym</a>
-        <a href="#" class="nav-link" data-target="settings">Settings</a>
+        <a href="#" class="nav-link active" data-target="dashboard">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-link" data-target="academic">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.91a2 2 0 0 0 1.66 0z"></path><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"></path></svg>
+          <span>Academic Manager</span>
+        </a>
+        <a href="#" class="nav-link" data-target="exams">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><circle cx="12" cy="16" r="3"></circle><polyline points="12 15 12 16 13 16"></polyline></svg>
+          <span>Exam Scheduler</span>
+        </a>
+        <a href="#" class="nav-link" data-target="practicals">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12"></path><path d="M19 18v-3c0-2.23-1.47-4.11-3.5-4.72V4H8.5v6.28C6.47 10.89 5 12.77 5 15v3a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4z"></path></svg>
+          <span>Practical Labs</span>
+        </a>
+        <a href="#" class="nav-link" data-target="assignments">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><line x1="9" y1="12" x2="15" y2="12"></line><line x1="9" y1="16" x2="13" y2="16"></line><line x1="9" y1="8" x2="10" y2="8"></line><line x1="14" y1="8" x2="15" y2="8"></line></svg>
+          <span>Assignments</span>
+        </a>
+        <a href="#" class="nav-link" data-target="resources" style="font-family: var(--font-family-app) !important;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><path d="M2 10h20"></path></svg>
+          <span>Academic Resources</span>
+        </a>
+        <a href="#" class="nav-link" data-target="attendance">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>
+          <span>Attendance logs</span>
+        </a>
+        <a href="#" class="nav-link" data-target="gpa">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>
+          <span>GPA Calculator</span>
+        </a>
+        <a href="#" class="nav-link" data-target="analytics">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          <span>Analytics Trends</span>
+        </a>
+        <a href="#" class="nav-link" data-target="study">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline><line x1="12" y1="2" x2="12" y2="4"></line></svg>
+          <span>Focus Planner</span>
+        </a>
+        <a href="#" class="nav-link" data-target="calendar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <span>Month Planner</span>
+        </a>
+        <a href="#" class="nav-link" data-target="notes">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+          <span>Notebook Pages</span>
+        </a>
+        <a href="#" class="nav-link" data-target="sports">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 6.5 11 11"></path><path d="m21 21-1-1"></path><path d="m3 3 1 1"></path><path d="m18 22 4-4"></path><path d="m2 6 4-4"></path><path d="m3 10 7-7"></path><path d="m14 21 7-7"></path></svg>
+          <span>Sports & Gym</span>
+        </a>
+        <a href="#" class="nav-link" data-target="settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Settings</span>
+        </a>
       </nav>
 
       <!-- Glowing Animated DNA Canvas (B) -->
@@ -439,6 +482,19 @@
                 <div style="height: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; width: 100%; box-sizing: border-box;">
                   <div id="progress-completion-fill" style="width: 0%; height: 100%; border-radius: 4px; transition: width 0.5s ease;"></div>
                 </div>
+              </div>
+              <div style="border-top: 1px solid var(--border-color); margin: 12px 0; font-family: var(--font-family-app) !important;"></div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-family: var(--font-family-app) !important;">
+                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Active Semester Modules</span>
+                <span id="progress-active-modules" style="font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">0 Active Units</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-family: var(--font-family-app) !important;">
+                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Core vs Optional Ratio</span>
+                <span id="progress-core-optional-ratio" style="font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">Core: 0 Cr | Optional: 0 Cr</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-family: var(--font-family-app) !important;">
+                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Degree Standing Benchmark</span>
+                <span id="progress-degree-standing" class="badge" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; font-size: 0.72rem; color: var(--accent, #00e5ff); font-weight: 600; font-family: var(--font-family-app) !important;">Year 1 General</span>
               </div>
             </div>
           </div>
@@ -679,7 +735,10 @@
             </div>
             <div style="display: flex; align-items: center; gap: 12px; font-family: var(--font-family-app) !important;">
               <span id="global-cgpa-display" style="font-size: 1rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-family-app) !important;">3-Yr GPA: 0.00 (Overall: 0.00)</span>
-              <span id="special-status-badge" class="badge" style="font-family: var(--font-family-app) !important; font-size: 0.72rem; font-weight: 700; padding: 6px 12px; border-radius: 20px; display: inline-flex; align-items: center; background: rgba(255, 255, 255, 0.08); color: var(--text-secondary); border: 1px solid var(--border-color); transition: all 0.3s ease;">🔒 General Bound (GPA &lt; 3.0)</span>
+              <span id="special-status-badge" class="badge" style="font-family: var(--font-family-app) !important; font-size: 0.72rem; font-weight: 700; padding: 6px 12px; border-radius: 20px; display: inline-flex; align-items: center; background: rgba(255, 255, 255, 0.08); color: var(--text-secondary); border: 1px solid var(--border-color); transition: all 0.3s ease; gap: 6px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lock-svg"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <span>General Bound (GPA &lt; 3.0)</span>
+              </span>
             </div>
           </div>
           <div style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
@@ -1445,10 +1504,10 @@
 
                 <!-- Ambient background lighting indicators in preview -->
                 <div class="preview-glow-1"
-                  style="position: absolute; top: -20px; left: -20px; width: 80px; height: 80px; background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%); pointer-events: none; border-radius: 50%;">
+                  style="position: absolute; top: -20px; left: -20px; width: 80px; height: 80px; background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%) !important; pointer-events: none; border-radius: 50%;">
                 </div>
                 <div class="preview-glow-2"
-                  style="position: absolute; bottom: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, var(--accent-secondary-glow) 0%, transparent 70%); pointer-events: none; border-radius: 50%;">
+                  style="position: absolute; bottom: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%) !important; pointer-events: none; border-radius: 50%;">
                 </div>
 
                 <!-- Mini Navigation Header -->
@@ -1485,7 +1544,7 @@
                   <div
                     style="width: 100%; height: 5px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; margin-top: 8px; overflow: hidden;">
                     <div class="preview-progress-bar"
-                      style="width: 82%; height: 100%; background: linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%); box-shadow: 0 0 6px var(--accent);">
+                      style="width: 82%; height: 100%; background: linear-gradient(90deg, var(--accent) 0%, rgba(255, 255, 255, 0.25) 100%) !important; box-shadow: 0 0 10px var(--accent-glow) !important;">
                     </div>
                   </div>
                 </div>
@@ -1495,7 +1554,7 @@
                   <input type="text" value="Text Field Input" readonly
                     style="flex: 1; font-size: 0.7rem; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-secondary); pointer-events: none; outline: none; font-family: var(--font-family-app) !important;">
                   <button class="preview-btn-solid"
-                    style="font-size: 0.7rem; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: none; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%); color: var(--preview-btn-text); cursor: default; box-shadow: 0 0 8px var(--accent-glow); font-family: var(--font-family-app) !important;">Trigger Action</button>
+                    style="font-size: 0.7rem; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-hover) !important; background: var(--accent) !important; color: #030a0e !important; box-shadow: 0 0 12px var(--accent-glow) !important; cursor: default; transition: all 0.3s ease; font-family: var(--font-family-app) !important;">Trigger Action</button>
                 </div>
 
               </div>
@@ -1545,7 +1604,7 @@
         <div class="focus-hub-list">
           <div class="focus-hub-item">
             <div class="focus-hub-info">
-              <span class="focus-hub-icon">👥</span>
+              <span class="focus-hub-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hub-svg"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
               <div>
                 <div class="focus-hub-name">Mainscanner</div>
                 <div class="focus-hub-count">785 members online</div>
@@ -1555,7 +1614,7 @@
           </div>
           <div class="focus-hub-item">
             <div class="focus-hub-info">
-              <span class="focus-hub-icon">👥</span>
+              <span class="focus-hub-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hub-svg"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
               <div>
                 <div class="focus-hub-name">Gepalitities</div>
                 <div class="focus-hub-count">282 members online</div>
@@ -1565,7 +1624,7 @@
           </div>
           <div class="focus-hub-item">
             <div class="focus-hub-info">
-              <span class="focus-hub-icon">🔬</span>
+              <span class="focus-hub-icon"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" class="hub-svg"><path d="M6 18h8"></path><path d="M3 22h18"></path><path d="M14 22a7 7 0 1 0-14 0"></path><path d="M9 14h2"></path><path d="M9 12a3 3 0 0 1-3-3V6h6v3a3 3 0 0 1-3 3Z"></path><path d="m12 6 4-4 3 3-4 4"></path></svg></span>
               <div>
                 <div class="focus-hub-name">Research Developments</div>
                 <div class="focus-hub-count">Study online</div>
@@ -1601,7 +1660,7 @@
     <div class="modal-box">
       <div class="modal-header">
         <h3 id="subject-modal-title">New Subject</h3>
-        <button class="btn-icon modal-close-btn" type="button">&times;</button>
+        <button class="btn-icon modal-close-btn" type="button" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
       <form id="subject-form">
         <div class="modal-body">
@@ -1673,7 +1732,7 @@
     <div class="modal-box">
       <div class="modal-header">
         <h3 id="sub-module-modal-title">Add Sub-Module</h3>
-        <button class="btn-icon modal-close-btn" type="button">&times;</button>
+        <button class="btn-icon modal-close-btn" type="button" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
       <form id="sub-module-form">
         <div class="modal-body">
@@ -1755,8 +1814,9 @@
             </select>
           </div>
 
-          <div style="margin: 16px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent); border-top: 1px solid var(--border-color); padding-top: 16px;">
-            🔬 Component Weights
+          <div style="margin: 16px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent); border-top: 1px solid var(--border-color); padding-top: 16px; display: flex; align-items: center; gap: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="modal-title-svg"><path d="M6 18h8"></path><path d="M3 22h18"></path><path d="M14 22a7 7 0 1 0-14 0"></path><path d="M9 14h2"></path><path d="M9 12a3 3 0 0 1-3-3V6h6v3a3 3 0 0 1-3 3Z"></path><path d="m12 6 4-4 3 3-4 4"></path></svg>
+            <span>Component Weights</span>
           </div>
           <div style="display: flex; gap: 12px;">
             <div class="form-group" style="flex: 1;">
@@ -1769,8 +1829,9 @@
             </div>
           </div>
 
-          <div style="margin: 12px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent);">
-            📊 Continuous Assessments / Internal Marks
+          <div style="margin: 12px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent); display: flex; align-items: center; gap: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="modal-title-svg"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            <span>Continuous Assessments / Internal Marks</span>
           </div>
           <div style="display: flex; gap: 10px;">
             <div class="form-group" style="flex: 1;">
@@ -1801,14 +1862,15 @@
     <div class="modal-box">
       <div class="modal-header">
         <h3 id="exam-modal-title">Schedule Exam</h3>
-        <button class="btn-icon modal-close-btn">&times;</button>
+        <button class="btn-icon modal-close-btn" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
       <form id="exam-form">
         <div class="modal-body">
           <input type="hidden" id="exam-mode" value="add">
           <input type="hidden" id="exam-id" value="">
-          <div id="exam-validation-warning" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); border-radius: 8px; padding: 12px; margin-bottom: 16px; color: var(--danger); font-weight: 700; font-size: 0.82rem; font-family: var(--font-family-app) !important;">
-            ⚠️ Examination Admission Barred: Attendance Below 80% Bounds.
+          <div id="exam-validation-warning" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); border-radius: 8px; padding: 12px; margin-bottom: 16px; color: var(--danger); font-weight: 700; font-size: 0.82rem; font-family: var(--font-family-app) !important; align-items: center; gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="alert-svg"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            <span>Examination Admission Barred: Attendance Below 80% Bounds.</span>
           </div>
           <div class="form-group">
             <label class="form-label">Exam Name / Details</label>
@@ -1860,7 +1922,7 @@
     <div class="modal-box">
       <div class="modal-header">
         <h3 id="practical-modal-title">Add Practical Session</h3>
-        <button class="btn-icon modal-close-btn">&times;</button>
+        <button class="btn-icon modal-close-btn" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
       <form id="practical-form">
         <div class="modal-body">
@@ -1909,7 +1971,7 @@
     <div class="modal-box">
       <div class="modal-header">
         <h3 id="assignment-modal-title">Log Assignment</h3>
-        <button class="btn-icon modal-close-btn">&times;</button>
+        <button class="btn-icon modal-close-btn" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
       <form id="assignment-form">
         <div class="modal-body">
@@ -1958,7 +2020,7 @@
     <div class="modal-box" style="font-family: var(--font-family-app) !important;">
       <div class="modal-header" style="font-family: var(--font-family-app) !important;">
         <h3 id="resource-modal-title" style="font-family: var(--font-family-app) !important;">Add Resource</h3>
-        <button class="btn-icon modal-close-btn" style="font-family: var(--font-family-app) !important;">&times;</button>
+        <button class="btn-icon modal-close-btn" style="font-family: var(--font-family-app) !important;" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
       <form id="resource-form" style="font-family: var(--font-family-app) !important;">
         <div class="modal-body" style="font-family: var(--font-family-app) !important;">
@@ -2000,7 +2062,7 @@
     <div class="modal-box">
       <div class="modal-header">
         <h3 id="sport-modal-title">Sports Activity</h3>
-        <button class="btn-icon modal-close-btn">&times;</button>
+        <button class="btn-icon modal-close-btn" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
       <form id="sport-form">
         <div class="modal-body">
@@ -2045,7 +2107,7 @@
     <div class="modal-box">
       <div class="modal-header">
         <h3 id="study-plan-modal-title">Schedule Study Session</h3>
-        <button class="btn-icon modal-close-btn">&times;</button>
+        <button class="btn-icon modal-close-btn" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
       <form id="study-plan-form">
         <div class="modal-body">
@@ -2120,7 +2182,7 @@
     <div class="modal-box" style="background: rgba(10, 24, 32, 0.96) !important; border: 1px solid var(--border-color) !important; box-shadow: var(--shadow-lg), var(--shadow-glow) !important; backdrop-filter: var(--glass-blur) !important; -webkit-backdrop-filter: var(--glass-blur) !important; font-family: var(--font-family-app) !important; max-width: 480px; width: 90%;">
       <div class="modal-header" style="border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important; display: flex; align-items: center; justify-content: space-between !important; font-family: var(--font-family-app) !important; padding: 18px 24px !important;">
         <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--accent) !important; font-family: var(--font-family-app) !important; letter-spacing: -0.5px;">Session Reflection</h3>
-        <button type="button" class="btn-icon" id="pomo-reflection-close" style="color: var(--text-secondary) !important; font-size: 1rem; border: none; background: none; cursor: pointer;">✕</button>
+        <button type="button" class="btn-icon" id="pomo-reflection-close" style="color: var(--text-secondary) !important; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center;" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
       <form id="pomo-reflection-form" style="margin: 0;">
         <div class="modal-body" style="font-family: var(--font-family-app) !important; padding: 20px 24px !important; display: flex; flex-direction: column; gap: 14px;">

@@ -115,7 +115,9 @@ export const AssignmentsModule = {
                 <button class="btn-icon edit-assign-btn" data-id="${as.id}" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-family: var(--font-family-app) !important;">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="font-family: var(--font-family-app) !important;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                 </button>
-                <button class="btn-icon delete-assign-btn" data-id="${as.id}" style="width: 28px; height: 28px; font-size: 0.8rem; color: var(--danger); display: flex; align-items: center; justify-content: center; font-family: var(--font-family-app) !important;">✕</button>
+                <button class="btn-icon delete-assign-btn" data-id="${as.id}" style="width: 28px; height: 28px; color: var(--danger); display: flex; align-items: center; justify-content: center; font-family: var(--font-family-app) !important;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
               </div>
             </div>
           </div>
@@ -240,7 +242,7 @@ export const AssignmentsModule = {
           <div style="flex: 1; height: 30px; background: rgba(255,255,255,0.02); border-radius: 4px; position: relative; border: 1px solid var(--border-color); font-family: var(--font-family-app) !important;">
             <div style="position: absolute; left: ${leftPct}%; width: ${widthPct}%; top: 4px; height: 20px; background: ${color}; opacity: ${item.status === 'Completed' ? 0.2 : 0.35}; border-radius: 3px; border-left: 3px solid ${color}; display: flex; align-items: center; padding: 0 6px; box-sizing: border-box; font-family: var(--font-family-app) !important;">
               <span style="font-size: 0.65rem; font-weight: 700; color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: var(--font-family-app) !important;">
-                ${item.status === 'Completed' ? '✓ Completed' : `${item.priority} Prep`} (due ${item.dateStr})
+                ${item.status === 'Completed' ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Completed' : `${item.priority} Prep`} (due ${item.dateStr})
               </span>
             </div>
           </div>
@@ -251,8 +253,9 @@ export const AssignmentsModule = {
     ganttContainer.innerHTML = `
       <div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-x: auto; margin-bottom: 24px; font-family: var(--font-family-app) !important;">
         <div style="display: flex; justify-content: space-between; align-items: center; font-family: var(--font-family-app) !important;">
-          <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--accent); font-family: var(--font-family-app) !important;">
-            🗓️ Visual Gantt Assignment Roadmap
+          <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--accent); font-family: var(--font-family-app) !important; display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="alert-svg"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            <span>Visual Gantt Assignment Roadmap</span>
           </span>
           <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 500; font-family: var(--font-family-app) !important;">
             Preparation timelines staggered by assignment priority and completion status

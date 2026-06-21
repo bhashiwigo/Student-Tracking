@@ -41,7 +41,9 @@ export const SportsModule = {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
               ${g.goalText}
             </span>
-            <button class="btn-icon delete-sport-goal-btn" data-id="${g.id}" style="width:20px; height:20px; font-size:0.7rem;">✕</button>
+            <button class="btn-icon delete-sport-goal-btn" data-id="${g.id}" style="width:20px; height:20px; display:flex; align-items:center; justify-content:center;">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
           </div>
         `).join('') || '<div style="color:var(--text-muted); font-size:0.8rem;">No fitness goals set. Add a Goal below.</div>';
 

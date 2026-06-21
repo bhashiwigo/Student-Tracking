@@ -1402,13 +1402,14 @@ const App = {
   async renderDashboard() {
     // Fetch all stores in parallel — saves ~5 sequential round-trips
     const [
-      subjects, attendance, exams, assignments, practicals
+      subjects, attendance, exams, assignments, practicals, submodules
     ] = await Promise.all([
       Database.getAll('subjects'),
       Database.getAll('attendance'),
       Database.getAll('exams'),
       Database.getAll('assignments'),
       Database.getAll('practicals'),
+      Database.getAll('submodules'),
     ]);
 
     const gpaStats = await GPAModule.calculateGPAs(subjects);
@@ -1491,6 +1492,68 @@ const App = {
     const fillEl = document.getElementById('progress-completion-fill');
     if (fillEl) fillEl.style.width = `${completionPct}%`;
 
+    // Hydrate the expanded progress metrics
+    try {
+      const semSetting = await Database.get('settings', 'currentSemester');
+      const activeSemester = semSetting ? semSetting.value : '1-1';
+      
+      const activeSemesterSubmodules = (submodules || []).filter(sub => sub.semester === activeSemester);
+      const activeModulesEl = document.getElementById('progress-active-modules');
+      if (activeModulesEl) {
+        activeModulesEl.innerText = `${activeSemesterSubmodules.length} Active Units`;
+      }
+      
+      // Calculate Core vs Optional Credit Ratio
+      const subjectTypeMap = {};
+      (subjects || []).forEach(s => {
+        if (!s.isSubmodule) {
+          subjectTypeMap[s.code] = (s.courseType || s.type || 'CORE').toUpperCase();
+        }
+      });
+      
+      let coreCredits = 0;
+      let optionalCredits = 0;
+      (subjects || []).forEach(sub => {
+        let typeStr = 'CORE';
+        if (sub.isSubmodule && sub.parentSubjectCode) {
+          typeStr = subjectTypeMap[sub.parentSubjectCode] || 'CORE';
+        } else {
+          typeStr = (sub.courseType || sub.type || 'CORE').toUpperCase();
+        }
+        
+        const credits = sub.credits || 0;
+        if (typeStr === 'OPTIONAL') {
+          optionalCredits += credits;
+        } else {
+          coreCredits += credits;
+        }
+      });
+      
+      const ratioEl = document.getElementById('progress-core-optional-ratio');
+      if (ratioEl) {
+        ratioEl.innerText = `Core: ${coreCredits} Cr | Optional: ${optionalCredits} Cr`;
+      }
+      
+      // Degree Standing Benchmark
+      let standing = 'Year 1 General';
+      if (completedCredits <= 30) {
+        standing = 'Year 1 General';
+      } else if (completedCredits <= 60) {
+        standing = 'Year 2 Intermediate';
+      } else if (completedCredits <= 90) {
+        standing = 'Year 3 Advanced';
+      } else {
+        standing = 'Year 4 Honours';
+      }
+      
+      const standingEl = document.getElementById('progress-degree-standing');
+      if (standingEl) {
+        standingEl.innerText = standing;
+      }
+    } catch (metricErr) {
+      console.warn('Failed to calculate expanded progress metrics:', metricErr);
+    }
+
     const pendingEx = exams.length;
     const pendingPrac = practicals.length;
     const pendingAssign = assignments.filter(a => a.status !== 'Completed').length;
@@ -1507,11 +1570,11 @@ const App = {
     const scheduleBox = document.getElementById('dash-weekly-schedule-list');
     if (scheduleBox) {
       const allUpcoming = [];
-      exams.forEach(x => allUpcoming.push({ title: `📝 ${x.name} (${x.type})`, date: x.date }));
-      practicals.forEach(p => allUpcoming.push({ title: `🔬 ${p.name} (Lab: ${p.labName})`, date: p.date }));
+      exams.forEach(x => allUpcoming.push({ title: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px; display: inline-block;"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>${x.name} (${x.type})`, date: x.date }));
+      practicals.forEach(p => allUpcoming.push({ title: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px; display: inline-block;"><path d="M6 3h12"></path><path d="M19 18v-3c0-2.23-1.47-4.11-3.5-4.72V4H8.5v6.28C6.47 10.89 5 12.77 5 15v3a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4z"></path></svg>${p.name} (Lab: ${p.labName})`, date: p.date }));
       assignments.forEach(a => {
         if (a.status !== 'Completed') {
-          allUpcoming.push({ title: `📬 Assignment: ${a.title}`, date: a.date });
+          allUpcoming.push({ title: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px; display: inline-block;"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>Assignment: ${a.title}`, date: a.date });
         }
       });
 
@@ -1874,11 +1937,11 @@ const App = {
 
     const getEventsForDate = (dateStr) => {
       const list = [];
-      exams.forEach(x => { if (x.date === dateStr) list.push({ text: `📝 ${x.name}`, color: 'var(--danger)', bg: 'rgba(239, 68, 68, 0.15)' }); });
-      practicals.forEach(p => { if (p.date === dateStr) list.push({ text: `🔬 ${p.name}`, color: 'var(--accent)', bg: 'var(--accent-glow)' }); });
-      assignments.forEach(a => { if (a.date === dateStr) list.push({ text: `📬 ${a.title}`, color: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.15)' }); });
-      sports.forEach(s => { if (s.scheduleDate === dateStr) list.push({ text: `🏆 ${s.goalText}`, color: 'var(--success)', bg: 'rgba(16, 185, 129, 0.15)' }); });
-      studyplans.forEach(pl => { if (pl.date === dateStr) list.push({ text: `📚 ${pl.title}`, color: 'var(--accent)', bg: 'var(--accent-glow)' }); });
+      exams.forEach(x => { if (x.date === dateStr) list.push({ text: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px; display: inline-block;"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>${x.name}`, color: 'var(--danger)', bg: 'rgba(239, 68, 68, 0.15)' }); });
+      practicals.forEach(p => { if (p.date === dateStr) list.push({ text: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px; display: inline-block;"><path d="M6 3h12"></path><path d="M19 18v-3c0-2.23-1.47-4.11-3.5-4.72V4H8.5v6.28C6.47 10.89 5 12.77 5 15v3a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4z"></path></svg>${p.name}`, color: 'var(--accent)', bg: 'var(--accent-glow)' }); });
+      assignments.forEach(a => { if (a.date === dateStr) list.push({ text: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px; display: inline-block;"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>${a.title}`, color: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.15)' }); });
+      sports.forEach(s => { if (s.scheduleDate === dateStr) list.push({ text: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px; display: inline-block;"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"></path><path d="M12 2a6 6 0 0 1 6 6v5a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6z"></path></svg>${s.goalText}`, color: 'var(--success)', bg: 'rgba(16, 185, 129, 0.15)' }); });
+      studyplans.forEach(pl => { if (pl.date === dateStr) list.push({ text: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px; display: inline-block;"><path d="m16 6 4 14"></path><path d="M12 6v14"></path><path d="M8 8v12"></path><path d="M4 4v16"></path></svg>${pl.title}`, color: 'var(--accent)', bg: 'var(--accent-glow)' }); });
       return list;
     };
 
@@ -1932,7 +1995,7 @@ const App = {
       getEventsForDate(dateString).forEach(evt => {
         const pill = document.createElement('div');
         pill.className = 'calendar-event-pill';
-        pill.innerText = evt.text;
+        pill.innerHTML = evt.text;
         pill.style.color = evt.color;
         pill.style.backgroundColor = evt.bg;
         cell.appendChild(pill);
@@ -2047,7 +2110,10 @@ const App = {
 
         reviewCard.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 12px; width: 100%;">
-            <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); font-family: var(--font-family-app) !important;">📊 Monthly Historical Review HUD</span>
+            <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); font-family: var(--font-family-app) !important; display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="alert-svg"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+              <span>Monthly Historical Review HUD</span>
+            </span>
             <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">Completion Rate: <span style="color: var(--accent);">${completionRate}%</span></span>
           </div>
           

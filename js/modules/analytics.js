@@ -546,18 +546,18 @@ export const AnalyticsModule = {
             status = headingTasks.every(t => t.completed) ? 'Completed' : 'In Progress';
           }
 
-          let detailsText = 'Pending 💤';
+          let detailsText = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px; display: inline-block;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>Pending';
           let style = '';
           
           if (status === 'Completed') {
             style = `background: ${getColor('--success', 0.15)}; border-color: ${getColor('--success')}; box-shadow: 0 0 10px ${getColor('--success', 0.4)}; cursor: pointer;`;
-            detailsText = 'Completed ✅';
+            detailsText = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px; display: inline-block;"><polyline points="20 6 9 17 4 12"></polyline></svg>Completed';
           } else if (status === 'In Progress') {
             style = `background: ${getColor('--accent', 0.15)}; border-color: ${getColor('--accent')}; box-shadow: 0 0 10px ${getColor('--accent-glow', 0.8) || getColor('--accent', 0.4)}; cursor: pointer;`;
-            detailsText = 'In Progress ⏳';
+            detailsText = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px; display: inline-block;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>In Progress';
           } else {
             style = `background: rgba(6, 21, 29, 0.55); border-color: var(--border-color); cursor: pointer;`;
-            detailsText = 'Pending 💤';
+            detailsText = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px; display: inline-block;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>Pending';
           }
 
           return `
@@ -673,14 +673,34 @@ export const AnalyticsModule = {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
+              x: {
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.05)',
+                  drawOnChartArea: true
+                },
+                ticks: {
+                  color: '#94a3b8',
+                  font: {
+                    family: 'var(--font-family-app)',
+                    size: 11,
+                    weight: 500
+                  }
+                }
+              },
               y: {
                 beginAtZero: true,
-                grid: { color: adjustOpacity(themeColors.accent, 0.08) },
-                ticks: { color: 'var(--text-secondary)', font: { family: 'var(--font-family-app)' } }
-              },
-              x: {
-                grid: { display: false },
-                ticks: { color: 'var(--text-secondary)', font: { family: 'var(--font-family-app)' } }
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.05)',
+                  drawOnChartArea: true
+                },
+                ticks: {
+                  color: '#94a3b8',
+                  font: {
+                    family: 'var(--font-family-app)',
+                    size: 11,
+                    weight: 500
+                  }
+                }
               }
             },
             plugins: {
@@ -739,9 +759,16 @@ export const AnalyticsModule = {
             maintainAspectRatio: false,
             scales: {
               r: {
-                angleLines: { color: adjustOpacity(themeColors.accent, 0.15) },
-                grid: { color: adjustOpacity(themeColors.accent, 0.15) },
-                pointLabels: { color: 'var(--text-secondary)', font: { size: 9, family: 'var(--font-family-app)' } },
+                angleLines: { color: 'rgba(255, 255, 255, 0.05)' },
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                pointLabels: {
+                  color: '#94a3b8',
+                  font: {
+                    family: 'var(--font-family-app)',
+                    size: 11,
+                    weight: 500
+                  }
+                },
                 ticks: { display: false },
                 suggestedMin: 0,
                 suggestedMax: 100
@@ -799,35 +826,47 @@ export const AnalyticsModule = {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-              y: {
-                min: 0,
-                max: 100,
-                grid: { color: adjustOpacity(themeColors.accent, 0.08) },
-                ticks: { 
-                  color: 'var(--text-secondary)',
-                  font: {
-                    family: 'var(--font-family-app)'
-                  }
-                }
-              },
               x: {
-                grid: { display: false },
-                ticks: { 
-                  color: 'var(--text-secondary)',
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.05)',
+                  drawOnChartArea: true
+                },
+                ticks: {
+                  color: '#94a3b8',
                   font: {
-                    family: 'var(--font-family-app)'
+                    family: 'var(--font-family-app)',
+                    size: 11,
+                    weight: 500
                   },
                   maxRotation: 45,
                   minRotation: 45
+                }
+              },
+              y: {
+                min: 0,
+                max: 100,
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.05)',
+                  drawOnChartArea: true
+                },
+                ticks: {
+                  color: '#94a3b8',
+                  font: {
+                    family: 'var(--font-family-app)',
+                    size: 11,
+                    weight: 500
+                  }
                 }
               }
             },
             plugins: {
               legend: { 
                 labels: { 
-                  color: 'var(--text-primary)',
+                  color: '#f8fafc',
                   font: {
-                    family: 'var(--font-family-app)'
+                    family: 'var(--font-family-app)',
+                    size: 11,
+                    weight: 500
                   }
                 } 
               }
@@ -864,14 +903,34 @@ export const AnalyticsModule = {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
+              x: {
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.05)',
+                  drawOnChartArea: true
+                },
+                ticks: {
+                  color: '#94a3b8',
+                  font: {
+                    family: 'var(--font-family-app)',
+                    size: 11,
+                    weight: 500
+                  }
+                }
+              },
               y: {
                 beginAtZero: true,
-                grid: { color: adjustOpacity(themeColors.accent, 0.08) },
-                ticks: { color: 'var(--text-secondary)', font: { family: 'var(--font-family-app)' } }
-              },
-              x: {
-                grid: { display: false },
-                ticks: { color: 'var(--text-secondary)', font: { family: 'var(--font-family-app)' } }
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.05)',
+                  drawOnChartArea: true
+                },
+                ticks: {
+                  color: '#94a3b8',
+                  font: {
+                    family: 'var(--font-family-app)',
+                    size: 11,
+                    weight: 500
+                  }
+                }
               }
             },
             plugins: {
@@ -1120,7 +1179,7 @@ export const AnalyticsModule = {
             parent.style.padding = '4px 8px';
           }
           if (requiredExamScore === 'Already Achieved') {
-            resReqEl.innerText = 'Achieved 🎉';
+            resReqEl.innerHTML = '<span style="display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="alert-svg"><polyline points="20 6 9 17 4 12"></polyline></svg>Achieved</span>';
             resReqEl.style.color = getColor('--success') || '#00e676';
           } else {
             resReqEl.innerText = `${requiredExamScore.toFixed(1)}%`;
@@ -1200,15 +1259,35 @@ export const AnalyticsModule = {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
+        x: {
+          grid: {
+            color: 'rgba(255, 255, 255, 0.05)',
+            drawOnChartArea: true
+          },
+          ticks: {
+            color: '#94a3b8',
+            font: {
+              family: 'var(--font-family-app)',
+              size: 11,
+              weight: 500
+            }
+          }
+        },
         y: {
           min: 0,
           max: suggestedMax,
-          grid: { color: 'rgba(128, 128, 128, 0.08)' },
-          ticks: { color: getColor('--text-secondary') }
-        },
-        x: {
-          grid: { display: false },
-          ticks: { color: getColor('--text-secondary') }
+          grid: {
+            color: 'rgba(255, 255, 255, 0.05)',
+            drawOnChartArea: true
+          },
+          ticks: {
+            color: '#94a3b8',
+            font: {
+              family: 'var(--font-family-app)',
+              size: 11,
+              weight: 500
+            }
+          }
         }
       },
       plugins: {
