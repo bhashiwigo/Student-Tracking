@@ -136,9 +136,12 @@ export const AttendanceModule = {
         const pracColor = pracPct >= 80 ? 'var(--success)' : pracPct >= 60 ? 'var(--warning)' : 'var(--danger)';
         const fieldColor = fieldPct >= 80 ? 'var(--success)' : fieldPct >= 60 ? 'var(--warning)' : 'var(--danger)';
 
-        const displayTitle = sub.isSubmodule 
+        let displayTitle = sub.isSubmodule 
           ? `${sub.parentSubjectCode} — ${sub.name}` 
           : `${sub.code} — ${sub.name}`;
+        if (displayTitle.includes('sub_') || displayTitle.includes('SUB_')) {
+          displayTitle = displayTitle.replace(/sub_[^\s—:]+/gi, 'Unknown Subject').replace(/SUB_[^\s—:]+/gi, 'Unknown Subject');
+        }
 
         let yxSx = 'N/A';
         if (sub.semester && sub.semester.includes('-')) {

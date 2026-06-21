@@ -1536,12 +1536,22 @@ const App = {
 
           const deadlineVal = as.deadline || as.date || 'N/A';
           const courseVal = as.courseId || as.subjectCode || 'N/A';
+          const matchedSubject = subjects.find(s => s.code === courseVal);
+          let displayLabel = courseVal;
+          if (matchedSubject) {
+            displayLabel = matchedSubject.isSubmodule 
+              ? (matchedSubject.name || matchedSubject.moduleTitle || 'Unknown Sub-Module') 
+              : `${matchedSubject.code} — ${matchedSubject.name}`;
+          }
+          if (displayLabel.startsWith('sub_') || displayLabel.startsWith('SUB_')) {
+            displayLabel = 'Unknown Course';
+          }
 
           return `
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(255, 255, 255, 0.02); font-family: var(--font-family-app) !important;">
               <div style="font-family: var(--font-family-app) !important; min-width: 0; flex: 1;">
                 <div style="font-size: 0.72rem; font-weight: 700; color: var(--accent); font-family: var(--font-family-app) !important; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                  ${courseVal}
+                  ${displayLabel}
                 </div>
                 <div style="font-size: 0.9rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-family-app) !important; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                   ${as.title}
@@ -1564,12 +1574,21 @@ const App = {
     await AnalyticsModule.render();
 
     // Render upcoming exams widget on dashboard
-    await this.renderDashboardExams(exams);
+    await this.renderDashboardExams(exams, subjects);
   },
 
-  async renderDashboardExams(exams) {
+  async renderDashboardExams(exams, subjects) {
     const container = document.getElementById('dashboard-exams-container');
     if (!container) return;
+
+    if (!subjects) {
+      try {
+        subjects = await Database.getAll('subjects');
+      } catch (err) {
+        console.error('Fetch subjects for dashboard exams failed:', err);
+        subjects = [];
+      }
+    }
 
     // Clear active dashboard countdown intervals
     if (this.dashboardCountdownIntervals) {
@@ -1607,6 +1626,16 @@ const App = {
     container.innerHTML = topExams.map(ex => {
       const typeLabel = ex.examType || ex.type || 'THEORY';
       const courseLabel = ex.courseId || ex.subjectCode || 'N/A';
+      const matchedSubject = subjects ? subjects.find(s => s.code === courseLabel) : null;
+      let displayLabel = courseLabel;
+      if (matchedSubject) {
+        displayLabel = matchedSubject.isSubmodule 
+          ? (matchedSubject.name || matchedSubject.moduleTitle || 'Unknown Sub-Module') 
+          : `${matchedSubject.code} — ${matchedSubject.name}`;
+      }
+      if (displayLabel.startsWith('sub_') || displayLabel.startsWith('SUB_')) {
+        displayLabel = 'Unknown Course';
+      }
       const titleLabel = ex.title || ex.name || 'Untitled Exam';
       const venueLabel = ex.venue || 'N/A';
       const dateLabel = ex.date;
@@ -1616,7 +1645,7 @@ const App = {
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(255, 255, 255, 0.02); font-family: var(--font-family-app) !important;">
           <div style="font-family: var(--font-family-app) !important; min-width: 0; flex: 1;">
             <div style="font-size: 0.72rem; font-weight: 700; color: var(--accent); font-family: var(--font-family-app) !important; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-              ${typeLabel} | ${courseLabel}
+              ${typeLabel} | ${displayLabel}
             </div>
             <div style="font-size: 0.9rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-family-app) !important; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
               ${titleLabel}

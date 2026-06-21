@@ -1344,7 +1344,7 @@ body[data-theme="light"] .theme-toggle-switch:hover .theme-toggle-track {
   border: 1px solid var(--border-color);
   border-radius: 12px;
   overflow: hidden;
-  height: 560px; /* Enhanced viewbox matrix height */
+  height: 560px;
   box-shadow: var(--shadow-md);
   background: rgba(10, 24, 32, 0.2);
 }
@@ -1370,28 +1370,27 @@ body[data-theme="light"] .theme-toggle-switch:hover .theme-toggle-track {
   gap: 6px;
   padding: 16px;
   height: 100%;
-  max-height: 480px; /* Fixed contained boundary */
-  overflow-y: auto;   /* Scroll internally for infinite notes safety */
+  max-height: 480px;
+  overflow-y: auto;
 }
 
 .note-sidebar::-webkit-scrollbar {
   width: 4px;
 }
 
-/* Enhanced high-contrast visibility for saved note cards in list */
 .note-item-link {
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  color: var(--text-primary) !important; /* Forces clean bright text display */
+  color: var(--text-primary) !important; /* Maximizes crisp font clarity */
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(0, 229, 255, 0.08); /* Soft contextual layout boundary */
+  border: 1px solid rgba(0, 229, 255, 0.08);
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
 }
 
 .note-item-link:hover {
@@ -1406,7 +1405,7 @@ body[data-theme="light"] .theme-toggle-switch:hover .theme-toggle-track {
   background: var(--accent-glow);
   color: var(--accent) !important;
   border-color: var(--accent);
-  box-shadow: 0 0 12px var(--accent-glow), inset 0 0 6px var(--accent-glow);
+  box-shadow: 0 0 12px var(--accent-glow);
   font-weight: 700;
 }
 
@@ -1417,7 +1416,7 @@ body[data-theme="light"] .theme-toggle-switch:hover .theme-toggle-track {
   gap: 14px;
   background: transparent;
   height: 100%;
-  overflow-y: auto; /* Contain form boundaries perfectly */
+  overflow-y: auto;
 }
 
 #btn-save-note {

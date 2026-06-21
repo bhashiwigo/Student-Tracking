@@ -107,7 +107,10 @@ export const ExamsModule = {
         const courseLabel = ex.courseId || ex.subjectCode || 'N/A';
 
         const sub = subjects.find(s => s.code === courseLabel);
-        const resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseLabel;
+        let resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseLabel;
+        if (resolvedCode && (resolvedCode.startsWith('sub_') || resolvedCode.startsWith('SUB_'))) {
+          resolvedCode = 'Unknown Course';
+        }
 
         return `
           <div class="card col-6" id="exam-card-${ex.id}" style="display: flex; flex-direction: column; gap: 14px; font-family: var(--font-family-app) !important;">
@@ -248,7 +251,10 @@ export const ExamsModule = {
       
       const courseLabel = ex.courseId || ex.subjectCode || 'N/A';
       const sub = subjects.find(s => s.code === courseLabel);
-      const resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseLabel;
+      let resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseLabel;
+      if (resolvedCode && (resolvedCode.startsWith('sub_') || resolvedCode.startsWith('SUB_'))) {
+        resolvedCode = 'Unknown Course';
+      }
 
       return {
         id: ex.id,

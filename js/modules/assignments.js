@@ -91,7 +91,10 @@ export const AssignmentsModule = {
         const deadlineVal = as.deadline || as.date || 'N/A';
         const courseVal = as.courseId || as.subjectCode || 'N/A';
         const sub = subjects.find(s => s.code === courseVal);
-        const resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseVal;
+        let resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseVal;
+        if (resolvedCode && (resolvedCode.startsWith('sub_') || resolvedCode.startsWith('SUB_'))) {
+          resolvedCode = 'Unknown Course';
+        }
 
         return `
           <div class="task-item col-12 ${as.status === 'Completed' ? 'completed' : ''}" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; font-family: var(--font-family-app) !important;">
@@ -182,7 +185,10 @@ export const AssignmentsModule = {
       
       const courseVal = as.courseId || as.subjectCode || 'N/A';
       const sub = subjects.find(s => s.code === courseVal);
-      const resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseVal;
+      let resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseVal;
+      if (resolvedCode && (resolvedCode.startsWith('sub_') || resolvedCode.startsWith('SUB_'))) {
+        resolvedCode = 'Unknown Course';
+      }
 
       return {
         id: as.id,

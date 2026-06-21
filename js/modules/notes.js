@@ -7,6 +7,55 @@
 import { Database } from '../database/db.js';
 import { NotificationService } from '../services/notifications.js';
 
+// Support 'subModules' and 'subjects' store name queries for subjects-to-submodules mapping
+const originalGetAll = Database.getAll;
+Database.getAll = function(storeName) {
+  if (storeName === 'subModules' || storeName === 'subjects') {
+    return originalGetAll.call(Database, 'subjects').then(records => {
+      // Check if it's already a flat list (contains isSubmodule) to avoid double-processing
+      const hasSubmodules = (records || []).some(item => item.isSubmodule);
+      if (hasSubmodules) {
+        if (storeName === 'subModules') {
+          return records.filter(item => item.isSubmodule);
+        }
+        return records;
+      }
+      
+      // If it's the raw parent subjects array, flatten it
+      const flatList = [];
+      (records || []).forEach(item => {
+        if (item.isParent && Array.isArray(item.submodules)) {
+          item.submodules.forEach(sub => {
+            flatList.push({
+              code: sub.id,
+              id: sub.id,
+              name: sub.moduleTitle || sub.name,
+              moduleTitle: sub.moduleTitle || sub.name,
+              credits: sub.credits,
+              semester: sub.semester,
+              lecturer: sub.lecturerName,
+              info: sub.lecturerContact,
+              theoryWeight: sub.theoryWeight,
+              practicalWeight: sub.practicalWeight,
+              type: sub.type || 'theory',
+              parentSubjectCode: item.code,
+              isSubmodule: true
+            });
+          });
+        } else if (!item.isParent) {
+          flatList.push(item);
+        }
+      });
+      
+      if (storeName === 'subModules') {
+        return flatList.filter(item => item.isSubmodule);
+      }
+      return flatList;
+    });
+  }
+  return originalGetAll.apply(this, arguments);
+};
+
 /**
  * Simple Markdown Parser Engine
  * Converts # Headers, **bold**, *italics*, `code`, > quotes, and lists into HTML
@@ -115,25 +164,19 @@ export const NotesModule = {
     if (!dropdown) return;
 
     try {
-      const subjects = await Database.getAll('subjects');
-      dropdown.innerHTML = `
-        <option value="" style="font-family: var(--font-family-app) !important;">No Course Unit Tag</option>
-        ${subjects.map(s => {
-          if (s.isSubmodule) {
-            const subModule = {
-              courseCode: s.parentSubjectCode,
-              title: s.name || s.moduleTitle || 'Unknown'
-            };
-            return `<option value="${s.code}" style="font-family: var(--font-family-app) !important;">${subModule.courseCode} — ${subModule.title}</option>`;
-          } else {
-            const subject = {
-              code: s.code,
-              name: s.name || 'Unknown'
-            };
-            return `<option value="${s.code}" style="font-family: var(--font-family-app) !important;">${subject.code} — ${subject.name}</option>`;
-          }
-        }).join('')}
-      `;
+      const subModules = await Database.getAll('subModules');
+      
+      let optionsHTML = `<option value="" style="font-family: var(--font-family-app) !important;">No Module Tag</option>`;
+      subModules.forEach(s => {
+        const subModule = {
+          id: s.code,
+          courseCode: s.parentSubjectCode,
+          title: s.name || s.moduleTitle || 'Unknown',
+          type: s.type || 'theory'
+        };
+        optionsHTML += `<option value="${subModule.id}" style="font-family: var(--font-family-app) !important;">${subModule.courseCode || ''} — ${subModule.title} (${subModule.type})</option>`;
+      });
+      dropdown.innerHTML = optionsHTML;
     } catch (err) {
       console.error('Load note subjects failed:', err);
     }
@@ -186,7 +229,10 @@ export const NotesModule = {
       sidebar.innerHTML = filtered.map(note => {
         const noteTitle = note.title || 'Untitled Page';
         const sub = subjects.find(s => s.code === note.subjectCode);
-        const resolvedSubjectCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : note.subjectCode;
+        let resolvedSubjectCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : note.subjectCode;
+        if (resolvedSubjectCode && (resolvedSubjectCode.startsWith('sub_') || resolvedSubjectCode.startsWith('SUB_'))) {
+          resolvedSubjectCode = 'Unknown Subject';
+        }
         
         return `
           <div class="note-item-link ${note.id === this.activeNoteId ? 'active' : ''}" data-id="${note.id}" style="font-family: var(--font-family-app) !important;">
@@ -250,7 +296,7 @@ export const NotesModule = {
         document.getElementById('note-title').value = note.title || '';
         document.getElementById('note-subject-select').value = note.subjectCode || '';
         document.getElementById('note-body').value = note.content || '';
-        document.getElementById('note-tags').value = note.tags ? note.tags.join(', ') : '';
+        document.getElementById('note-tags').value = Array.isArray(note.tags) ? note.tags.join(', ') : (note.tags || '');
 
         const deleteBtn = document.getElementById('btn-delete-note');
         if (deleteBtn) deleteBtn.style.display = 'inline-block';
@@ -269,12 +315,12 @@ export const NotesModule = {
   },
 
   async handleSaveNote() {
-    const title = document.getElementById('note-title').value.trim();
     const subjectCode = document.getElementById('note-subject-select').value;
     const content = document.getElementById('note-body').value;
     
     const tagsString = document.getElementById('note-tags').value.trim();
-    const tags = tagsString ? tagsString.split(',').map(t => t.trim()) : [];
+    const title = tagsString;
+    const tags = tagsString;
 
     const id = this.activeNoteId || 'note-' + Date.now();
     const date = new Date().toISOString().slice(0, 10);

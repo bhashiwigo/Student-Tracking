@@ -75,7 +75,10 @@ export const ResourcesModule = {
 
         const subjectCode = res.courseId;
         const sub = subjects.find(s => s.code === subjectCode);
-        const resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : subjectCode;
+        let resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : subjectCode;
+        if (resolvedCode && (resolvedCode.startsWith('sub_') || resolvedCode.startsWith('SUB_'))) {
+          resolvedCode = 'Unknown Course';
+        }
 
         return `
           <div class="card col-6" id="resource-card-${res.id}" style="display: flex; flex-direction: column; gap: 14px; font-family: var(--font-family-app) !important;">
