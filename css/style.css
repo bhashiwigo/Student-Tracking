@@ -2613,6 +2613,7 @@ body[data-theme="light"] .radial-ring-value {
 #hud-interview-gpa-part,
 #hud-interview-sports-part,
 #hud-interview-project-part,
+#hud-interview-enrichment-part,
 #hud-interview-panel-part {
   color: var(--text-secondary) !important;
   font-weight: 500 !important;

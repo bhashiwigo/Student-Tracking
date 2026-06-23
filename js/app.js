@@ -1113,6 +1113,10 @@ const App = {
         const sem = document.getElementById('settings-semester').value;
         const target = parseFloat(document.getElementById('settings-target-gpa').value) || 3.70;
 
+        const hackathons = parseInt(document.getElementById('enrichment-hackathons').value) || 0;
+        const societies = parseInt(document.getElementById('enrichment-societies').value) || 0;
+        const industry = parseInt(document.getElementById('enrichment-industry').value) || 0;
+
         const getVal = (id) => {
           const el = document.getElementById(id);
           return el ? el.value.trim() : '';
@@ -1125,6 +1129,11 @@ const App = {
           profile.faculty = faculty;
           profile.admissionYear = year;
           profile.currentSemester = sem;
+          profile.enrichment = {
+            hackathons,
+            societies,
+            industry
+          };
 
           // Safely build the extended studentInfo structure
           profile.studentInfo = {
@@ -1207,6 +1216,9 @@ const App = {
           // Trigger view update routines
           if (typeof AcademicModule.renderSubjects === 'function') {
             AcademicModule.renderSubjects();
+          }
+          if (window.AcademicModule && typeof window.AcademicModule.updateSpecialEligibilityHUD === 'function') {
+            window.AcademicModule.updateSpecialEligibilityHUD();
           }
           if (typeof AttendanceModule.render === 'function') {
             AttendanceModule.render();
@@ -1938,6 +1950,12 @@ const App = {
       setVal('settings-advisor-name', user.advisorName || (info.academicAdvisor && info.academicAdvisor.name) || '');
       setVal('settings-advisor-email', user.advisorEmail || (info.academicAdvisor && info.academicAdvisor.email) || '');
       setVal('settings-advisor-contact', user.advisorContact || (info.academicAdvisor && info.academicAdvisor.contact) || '');
+
+      // Populate academic enrichment fields
+      const enrichment = student.enrichment || {};
+      setVal('enrichment-hackathons', enrichment.hackathons !== undefined ? enrichment.hackathons : 0);
+      setVal('enrichment-societies', enrichment.societies !== undefined ? enrichment.societies : 0);
+      setVal('enrichment-industry', enrichment.industry !== undefined ? enrichment.industry : 0);
     }
     if (targetGpaSetting) {
       document.getElementById('settings-target-gpa').value = targetGpaSetting.value;

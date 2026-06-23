@@ -92,7 +92,8 @@ export const SportsModule = {
 
             <div style="font-size: 0.8rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 4px;">
               <span><strong>Scheduled Date:</strong> ${sp.scheduleDate}</span>
-              <span><strong>Performance rating:</strong> ${sp.performanceScore ? sp.performanceScore + '/10' : 'N/A'}</span>
+              <span><strong>Competition Level:</strong> ${sp.competitionLevel || 'N/A'}</span>
+              <span><strong>Achievement Level:</strong> ${sp.achievementLevel || 'N/A'}</span>
             </div>
 
             <div style="display: flex; gap: 10px; margin-top: 10px;">
@@ -143,7 +144,10 @@ export const SportsModule = {
           document.getElementById('sport-type').value = sp.activityType;
           document.getElementById('sport-date').value = sp.scheduleDate || '';
           document.getElementById('sport-hours').value = sp.trainingHours || '';
-          document.getElementById('sport-rating').value = sp.performanceScore || '';
+          const compEl = document.getElementById('sport-competition-level');
+          if (compEl) compEl.value = sp.competitionLevel || 'University';
+          const achEl = document.getElementById('sport-achievement-level');
+          if (achEl) achEl.value = sp.achievementLevel || 'Participation';
           document.getElementById('sport-details').value = sp.goalText;
         }
       } catch (err) {
@@ -151,6 +155,10 @@ export const SportsModule = {
       }
     } else {
       document.getElementById('sport-date').value = new Date().toISOString().slice(0, 10);
+      const compEl = document.getElementById('sport-competition-level');
+      if (compEl) compEl.value = 'University';
+      const achEl = document.getElementById('sport-achievement-level');
+      if (achEl) achEl.value = 'Participation';
     }
 
     modal.classList.add('visible');
@@ -169,7 +177,8 @@ export const SportsModule = {
     const activityType = document.getElementById('sport-type').value;
     const scheduleDate = document.getElementById('sport-date').value;
     const trainingHours = parseFloat(document.getElementById('sport-hours').value) || 0;
-    const performanceScore = parseInt(document.getElementById('sport-rating').value) || 0;
+    const competitionLevel = document.getElementById('sport-competition-level').value;
+    const achievementLevel = document.getElementById('sport-achievement-level').value;
     const goalText = document.getElementById('sport-details').value.trim();
 
     if (!goalText) {
@@ -177,7 +186,7 @@ export const SportsModule = {
       return;
     }
 
-    const sportData = { id, activityType, scheduleDate, trainingHours, performanceScore, goalText };
+    const sportData = { id, activityType, scheduleDate, trainingHours, competitionLevel, achievementLevel, goalText };
 
     try {
       if (mode === 'add') {
@@ -192,6 +201,10 @@ export const SportsModule = {
       this.render();
       window.dispatchEvent(new CustomEvent('calendarItemsUpdated'));
 
+      if (window.AcademicModule) {
+        window.AcademicModule.updateSpecialEligibilityHUD();
+      }
+
     } catch (err) {
       console.error('Save sports failed:', err);
     }
@@ -203,8 +216,14 @@ export const SportsModule = {
       NotificationService.show('Sports Log Deleted', 'The sports record was removed.', 'warning');
       this.render();
       window.dispatchEvent(new CustomEvent('calendarItemsUpdated'));
+      
+      if (window.AcademicModule) {
+        window.AcademicModule.updateSpecialEligibilityHUD();
+      }
     } catch (err) {
       console.error('Delete sports failed:', err);
     }
   }
 };
+
+window.SportsModule = SportsModule;

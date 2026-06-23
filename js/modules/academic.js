@@ -313,6 +313,19 @@ export const AcademicModule = {
       };
     }
 
+    const subCodeInput = document.getElementById('submodule-code-input');
+    const projectMarkGroup = document.getElementById('project-final-mark-group');
+    if (subCodeInput && projectMarkGroup) {
+      subCodeInput.addEventListener('input', (e) => {
+        const val = e.target.value;
+        if (val.includes('COM 3405') || val.includes('ICT 3411')) {
+          projectMarkGroup.style.setProperty('display', 'block', 'important');
+        } else {
+          projectMarkGroup.style.display = 'none';
+        }
+      });
+    }
+
     window.addEventListener('subjectsUpdated', async (e) => {
       if (this._isTogglingCheckpoint) {
         return; // Skip full render for syllabus checklist clicks
@@ -372,6 +385,9 @@ export const AcademicModule = {
   },
 
   async updateSpecialEligibilityHUD(stats) {
+    if (!stats) {
+      stats = await this._getGPADetails();
+    }
     const cgpaDisplay = document.getElementById('global-cgpa-display');
     const statusBadge = document.getElementById('special-status-badge');
     const progressFill = document.getElementById('hud-progress-fill');
@@ -408,26 +424,106 @@ export const AcademicModule = {
 
     // Dynamic Special Selection Criteria Weight Calculation
     try {
-      const allSubmodules = await Database.getAll('researchProject/modules');
+      const submodules = await Database.getAll('subjects');
       const sports = await Database.getAll('sports');
 
-      // 1. GPA Segment (70% Max Weight): (Current_3Yr_GPA / 4.0) * 70
-      const gpaPart = Math.min((cgpa3Year / 4.0) * 70, 70);
+      // 1. GPA Segment (70% Max Weight): GPA for best 65 credits of graded sub-modules.
+      const gradeMap = (window.GPAModule && window.GPAModule.gradeMap) || {
+        'A+': 4.00, 'A': 4.00, 'A-': 3.70,
+        'B+': 3.30, 'B': 3.00, 'B-': 2.70,
+        'C+': 2.30, 'C': 2.00, 'C-': 1.70,
+        'D+': 1.30, 'D': 1.00, 'E': 0.00
+      };
+      
+      const gradedSubs = (submodules || [])
+        .filter(s => s.grade && gradeMap[s.grade] !== undefined && (s.credits || 0) > 0)
+        .map(s => ({
+          credits: parseFloat(s.credits) || 0,
+          gp: gradeMap[s.grade]
+        }));
+      
+      gradedSubs.sort((a, b) => b.gp - a.gp);
+      
+      let best65Credits = 0;
+      let best65GP = 0;
+      for (const s of gradedSubs) {
+        if (best65Credits + s.credits <= 65) {
+          best65Credits += s.credits;
+          best65GP += s.gp * s.credits;
+        } else {
+          const remaining = 65 - best65Credits;
+          best65Credits += remaining;
+          best65GP += s.gp * remaining;
+          break;
+        }
+      }
+      const best65GPA = best65Credits > 0 ? (best65GP / best65Credits) : 0.00;
+      const gpaPart = Math.min((best65GPA / 4.0) * 70, 70);
 
-      // 2. Sports Matches Segment (5% Max Weight): Each match adds 1.25% up to a 5.0% maximum cap
-      const sportsPart = Math.min(sports.filter(s => s.activityType === 'Match' || s.type === 'Match').length * 1.25, 5);
+      // 2. Sports Matches Segment (5% Max Weight): Mapped via match level / achievements
+      let sportsScoreSum = 0;
+      const matches = sports.filter(s => s.activityType === 'Match' || s.type === 'Match');
+      matches.forEach(m => {
+        const comp = m.competitionLevel || 'University';
+        const ach = m.achievementLevel || 'Participation';
+        let points = 1.25;
+        
+        if (comp === 'National') {
+          if (ach === 'Winner') points = 5.0;
+          else if (ach === '1st Runner-up') points = 4.0;
+          else if (ach === '2nd Runner-up') points = 3.0;
+          else points = 2.0;
+        } else if (comp === 'University') {
+          if (ach === 'Winner') points = 3.0;
+          else if (ach === '1st Runner-up') points = 2.5;
+          else if (ach === '2nd Runner-up') points = 2.0;
+          else points = 1.5;
+        } else if (comp === 'Provincial/School') {
+          if (ach === 'Winner') points = 2.0;
+          else if (ach === '1st Runner-up') points = 1.5;
+          else if (ach === '2nd Runner-up') points = 1.25;
+          else points = 1.0;
+        }
+        sportsScoreSum += points;
+      });
+      const sportsPart = Math.min(sportsScoreSum, 5.0);
 
-      // 3. Group Project Segment (5% Max Weight): Flat 5.0% weight if completed status or grade entry contains COM 3405 or ICT 3411
-      const projectSub = allSubmodules.find(s => 
-        s.id === 'COM 3405' || s.id === 'ICT 3411' || s.code === 'COM 3405' || s.code === 'ICT 3411' ||
+      // 3. Group Project Segment (5% Max Weight): evaluates (projectMark/100)*5 or falls back.
+      const projectSub = submodules.find(s => 
+        (s.submoduleCode && (s.submoduleCode.includes('COM 3405') || s.submoduleCode.includes('ICT 3411'))) ||
+        (s.id && (s.id.includes('COM 3405') || s.id.includes('ICT 3411'))) ||
         (s.moduleTitle && (s.moduleTitle.includes('COM 3405') || s.moduleTitle.includes('ICT 3411')))
       );
-      const projectPart = (projectSub && (projectSub.grade || projectSub.completed || projectSub.status === 'Completed')) ? 5 : 0;
+      
+      let projectPart = 0;
+      if (projectSub) {
+        if (projectSub.projectMark !== undefined && projectSub.projectMark !== null && projectSub.projectMark !== '') {
+          projectPart = (parseFloat(projectSub.projectMark) / 100) * 5;
+        } else if (projectSub.grade && gradeMap[projectSub.grade] !== undefined) {
+          projectPart = (gradeMap[projectSub.grade] / 4.0) * 5;
+        } else if (projectSub.internalMarks) {
+          const ca = parseFloat(projectSub.internalMarks.ca) || 0;
+          const quiz = parseFloat(projectSub.internalMarks.quiz) || 0;
+          const lab = parseFloat(projectSub.internalMarks.lab) || 0;
+          const avgInternal = (ca + quiz + lab) / 3;
+          projectPart = (avgInternal / 100) * 5;
+        } else if (projectSub.completed || projectSub.status === 'Completed') {
+          projectPart = 5.0;
+        }
+      }
 
-      // 4. Viva Segment (20% Max Weight): Default to 0.0%. Read contextually from rusl_viva_score in localStorage
-      const vivaPart = parseFloat(localStorage.getItem('rusl_viva_score')) || 0.0;
+      // 4. Academic Enrichment Segment (15% Max Weight): voluntary, hackathon, industry engagement.
+      const profile = await Database.get('students', 'profile');
+      const enrichment = (profile && profile.enrichment) || { hackathons: 0, societies: 0, industry: 0 };
+      const hackathons = parseInt(enrichment.hackathons) || 0;
+      const societies = parseInt(enrichment.societies) || 0;
+      const industry = parseInt(enrichment.industry) || 0;
+      const enrichmentPart = Math.min(hackathons + societies + industry, 15.0);
 
-      const finalInterviewSum = parseFloat((gpaPart + sportsPart + projectPart + vivaPart).toFixed(1));
+      // 5. Viva Segment (20% Max Weight): Read contextually from localStorage.
+      const vivaPart = Math.min(parseFloat(localStorage.getItem('rusl_viva_score')) || 0.0, 20.0);
+
+      const finalInterviewSum = parseFloat((gpaPart + sportsPart + projectPart + enrichmentPart + vivaPart).toFixed(1));
 
       // Update UI elements
       const interviewText = document.getElementById('hud-interview-score-text');
@@ -436,6 +532,7 @@ export const AcademicModule = {
       const partGPA = document.getElementById('hud-interview-gpa-part');
       const partSports = document.getElementById('hud-interview-sports-part');
       const partProject = document.getElementById('hud-interview-project-part');
+      const partEnrichment = document.getElementById('hud-interview-enrichment-part');
       const partPanel = document.getElementById('hud-interview-panel-part');
       const inlineVivaInput = document.getElementById('input-viva-score-inline');
 
@@ -449,6 +546,7 @@ export const AcademicModule = {
       if (partGPA) partGPA.textContent = `GPA (65 Cr, 70% max): ${gpaPart.toFixed(1)}%`;
       if (partSports) partSports.textContent = `Sports Matches (5% max): ${sportsPart.toFixed(1)}%`;
       if (partProject) partProject.textContent = `Group Project COM 3405/ICT 3411 (5% max): ${projectPart.toFixed(1)}%`;
+      if (partEnrichment) partEnrichment.textContent = `Academic Enrichment (15% max): ${enrichmentPart.toFixed(1)}%`;
       if (partPanel) partPanel.textContent = `Viva (20% max): ${vivaPart.toFixed(1)}%`;
 
     } catch (err) {
@@ -1143,7 +1241,16 @@ export const AcademicModule = {
         if (sub) {
           document.getElementById('module-parent-subject-select').value = sub.parentSubjectCode || '';
           if (document.getElementById('submodule-code-input')) {
-            document.getElementById('submodule-code-input').value = sub.submoduleCode || '';
+            const subCode = sub.submoduleCode || '';
+            document.getElementById('submodule-code-input').value = subCode;
+            const projectMarkGroup = document.getElementById('project-final-mark-group');
+            if (projectMarkGroup) {
+              if (subCode.includes('COM 3405') || subCode.includes('ICT 3411')) {
+                projectMarkGroup.style.setProperty('display', 'block', 'important');
+              } else {
+                projectMarkGroup.style.display = 'none';
+              }
+            }
           }
           document.getElementById('sub-module-title').value = sub.moduleTitle || sub.name || '';
           document.getElementById('module-credits-select').value = sub.credits || '3';
@@ -1163,6 +1270,11 @@ export const AcademicModule = {
           document.getElementById('module-ca-marks').value = ca;
           document.getElementById('module-quiz-marks').value = quiz;
           document.getElementById('module-lab-marks').value = lab;
+
+          const projectMarkEl = document.getElementById('module-project-mark');
+          if (projectMarkEl) {
+            projectMarkEl.value = sub.projectMark !== undefined ? sub.projectMark : '';
+          }
         }
       } catch (err) {
         console.error('Load sub-module details failed:', err);
@@ -1170,6 +1282,14 @@ export const AcademicModule = {
     } else {
       if (document.getElementById('submodule-code-input')) {
         document.getElementById('submodule-code-input').value = '';
+      }
+      const projectMarkGroup = document.getElementById('project-final-mark-group');
+      if (projectMarkGroup) {
+        projectMarkGroup.style.display = 'none';
+      }
+      const projectMarkEl = document.getElementById('module-project-mark');
+      if (projectMarkEl) {
+        projectMarkEl.value = '';
       }
       document.getElementById('module-semester-select').value = this.activeSemester;
       document.getElementById('module-theory-weight').value = '70';
@@ -1296,6 +1416,11 @@ export const AcademicModule = {
         existingSub = await Database.get('subjects', id) || {};
       }
 
+      const projectMarkEl = document.getElementById('module-project-mark');
+      const projectMark = (submoduleCode.includes('COM 3405') || submoduleCode.includes('ICT 3411')) && projectMarkEl
+        ? parseFloat(projectMarkEl.value) || 0
+        : undefined;
+
       const subData = {
         ...existingSub,
         code: id,
@@ -1318,6 +1443,7 @@ export const AcademicModule = {
         grade: existingSub.grade || '',
         gradePoint: existingSub.gradePoint !== undefined ? existingSub.gradePoint : (existingSub.grade && GRADE_MAP[existingSub.grade] !== undefined ? GRADE_MAP[existingSub.grade] : 0.00),
         internalMarks: { ca, quiz, lab },
+        projectMark: projectMark,
         syllabusCheckpoints: existingSub.syllabusCheckpoints || DEFAULT_SYLLABUS_CHECKPOINTS.map(label => ({ label, done: false }))
       };
 
@@ -1333,6 +1459,10 @@ export const AcademicModule = {
       window.dispatchEvent(new CustomEvent('calendarItemsUpdated'));
       window.dispatchEvent(new CustomEvent('subjectsUpdated'));
       this.render();
+
+      if (window.AcademicModule) {
+        window.AcademicModule.updateSpecialEligibilityHUD();
+      }
     } catch (err) {
       console.error('Save sub-module failed:', err);
       alert('Could not save sub-module.');
@@ -1389,3 +1519,5 @@ export const AcademicModule = {
     }
   }
 };
+
+window.AcademicModule = AcademicModule;

@@ -764,6 +764,7 @@
               <span id="hud-interview-gpa-part" style="font-family: var(--font-family-app) !important;">GPA (65 Cr, 70% max): 0%</span>
               <span id="hud-interview-sports-part" style="font-family: var(--font-family-app) !important;">Sports Matches (5% max): 0%</span>
               <span id="hud-interview-project-part" style="font-family: var(--font-family-app) !important;">Group Project COM 3405/ICT 3411 (5% max): 0%</span>
+              <span id="hud-interview-enrichment-part" style="font-family: var(--font-family-app) !important;">Academic Enrichment (15% max): 0%</span>
               <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
                 <span id="hud-interview-panel-part" style="color: var(--text-secondary) !important; font-weight: 500;">Viva (20% max): 0.0%</span>
                 <button type="button" id="btn-edit-viva-score" style="background: transparent; border: 1px solid var(--border-color); color: var(--accent); font-size: 0.68rem; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-family: var(--font-family-app) !important;">Edit Marks</button>
@@ -1358,6 +1359,26 @@
                   </div>
                 </div>
 
+                <!-- Academic Enrichment Section -->
+                <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; margin-top: 6px;">
+                  <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">Academic Enrichment</h4>
+                  
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Hackathons / Competitions (Max 8)</label>
+                    <input type="number" id="enrichment-hackathons" class="input-text" max="8" min="0" value="0" style="font-family: var(--font-family-app) !important;">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Voluntary / Societies (Max 2)</label>
+                    <input type="number" id="enrichment-societies" class="input-text" max="2" min="0" value="0" style="font-family: var(--font-family-app) !important;">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Community / Industry Engagement (Max 5)</label>
+                    <input type="number" id="enrichment-industry" class="input-text" max="5" min="0" value="0" style="font-family: var(--font-family-app) !important;">
+                  </div>
+                </div>
+
                 <button type="submit" class="btn-solid" style="margin-top: 8px;">Save Settings</button>
               </form>
             </div>
@@ -1751,6 +1772,10 @@
             <label class="form-label" style="font-family: var(--font-family-app) !important;">SUB-MODULE CODE (ID)</label>
             <input type="text" id="submodule-code-input" class="input-text" placeholder="e.g. BOT 2201-T or CHEM 1205-P" required style="font-family: var(--font-family-app) !important;">
           </div>
+          <div class="form-group" id="project-final-mark-group" style="display: none;">
+            <label class="form-label">FINAL PROJECT PERFORMANCE MARK (0-100)</label>
+            <input type="number" id="module-project-mark" class="input-text" max="100" min="0" placeholder="e.g. 85">
+          </div>
           
           <div class="form-group">
             <label class="form-label">Sub-Module Title</label>
@@ -2086,8 +2111,21 @@
             <input type="number" id="sport-hours" class="input-text" step="0.5" value="1.5">
           </div>
           <div class="form-group">
-            <label class="form-label">Performance Score (Optional /10)</label>
-            <input type="number" id="sport-rating" class="input-text" min="0" max="10">
+            <label class="form-label">Competition Level</label>
+            <select id="sport-competition-level" class="select-input">
+              <option value="University">University</option>
+              <option value="National">National</option>
+              <option value="Provincial/School">Provincial/School</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Achievement Level</label>
+            <select id="sport-achievement-level" class="select-input">
+              <option value="Winner">Winner</option>
+              <option value="1st Runner-up">1st Runner-up</option>
+              <option value="2nd Runner-up">2nd Runner-up</option>
+              <option value="Participation">Participation</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Details / Notes / Goal Text</label>
