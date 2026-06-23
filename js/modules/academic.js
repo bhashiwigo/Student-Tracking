@@ -56,6 +56,7 @@ Database.getAll = function(storeName) {
             submodules.push({
               code: sub.id,
               id: sub.id,
+              submoduleCode: sub.submoduleCode || '',
               name: sub.moduleTitle,
               moduleTitle: sub.moduleTitle,
               credits: sub.credits,
@@ -107,6 +108,7 @@ Database.get = function(storeName, key) {
               found = {
                 code: sub.id,
                 id: sub.id,
+                submoduleCode: sub.submoduleCode || '',
                 name: sub.moduleTitle,
                 moduleTitle: sub.moduleTitle,
                 credits: sub.credits,
@@ -152,6 +154,7 @@ Database.put = function(storeName, value) {
         const subPayload = {
           id: value.id,
           moduleTitle: value.name || value.moduleTitle,
+          submoduleCode: value.submoduleCode || '',
           credits: value.credits,
           semester: value.semester,
           lecturerName: value.lecturer || value.lecturerName,
@@ -194,6 +197,7 @@ Database.add = function(storeName, value) {
         const subPayload = {
           id: value.id,
           moduleTitle: value.name || value.moduleTitle,
+          submoduleCode: value.submoduleCode || '',
           credits: value.credits,
           semester: value.semester,
           lecturerName: value.lecturer || value.lecturerName,
@@ -516,12 +520,17 @@ export const AcademicModule = {
         originalGetAll.call(Database, 'subjects'),
         Database.getAll('attendance')
       ]);
-      const parents = allSubjects.filter(s => s.isParent);
+      const activeFilterValue = document.getElementById('subject-semester-filter').value; // e.g., "1-1", "1-2"
+      const [filterYear, filterSemester] = activeFilterValue.split('-');
 
-      if (parents.length === 0) {
+      const filteredSubjects = allSubjects.filter(subj => {
+        return String(subj.year) === String(filterYear) && String(subj.semester) === String(filterSemester);
+      });
+
+      if (filteredSubjects.length === 0) {
         container.innerHTML = `
           <div class="col-12" style="text-align: center; padding: 40px; color: var(--text-muted); font-family: var(--font-family-app) !important;">
-            No custom subject units logged. Click '+ Add Subject' to configure your academic roadmap.
+            No custom subject units logged for this semester. Click '+ Add Subject' to configure your academic roadmap.
           </div>
         `;
         return;
@@ -536,8 +545,8 @@ export const AcademicModule = {
 
       const allSubmodules = await Database.getAll('researchProject/modules');
 
-      container.innerHTML = parents.map(parent => {
-        const semesterSubmodules = allSubmodules.filter(s => s.parentSubjectCode === parent.code && s.semester === this.activeSemester);
+      container.innerHTML = filteredSubjects.map(parent => {
+        const semesterSubmodules = allSubmodules.filter(s => s.parentSubjectCode === parent.code);
         
         let totalCoreCredits = 0;
         let weightedCoreGP = 0;
@@ -611,7 +620,7 @@ export const AcademicModule = {
                       </div>
                       ${riskBadgeHTML}
                     </div>
-                    <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0; font-family: var(--font-family-app) !important;">${sub.moduleTitle}</h4>
+                    <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0; font-family: var(--font-family-app) !important;">${sub.submoduleCode ? sub.submoduleCode + ' - ' : ''}${sub.moduleTitle}</h4>
                   </div>
                   <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
                     <span class="badge low" style="background-color: var(--accent-glow); color: var(--accent); white-space: nowrap; font-family: var(--font-family-app) !important;">${sub.credits} Cr</span>
@@ -696,8 +705,12 @@ export const AcademicModule = {
           <div class="card col-12" style="display: flex; flex-direction: column; gap: 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; font-family: var(--font-family-app) !important;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
               <div>
-                <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--accent); margin: 0; font-family: var(--font-family-app) !important;">${parent.code}</h3>
-                <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-top: 4px; font-family: var(--font-family-app) !important;">${parent.name}</h4>
+                ${parent.code.includes('_') || parent.code === parent.name 
+                  ? `<h3 style="font-size: 1.3rem; font-weight: 800; color: var(--accent); margin: 0; font-family: var(--font-family-app) !important;">${parent.name}</h3>`
+                  : `
+                    <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--accent); margin: 0; font-family: var(--font-family-app) !important;">${parent.code}</h3>
+                    <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-top: 4px; font-family: var(--font-family-app) !important;">${parent.name}</h4>
+                  `}
               </div>
               <div style="display: flex; align-items: center; gap: 12px; font-family: var(--font-family-app) !important;">
                 <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 6px; font-family: var(--font-family-app) !important;">
@@ -924,11 +937,13 @@ export const AcademicModule = {
 
     const codeInput = document.getElementById('sub-code');
     if (code) {
-      codeInput.setAttribute('readonly', 'true');
+      if (codeInput && codeInput.type !== 'hidden') {
+        codeInput.setAttribute('readonly', 'true');
+      }
       try {
         const sub = await Database.get('subjects-raw', code);
         if (sub) {
-          codeInput.value = sub.code || '';
+          if (codeInput) codeInput.value = sub.code || '';
           document.getElementById('sub-name').value = sub.name || '';
           document.getElementById('sub-description').value = sub.description || '';
           document.getElementById('sub-department').value = sub.department || '';
@@ -943,11 +958,20 @@ export const AcademicModule = {
         console.error('Load subject details failed:', err);
       }
     } else {
-      codeInput.removeAttribute('readonly');
+      if (codeInput) {
+        if (codeInput.type !== 'hidden') {
+          codeInput.removeAttribute('readonly');
+        }
+        codeInput.value = '';
+      }
       // Set explicit defaults for add mode
+      const filterVal = document.getElementById('subject-semester-filter') 
+        ? document.getElementById('subject-semester-filter').value 
+        : '1-1';
+      const [actYear, actSem] = filterVal.split('-');
       document.getElementById('sub-department').value = '';
-      document.getElementById('sub-year').value = '1';
-      document.getElementById('sub-semester').value = '1';
+      document.getElementById('sub-year').value = actYear || '1';
+      document.getElementById('sub-semester').value = actSem || '1';
       document.getElementById('sub-credits').value = '';
       document.getElementById('sub-type').value = 'CORE';
       document.getElementById('sub-prerequisites').value = '';
@@ -965,24 +989,19 @@ export const AcademicModule = {
   async handleSaveSubject(e) {
     e.preventDefault();
     const mode = document.getElementById('subject-mode').value;
-    const code = document.getElementById('sub-code').value.trim().toUpperCase();
     const name = document.getElementById('sub-name').value.trim();
+    const year = document.getElementById('sub-year').value;
+    const semester = document.getElementById('sub-semester').value;
+    const compositeSubjectId = `${name}_${year}-${semester}`;
+    const code = mode === 'add' ? compositeSubjectId : document.getElementById('sub-code').value.trim();
     const description = document.getElementById('sub-description').value.trim();
 
-    if (!code || !name) {
-      alert('Subject Code and Title are required.');
-      return;
-    }
-
-    const codeRegex = /^[A-Z]{3}\s\d{4}$/;
-    if (!codeRegex.test(code)) {
-      alert('Course Code must be in the format "ABC 1234" (e.g. CHE 1201).');
+    if (!name) {
+      alert('Subject Title is required.');
       return;
     }
 
     const department = document.getElementById('sub-department').value.trim();
-    const year = document.getElementById('sub-year').value;
-    const semester = document.getElementById('sub-semester').value;
     const creditsVal = document.getElementById('sub-credits').value.trim();
     const credits = creditsVal ? parseInt(creditsVal, 10) : 0;
     const courseType = document.getElementById('sub-type').value;
@@ -995,8 +1014,8 @@ export const AcademicModule = {
 
     const prerequisitesRaw = document.getElementById('sub-prerequisites').value || '';
     const corequisitesRaw = document.getElementById('sub-corequisites').value || '';
-    const prerequisites = prerequisitesRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-    const corequisites = corequisitesRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    const prerequisites = prerequisitesRaw.split(',').map(s => s.trim()).filter(Boolean);
+    const corequisites = corequisitesRaw.split(',').map(s => s.trim()).filter(Boolean);
 
     const subjectData = {
       code,
@@ -1083,6 +1102,9 @@ export const AcademicModule = {
         const sub = await Database.get('subjects', id);
         if (sub) {
           document.getElementById('module-parent-subject-select').value = sub.parentSubjectCode || '';
+          if (document.getElementById('submodule-code-input')) {
+            document.getElementById('submodule-code-input').value = sub.submoduleCode || '';
+          }
           document.getElementById('sub-module-title').value = sub.moduleTitle || sub.name || '';
           document.getElementById('module-credits-select').value = sub.credits || '3';
           document.getElementById('module-semester-select').value = sub.semester || this.activeSemester;
@@ -1106,6 +1128,9 @@ export const AcademicModule = {
         console.error('Load sub-module details failed:', err);
       }
     } else {
+      if (document.getElementById('submodule-code-input')) {
+        document.getElementById('submodule-code-input').value = '';
+      }
       document.getElementById('module-semester-select').value = this.activeSemester;
       document.getElementById('module-theory-weight').value = '70';
       document.getElementById('module-practical-weight').value = '30';
@@ -1129,7 +1154,8 @@ export const AcademicModule = {
       let optionsHtml = '<option value="">None</option>';
       allSubmodules.forEach(sub => {
         if (sub.id !== currentId) {
-          optionsHtml += `<option value="${sub.id}">${sub.moduleTitle} (${sub.semester})</option>`;
+          const disp = sub.submoduleCode ? `${sub.submoduleCode} - ${sub.moduleTitle}` : sub.moduleTitle;
+          optionsHtml += `<option value="${sub.id}">${disp} (${sub.semester})</option>`;
         }
       });
       prereqSelect.innerHTML = optionsHtml;
@@ -1149,14 +1175,20 @@ export const AcademicModule = {
     if (!select) return;
 
     try {
-      const subjects = await originalGetAll.call(Database, 'subjects');
-      const parents = subjects.filter(s => s.isParent);
+      const allSubjects = await originalGetAll.call(Database, 'subjects');
+      
+      const activeSemesterContext = document.getElementById('subject-semester-filter').value; // e.g., "1-1" or "1-2"
+      const [currentYear, currentSemester] = activeSemesterContext.split('-');
+
+      const contextFilteredSubjects = allSubjects.filter(subj => {
+        return subj.isParent && String(subj.year) === String(currentYear) && String(subj.semester) === String(currentSemester);
+      });
 
       select.innerHTML = '<option value="" disabled selected>Select Parent Subject...</option>';
-      parents.forEach(sub => {
+      contextFilteredSubjects.forEach(sub => {
         const opt = document.createElement('option');
-        opt.value = sub.code;
-        opt.innerText = `${sub.code} - ${sub.name}`;
+        opt.value = sub.code || sub.id;
+        opt.innerText = sub.name || sub.title || '';
         select.appendChild(opt);
       });
 
@@ -1173,6 +1205,7 @@ export const AcademicModule = {
     const mode = document.getElementById('sub-module-mode').value;
     const id = document.getElementById('sub-module-id').value || 'sub_' + Date.now();
     const parentCode = document.getElementById('module-parent-subject-select').value;
+    const submoduleCode = document.getElementById('submodule-code-input') ? document.getElementById('submodule-code-input').value.trim() : '';
     const title = document.getElementById('sub-module-title').value.trim();
     const credits = parseInt(document.getElementById('module-credits-select').value) || 3;
     const semester = document.getElementById('module-semester-select').value;
@@ -1227,6 +1260,7 @@ export const AcademicModule = {
         ...existingSub,
         code: id,
         id: id,
+        submoduleCode,
         parentSubjectCode: parentCode,
         name: title,
         moduleTitle: title,
