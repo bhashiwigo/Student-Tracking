@@ -499,6 +499,10 @@ export const AcademicModule = {
     await this.refreshView();
   },
 
+  async renderSubjects() {
+    await this.render();
+  },
+
   async refreshView() {
     const container = document.getElementById('subjects-list-container');
     if (!container) return;
@@ -547,18 +551,58 @@ export const AcademicModule = {
 
       container.innerHTML = filteredSubjects.map(parent => {
         const semesterSubmodules = allSubmodules.filter(s => s.parentSubjectCode === parent.code);
+
+        const subject = parent;
+        subject.id = parent.code;
+        const allSubModules = allSubmodules.map(mod => {
+          mod.parentSubjectId = mod.parentSubjectCode;
+          return mod;
+        });
+
+        // Contextually load all sub-modules linked to this specific parent subject ID
+        const relatedSubModules = allSubModules.filter(mod => mod.parentSubjectId === subject.id);
+
+        // Mathematically accumulate total credits automatically
+        const computedTotalCredits = relatedSubModules.reduce((sum, mod) => sum + (Number(mod.credits) || 0), 0);
         
-        let totalCoreCredits = 0;
-        let weightedCoreGP = 0;
-        const parentAllSubmodules = allSubmodules.filter(s => s.parentSubjectCode === parent.code);
-        parentAllSubmodules.forEach(sub => {
-          if (sub.grade) {
-            const gp = gradeMap[sub.grade] !== undefined ? gradeMap[sub.grade] : 0.00;
-            totalCoreCredits += sub.credits || 0;
-            weightedCoreGP += gp * (sub.credits || 0);
+        const lookupGPValue = (grade) => {
+          const scale = {
+            'A+': 4.00, 'A': 4.00, 'A-': 3.70,
+            'B+': 3.30, 'B': 3.00, 'B-': 2.70,
+            'C+': 2.30, 'C': 2.00, 'C-': 1.70,
+            'D+': 1.30, 'D': 1.00, 'E': 0.00
+          };
+          return scale[grade] !== undefined ? scale[grade] : 0.00;
+        };
+
+        const allSavedResults = allSubModules.map(res => {
+          res.submoduleId = res.id;
+          res.subjectId = res.id;
+          return res;
+        });
+
+        // Track and collect all child module keys unrolled under this parent subject scope
+        const childModules = allSubModules.filter(mod => mod.parentSubjectId === subject.id);
+        
+        let totalWeightedPoints = 0;
+        let totalGradedCredits = 0;
+
+        childModules.forEach(mod => {
+          // Query if a final semester grade is registered for this specific submodule ID
+          const gradeRecord = allSavedResults.find(res => res.submoduleId === mod.id || res.subjectId === mod.id);
+          if (gradeRecord && gradeRecord.grade) {
+            const gpValue = lookupGPValue(gradeRecord.grade); // Evaluates grade mapping scales safely
+            const modCredits = Number(mod.credits) || 0;
+            
+            totalWeightedPoints += (gpValue * modCredits);
+            totalGradedCredits += modCredits;
           }
         });
-        const coreGPA = totalCoreCredits > 0 ? (weightedCoreGP / totalCoreCredits).toFixed(2) : 'N/A';
+
+        // Calculate finalized outcome string block cleanly
+        const calculatedCoreGPA = totalGradedCredits > 0 
+          ? (totalWeightedPoints / totalGradedCredits).toFixed(2) 
+          : "N/A";
 
         let submodulesHTML = '';
         if (semesterSubmodules.length === 0) {
@@ -713,9 +757,8 @@ export const AcademicModule = {
                   `}
               </div>
               <div style="display: flex; align-items: center; gap: 12px; font-family: var(--font-family-app) !important;">
-                <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 6px; font-family: var(--font-family-app) !important;">
-                  Core GPA: <span style="color: var(--accent); font-family: var(--font-family-app) !important;">${coreGPA}</span>
-                </div>
+                <span class="badge low" style="margin-right: 6px; background-color: var(--accent-glow); color: var(--accent); font-family: var(--font-family-app) !important;">Total Credits: ${computedTotalCredits} Cr</span>
+                <span class="badge low" style="margin-right: 6px; background-color: var(--accent-glow); color: var(--accent); font-family: var(--font-family-app) !important;">Core GPA: ${calculatedCoreGPA}</span>
                 <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 6px; font-family: var(--font-family-app) !important; display: flex; align-items: center; gap: 6px;">
                   <span style="font-family: var(--font-family-app) !important;">Sub-Modules:</span>
                   <span style="display: flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 50%; background: rgba(0, 229, 255, 0.18); border: 1px solid rgba(0, 229, 255, 0.3); font-size: 0.75rem; font-weight: 700; color: var(--accent); font-family: var(--font-family-app) !important; padding: 0 4px;">
@@ -947,9 +990,11 @@ export const AcademicModule = {
           document.getElementById('sub-name').value = sub.name || '';
           document.getElementById('sub-description').value = sub.description || '';
           document.getElementById('sub-department').value = sub.department || '';
-          document.getElementById('sub-year').value = sub.year || '1';
-          document.getElementById('sub-semester').value = sub.semester || '1';
-          document.getElementById('sub-credits').value = sub.credits !== undefined ? sub.credits : '';
+          const semVal = `${sub.year || '1'}-${sub.semester || '1'}`;
+          const unifiedSelect = document.getElementById('sub-year-semester-select');
+          if (unifiedSelect) unifiedSelect.value = semVal;
+          const creditsEl = document.getElementById('sub-credits');
+          if (creditsEl) creditsEl.value = sub.credits !== undefined ? sub.credits : '';
           document.getElementById('sub-type').value = sub.courseType || 'CORE';
           document.getElementById('sub-prerequisites').value = Array.isArray(sub.prerequisites) ? sub.prerequisites.join(', ') : '';
           document.getElementById('sub-corequisites').value = Array.isArray(sub.corequisites) ? sub.corequisites.join(', ') : '';
@@ -968,11 +1013,11 @@ export const AcademicModule = {
       const filterVal = document.getElementById('subject-semester-filter') 
         ? document.getElementById('subject-semester-filter').value 
         : '1-1';
-      const [actYear, actSem] = filterVal.split('-');
       document.getElementById('sub-department').value = '';
-      document.getElementById('sub-year').value = actYear || '1';
-      document.getElementById('sub-semester').value = actSem || '1';
-      document.getElementById('sub-credits').value = '';
+      const unifiedSelect = document.getElementById('sub-year-semester-select');
+      if (unifiedSelect) unifiedSelect.value = filterVal;
+      const creditsEl = document.getElementById('sub-credits');
+      if (creditsEl) creditsEl.value = '';
       document.getElementById('sub-type').value = 'CORE';
       document.getElementById('sub-prerequisites').value = '';
       document.getElementById('sub-corequisites').value = '';
@@ -990,8 +1035,16 @@ export const AcademicModule = {
     e.preventDefault();
     const mode = document.getElementById('subject-mode').value;
     const name = document.getElementById('sub-name').value.trim();
-    const year = document.getElementById('sub-year').value;
-    const semester = document.getElementById('sub-semester').value;
+
+    const yearSemesterVal = document.getElementById('sub-year-semester-select').value;
+    const splitVal = yearSemesterVal.split('-');
+    const subj = {};
+    subj.year = splitVal[0];
+    subj.semester = splitVal[1];
+
+    const year = subj.year;
+    const semester = subj.semester;
+
     const compositeSubjectId = `${name}_${year}-${semester}`;
     const code = mode === 'add' ? compositeSubjectId : document.getElementById('sub-code').value.trim();
     const description = document.getElementById('sub-description').value.trim();
@@ -1002,7 +1055,8 @@ export const AcademicModule = {
     }
 
     const department = document.getElementById('sub-department').value.trim();
-    const creditsVal = document.getElementById('sub-credits').value.trim();
+    const creditsEl = document.getElementById('sub-credits');
+    const creditsVal = creditsEl ? creditsEl.value.trim() : '';
     const credits = creditsVal ? parseInt(creditsVal, 10) : 0;
     const courseType = document.getElementById('sub-type').value;
 

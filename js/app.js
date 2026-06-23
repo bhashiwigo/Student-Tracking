@@ -684,6 +684,7 @@ const App = {
         // Persist semester + GPA target to settings for module access
         await Database.put('settings', { key: 'currentSemester', value: user.currentSemester });
         await Database.put('settings', { key: 'gpaTarget', value: 3.70 });
+        localStorage.setItem('rusl_active_semester', user.currentSemester || '1-1');
         this.updateSemesterChip(user.currentSemester);
       } else {
         // Fallback: check legacy students store
@@ -695,6 +696,9 @@ const App = {
           if (facultyEl) facultyEl.innerText = student.faculty || 'Faculty of Applied Sciences';
           const universityEl = document.getElementById('user-profile-university');
           if (universityEl) universityEl.innerText = student.university || 'Rajarata University';
+
+          localStorage.setItem('rusl_active_semester', student.currentSemester || '1-1');
+          this.updateSemesterChip(student.currentSemester);
         }
       }
     } catch (err) {
@@ -1184,6 +1188,30 @@ const App = {
           await Database.put('settings', { key: 'currentSemester', value: sem });
           await Database.put('settings', { key: 'gpaTarget', value: target });
 
+          const targetedSemesterValue = document.getElementById('settings-semester').value;
+          localStorage.setItem('rusl_active_semester', targetedSemesterValue);
+
+          // Propagate the active semester to modular filters
+          const subjectFilter = document.getElementById('subject-semester-filter');
+          if (subjectFilter) {
+            subjectFilter.value = targetedSemesterValue;
+          }
+          AcademicModule.activeSemester = targetedSemesterValue;
+
+          const attendanceFilter = document.getElementById('attendance-semester-filter');
+          if (attendanceFilter) {
+            attendanceFilter.value = targetedSemesterValue;
+          }
+          AttendanceModule.activeSemester = targetedSemesterValue;
+
+          // Trigger view update routines
+          if (typeof AcademicModule.renderSubjects === 'function') {
+            AcademicModule.renderSubjects();
+          }
+          if (typeof AttendanceModule.render === 'function') {
+            AttendanceModule.render();
+          }
+
           NotificationService.show('Settings Saved', 'Profile configuration updated successfully.', 'success');
 
           const userBadge = document.getElementById('user-profile-badge');
@@ -1194,7 +1222,7 @@ const App = {
           if (universityEl) universityEl.innerText = university;
 
           // Update top-bar semester chip live
-          this.updateSemesterChip(sem);
+          this.updateSemesterChip(targetedSemesterValue);
 
           window.dispatchEvent(new CustomEvent('subjectsUpdated'));
         } catch (err) {
@@ -1412,12 +1440,28 @@ const App = {
     });
 
     if (this.currentView === 'dashboard') { this.renderDashboard(); }
-    else if (this.currentView === 'academic') { AcademicModule.render(); }
+    else if (this.currentView === 'academic') {
+      const defaultSemester = localStorage.getItem('rusl_active_semester') || '1-1';
+      const filter = document.getElementById('subject-semester-filter');
+      if (filter) {
+        filter.value = defaultSemester;
+      }
+      AcademicModule.activeSemester = defaultSemester;
+      AcademicModule.renderSubjects();
+    }
     else if (this.currentView === 'exams') { ExamsModule.render(); }
     else if (this.currentView === 'practicals') { PracticalsModule.render(); }
     else if (this.currentView === 'assignments') { AssignmentsModule.render(); }
     else if (this.currentView === 'gpa') { GPAModule.render(); }
-    else if (this.currentView === 'attendance') { AttendanceModule.render(); }
+    else if (this.currentView === 'attendance') {
+      const defaultSemester = localStorage.getItem('rusl_active_semester') || '1-1';
+      const filter = document.getElementById('attendance-semester-filter');
+      if (filter) {
+        filter.value = defaultSemester;
+      }
+      AttendanceModule.activeSemester = defaultSemester;
+      AttendanceModule.render();
+    }
     else if (this.currentView === 'sports') { SportsModule.render(); }
     else if (this.currentView === 'study') { StudyModule.render(); }
     else if (this.currentView === 'notes') { NotesModule.render(); }

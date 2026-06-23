@@ -1667,7 +1667,7 @@
           <input type="hidden" id="subject-mode" value="add">
           <input type="hidden" id="sub-code" value="">
           <div class="form-group">
-            <label class="form-label" style="font-family: var(--font-family-app) !important;">Course Title</label>
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Subject Title</label>
             <input type="text" id="sub-name" class="input-text" placeholder="e.g. General Chemistry" required style="font-family: var(--font-family-app) !important;">
           </div>
           <div class="form-group">
@@ -1675,32 +1675,26 @@
             <input type="text" id="sub-department" class="input-text" placeholder="e.g. Physical Sciences" style="font-family: var(--font-family-app) !important;">
           </div>
           <div class="form-group">
-            <label class="form-label" style="font-family: var(--font-family-app) !important;">Year</label>
-            <select id="sub-year" class="select-input" style="font-family: var(--font-family-app) !important;">
-              <option value="1">Year 1</option>
-              <option value="2">Year 2</option>
-              <option value="3">Year 3</option>
-              <option value="4">Year 4</option>
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Year & Semester</label>
+            <select id="sub-year-semester-select" class="select-input" style="font-family: var(--font-family-app) !important;">
+              <option value="1-1">Year 1 - Semester I</option>
+              <option value="1-2">Year 1 - Semester II</option>
+              <option value="2-1">Year 2 - Semester I</option>
+              <option value="2-2">Year 2 - Semester II</option>
+              <option value="3-1">Year 3 - Semester I</option>
+              <option value="3-2">Year 3 - Semester II</option>
+              <option value="4-1">Year 4 - Semester I</option>
+              <option value="4-2">Year 4 - Semester II</option>
             </select>
           </div>
-          <div class="form-group">
-            <label class="form-label" style="font-family: var(--font-family-app) !important;">Semester</label>
-            <select id="sub-semester" class="select-input" style="font-family: var(--font-family-app) !important;">
-              <option value="1">Semester I</option>
-              <option value="2">Semester II</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label" style="font-family: var(--font-family-app) !important;">Credits</label>
-            <input type="number" id="sub-credits" class="input-text" placeholder="e.g. 3" min="1" max="8" style="font-family: var(--font-family-app) !important;">
-          </div>
+
           <div class="form-group">
             <label class="form-label" style="font-family: var(--font-family-app) !important;">Course Type</label>
             <select id="sub-type" class="select-input" style="font-family: var(--font-family-app) !important;">
-              <option value="CORE">CORE</option>
-              <option value="FDN">FDN</option>
-              <option value="IDC">IDC</option>
-              <option value="OPTIONAL">OPTIONAL</option>
+              <option value="CORE">CORE (Compulsory Major Subject)</option>
+              <option value="FDN">FOUNDATION (Basic/General Knowledge)</option>
+              <option value="IDC">INTERDISCIPLINARY (Cross-Department Subject)</option>
+              <option value="OPTIONAL">OPTIONAL (Elective/Extra Subject)</option>
             </select>
           </div>
           <div class="form-group">
