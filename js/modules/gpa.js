@@ -208,9 +208,15 @@ export const GPAModule = {
 
       // Render GPA table entries
       tableBody.innerHTML = await Promise.all(subjects.map(async (sub) => {
-        const gradeVal = sub.grade || 'Unevaluated';
-        const points = sub.grade ? (await this.getGradePoints(sub.grade)).toFixed(2) : 'N/A';
-        const clickable = sub.grade && this.gradeMap[sub.grade] < 4.0;
+        const gradeRecord = sub.grade && sub.grade !== 'RESET_UNDEFINED' ? { grade: sub.grade } : null;
+        const lookupGPValue = (grade) => {
+          return this.gradeMap[grade] !== undefined ? this.gradeMap[grade] : 0.00;
+        };
+
+        const displayGrade = gradeRecord ? gradeRecord.grade : '<span style="opacity: 0.45; font-size: 0.75rem;">Undefined</span>';
+        const displayGPValue = gradeRecord ? lookupGPValue(gradeRecord.grade).toFixed(2) : '<span style="opacity: 0.45; font-size: 0.75rem;">Undefined</span>';
+
+        const clickable = gradeRecord && lookupGPValue(gradeRecord.grade) < 4.0;
         const gradeStyle = clickable
           ? `cursor: pointer; text-decoration: underline; text-underline-offset: 3px; color: var(--accent);`
           : `color: var(--text-primary);`;
@@ -218,18 +224,47 @@ export const GPAModule = {
         const parentCode = sub.parentSubjectCode && (rawParents || []).some(p => p.code === sub.parentSubjectCode) ? sub.parentSubjectCode : 'CORE';
 
         return `
-          <tr style="border-bottom: 1px solid var(--border-color); font-size: 0.85rem;">
+          <tr class="gpa-logbook-row" data-id="${sub.code}" style="border-bottom: 1px solid var(--border-color); font-size: 0.85rem;">
             <td style="padding: 12px 8px;"><strong>${parentCode}</strong><br><span style="font-size:0.75rem; color:var(--text-secondary);">${sub.name}</span></td>
             <td style="padding: 12px 8px; text-align: center;">${sub.credits}</td>
-            <td class="sim-clickable-grade" data-code="${sub.code}" style="padding: 12px 8px; text-align: center; font-weight: 700; ${gradeStyle}">${gradeVal}</td>
-            <td style="padding: 12px 8px; text-align: center;">${points}</td>
+            <td class="sim-clickable-grade" data-code="${sub.code}" style="padding: 12px 8px; text-align: center; font-weight: 700; ${gradeStyle}">${displayGrade}</td>
+            <td style="padding: 12px 8px; text-align: center;">${displayGPValue}</td>
           </tr>
         `;
       })).then(rows => rows.join(''));
 
+      // Bind row click-to-select dropdown interceptor
+      tableBody.querySelectorAll('.gpa-logbook-row').forEach(rowElement => {
+        const subId = rowElement.getAttribute('data-id');
+        const sub = subjects.find(s => s.code === subId);
+        const rowData = { id: subId, name: sub ? sub.name : 'Subject' };
+        const showHUDAlert = (type, msg) => {
+          NotificationService.show('Selected Subject', msg, type);
+        };
+
+        rowElement.style.cursor = 'pointer';
+        rowElement.addEventListener('click', () => {
+          const targetSubjectId = rowData.id; // Extracts the true master identification token
+          
+          const subjectSelectDropdown = document.getElementById('gpa-subject-select');
+          if (subjectSelectDropdown) {
+            // Force select the dropdown selection option value dynamically
+            subjectSelectDropdown.value = targetSubjectId;
+            
+            // Manually dispatch a change event pass so associated weight preview engines refresh instantly
+            subjectSelectDropdown.dispatchEvent(new Event('change'));
+            
+            // Smoothly scroll or add a micro-glow visual animation effect to the target card frame if desired
+            document.getElementById('gpa-subject-select').focus();
+            showHUDAlert('success', `Selected: ${rowData.name || 'Subject'}`);
+          }
+        });
+      });
+
       // Bind logbook grade clicks to Simulator
       tableBody.querySelectorAll('.sim-clickable-grade').forEach(cell => {
-        cell.addEventListener('click', () => {
+        cell.addEventListener('click', (e) => {
+          e.stopPropagation();
           const code = cell.getAttribute('data-code');
           const simSelect = document.getElementById('sim-subject-select');
           if (simSelect && simSelect.querySelector(`option[value="${code}"]`)) {
@@ -342,7 +377,7 @@ export const GPAModule = {
     }
 
     for (const sub of subjects) {
-      if (sub.grade) {
+      if (sub.grade && sub.grade !== 'RESET_UNDEFINED') {
         const gp = sub.gradePoint !== undefined ? sub.gradePoint : await this.getGradePoints(sub.grade);
         const credits = sub.credits || 0;
         totalCredits += credits;
@@ -364,7 +399,7 @@ export const GPAModule = {
   calculatePrefixGPAs(subjects) {
     const prefixGroups = {};
     for (const sub of subjects) {
-      if (sub.grade) {
+      if (sub.grade && sub.grade !== 'RESET_UNDEFINED') {
         const code = sub.parentSubjectCode || sub.code || 'CORE';
         const prefix = code.trim().substring(0, 3).toUpperCase();
         
@@ -393,23 +428,53 @@ export const GPAModule = {
 
     if (!code || !grade) return;
 
-    try {
-      const sub = await Database.get('subjects', code);
-      if (sub) {
-        sub.grade = grade;
-        sub.gradePoint = this.gradeMap[grade] !== undefined ? this.gradeMap[grade] : 0.00;
-        if (sub.credits === undefined) {
-          sub.credits = 3;
+    const selectedSubjectId = document.getElementById('gpa-subject-select').value;
+    const chosenGradeValue = document.getElementById('gpa-grade-select').value;
+
+    if (chosenGradeValue === "RESET_UNDEFINED") {
+      try {
+        const sub = await Database.get('subjects', selectedSubjectId);
+        if (sub) {
+          sub.grade = "";
+          sub.gradePoint = undefined;
+          await Database.put('subjects', sub);
         }
-        await Database.put('subjects', sub);
-        NotificationService.show('Grade Saved', `Grade for ${code} set to ${grade}.`, 'success');
+        
+        // Trigger Cloud Sync deletion packet downstream instantly
+        if (window.triggerBackgroundSync) {
+          window.triggerBackgroundSync('subjects', selectedSubjectId, 'PUT');
+        }
+        
+        const showHUDAlert = (type, msg) => {
+          NotificationService.show('Grade Reset', msg, type);
+        };
+        showHUDAlert('success', 'Subject result successfully reset to Undefined.');
         
         this.render();
         // Dispatch event for analytics dashboard to refresh
         window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+      } catch (err) {
+        console.error('Reset grade failed:', err);
       }
-    } catch (err) {
-      console.error('Save grade failed:', err);
+    } else {
+      try {
+        const sub = await Database.get('subjects', code);
+        if (sub) {
+          sub.grade = grade;
+          sub.gradePoint = this.gradeMap[grade] !== undefined ? this.gradeMap[grade] : 0.00;
+          if (sub.credits === undefined) {
+            sub.credits = 3;
+          }
+          await Database.put('subjects', sub);
+          NotificationService.show('Grade Saved', `Grade for ${code} set to ${grade}.`, 'success');
+          
+          this.render();
+          // Dispatch event for analytics dashboard to refresh
+          window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+        }
+      } catch (err) {
+        console.error('Save grade failed:', err);
+      }
     }
   },
 

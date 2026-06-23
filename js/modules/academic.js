@@ -290,6 +290,29 @@ export const AcademicModule = {
       });
     }
 
+    const editVivaBtn = document.getElementById('btn-edit-viva-score');
+    const inlineVivaInput = document.getElementById('input-viva-score-inline');
+
+    if (editVivaBtn && inlineVivaInput) {
+      // Setup event handler to unroll input field upon edit trigger click
+      editVivaBtn.onclick = (e) => {
+        e.stopPropagation();
+        const isHidden = inlineVivaInput.style.display === 'none';
+        inlineVivaInput.style.display = isHidden ? 'inline-block' : 'none';
+        editVivaBtn.textContent = isHidden ? 'Save' : 'Edit Marks';
+        if (!isHidden) {
+          const enteredVal = Math.min(Math.max(parseFloat(inlineVivaInput.value) || 0, 0), 20);
+          localStorage.setItem('rusl_viva_score', enteredVal);
+          inlineVivaInput.style.display = 'none';
+          // Re-trigger the whole master dashboard calculator flow pass
+          this.updateAcademicView(); 
+        } else {
+          inlineVivaInput.value = localStorage.getItem('rusl_viva_score') || '0';
+          inlineVivaInput.focus();
+        }
+      };
+    }
+
     window.addEventListener('subjectsUpdated', async (e) => {
       if (this._isTogglingCheckpoint) {
         return; // Skip full render for syllabus checklist clicks
@@ -387,75 +410,24 @@ export const AcademicModule = {
     try {
       const allSubmodules = await Database.getAll('researchProject/modules');
       const sports = await Database.getAll('sports');
-      
-      const gradeMap = (GPAModule && GPAModule.gradeMap) || {
-        'A+': 4.00, 'A': 4.00, 'A-': 3.70,
-        'B+': 3.30, 'B': 3.00, 'B-': 2.70,
-        'C+': 2.30, 'C': 2.00, 'C-': 1.70,
-        'D+': 1.30, 'D': 1.00, 'E': 0.00
-      };
 
-      // 1. GPA component for best 65 credits (70% max)
-      const sortedSubsCompleted = allSubmodules
-        .filter(sub => sub.grade)
-        .sort((a, b) => {
-          const gpA = gradeMap[a.grade] || 0;
-          const gpB = gradeMap[b.grade] || 0;
-          return gpB - gpA;
-        });
+      // 1. GPA Segment (70% Max Weight): (Current_3Yr_GPA / 4.0) * 70
+      const gpaPart = Math.min((cgpa3Year / 4.0) * 70, 70);
 
-      let totalCreditsForGPA = 0;
-      let totalGPForGPA = 0;
-      for (const sub of sortedSubsCompleted) {
-        const gp = gradeMap[sub.grade] || 0;
-        const creds = sub.credits || 0;
-        if (totalCreditsForGPA + creds <= 65) {
-          totalCreditsForGPA += creds;
-          totalGPForGPA += gp * creds;
-        } else {
-          const remaining = 65 - totalCreditsForGPA;
-          totalCreditsForGPA += remaining;
-          totalGPForGPA += gp * remaining;
-          break;
-        }
-      }
-      const best65GPA = totalCreditsForGPA > 0 ? (totalGPForGPA / totalCreditsForGPA) : 0.00;
-      const gpaScore = (best65GPA / 4.00) * 70;
+      // 2. Sports Matches Segment (5% Max Weight): Each match adds 1.25% up to a 5.0% maximum cap
+      const sportsPart = Math.min(sports.filter(s => s.activityType === 'Match' || s.type === 'Match').length * 1.25, 5);
 
-      // 2. Sports component (5% max)
-      const matches = sports.filter(s => s.activityType === 'Match');
-      const sportsScore = Math.min(5, matches.length * 1.0);
-
-      // 3. Group Project marks COM 3405 / ICT 3411 (5% max)
+      // 3. Group Project Segment (5% Max Weight): Flat 5.0% weight if completed status or grade entry contains COM 3405 or ICT 3411
       const projectSub = allSubmodules.find(s => 
         s.id === 'COM 3405' || s.id === 'ICT 3411' || s.code === 'COM 3405' || s.code === 'ICT 3411' ||
         (s.moduleTitle && (s.moduleTitle.includes('COM 3405') || s.moduleTitle.includes('ICT 3411')))
       );
-      let projectScore = 0;
-      if (projectSub) {
-        if (projectSub.grade) {
-          const gp = gradeMap[projectSub.grade] || 0;
-          projectScore = (gp / 4.00) * 5;
-        } else if (projectSub.internalMarks) {
-          const ca = projectSub.internalMarks.ca || 0;
-          const quiz = projectSub.internalMarks.quiz || 0;
-          const lab = projectSub.internalMarks.lab || 0;
-          const avg = (ca + quiz + lab) / 3;
-          projectScore = (avg / 100) * 5;
-        }
-      }
+      const projectPart = (projectSub && (projectSub.grade || projectSub.completed || projectSub.status === 'Completed')) ? 5 : 0;
 
-      // 4. Viva/Interview/Focus Factor panel component (20% max)
-      let focusQuality = 85;
-      const qualityValEl = document.getElementById('pomo-quality-val');
-      if (qualityValEl) {
-        const valText = qualityValEl.innerText.replace('%', '');
-        const valParsed = parseFloat(valText);
-        if (!isNaN(valParsed)) focusQuality = valParsed;
-      }
-      const panelScore = (focusQuality / 100) * 20;
+      // 4. Viva Segment (20% Max Weight): Default to 0.0%. Read contextually from rusl_viva_score in localStorage
+      const vivaPart = parseFloat(localStorage.getItem('rusl_viva_score')) || 0.0;
 
-      const projectedInterviewScore = gpaScore + sportsScore + projectScore + panelScore;
+      const finalInterviewSum = parseFloat((gpaPart + sportsPart + projectPart + vivaPart).toFixed(1));
 
       // Update UI elements
       const interviewText = document.getElementById('hud-interview-score-text');
@@ -465,14 +437,19 @@ export const AcademicModule = {
       const partSports = document.getElementById('hud-interview-sports-part');
       const partProject = document.getElementById('hud-interview-project-part');
       const partPanel = document.getElementById('hud-interview-panel-part');
+      const inlineVivaInput = document.getElementById('input-viva-score-inline');
 
-      if (interviewText) interviewText.innerText = `${projectedInterviewScore.toFixed(1)}%`;
-      if (interviewFill) interviewFill.style.width = `${projectedInterviewScore}%`;
+      if (inlineVivaInput) {
+        inlineVivaInput.value = vivaPart;
+      }
 
-      if (partGPA) partGPA.innerText = `GPA (65 Cr, 70% max): ${gpaScore.toFixed(1)}%`;
-      if (partSports) partSports.innerText = `Sports Matches (5% max): ${sportsScore.toFixed(1)}%`;
-      if (partProject) partProject.innerText = `Group Project (5% max): ${projectScore.toFixed(1)}%`;
-      if (partPanel) partPanel.innerText = `Viva (20% max): ${panelScore.toFixed(1)}%`;
+      if (interviewText) interviewText.textContent = `${finalInterviewSum.toFixed(1)}%`;
+      if (interviewFill) interviewFill.style.width = `${finalInterviewSum}%`;
+
+      if (partGPA) partGPA.textContent = `GPA (65 Cr, 70% max): ${gpaPart.toFixed(1)}%`;
+      if (partSports) partSports.textContent = `Sports Matches (5% max): ${sportsPart.toFixed(1)}%`;
+      if (partProject) partProject.textContent = `Group Project COM 3405/ICT 3411 (5% max): ${projectPart.toFixed(1)}%`;
+      if (partPanel) partPanel.textContent = `Viva (20% max): ${vivaPart.toFixed(1)}%`;
 
     } catch (err) {
       console.error('Error calculating interview score:', err);
@@ -501,6 +478,15 @@ export const AcademicModule = {
 
   async renderSubjects() {
     await this.render();
+  },
+
+  async updateAcademicView() {
+    try {
+      const stats = await this._getGPADetails();
+      await this.updateSpecialEligibilityHUD(stats);
+    } catch (err) {
+      console.error("Failed to update academic view:", err);
+    }
   },
 
   async refreshView() {

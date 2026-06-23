@@ -2499,3 +2499,122 @@ body[data-theme="light"] .radial-ring-value {
   background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%) !important;
 }
 
+/* ==========================================================================
+   PRODUCTION VISUAL PATCH: REPOSITORY-WIDE AUTOMATED CARD OVERFLOW REPAIR
+   ========================================================================== */
+
+/* 1. Grid Card Layout Boundary Locking & Scroll Channels */
+#dashboard-exams-card,
+#dashboard-assignments-card {
+  max-height: 300px !important;
+}
+
+#dashboard-exams-container,
+#dashboard-assignments-container,
+.announcement-list,
+.focus-hub-list,
+.balance-progress-group,
+.lab-completion-container,
+#study-plans-list-container,
+#dash-weekly-schedule-list {
+  max-height: 240px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-right: 6px !important;
+}
+
+/* Enforce absolute boundary freeze on Prefix GPA Breakdown Card element */
+#gpa-prefix-breakdown-card {
+  max-height: 250px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+/* Bind strict inner viewport scroll channel rules directly onto the container */
+#gpa-prefix-breakdown-container {
+  flex: 1 !important;
+  max-height: 180px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-right: 8px !important;
+}
+
+/* 2. Premium Custom Scrollbar Overrides for Card Insets */
+.card [style*="overflow-y: auto"], 
+.balance-progress-group, 
+.lab-completion-container,
+.announcement-list,
+.focus-hub-list,
+#dashboard-exams-container,
+#dashboard-assignments-container,
+#gpa-prefix-breakdown-container,
+#study-plans-list-container,
+#dash-weekly-schedule-list {
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--accent-glow) transparent !important;
+}
+
+.card [style*="overflow-y: auto"]::-webkit-scrollbar,
+#dashboard-exams-container::-webkit-scrollbar,
+#dashboard-assignments-container::-webkit-scrollbar,
+.balance-progress-group::-webkit-scrollbar,
+.lab-completion-container::-webkit-scrollbar,
+.announcement-list::-webkit-scrollbar,
+.focus-hub-list::-webkit-scrollbar,
+#gpa-prefix-breakdown-container::-webkit-scrollbar,
+#study-plans-list-container::-webkit-scrollbar,
+#dash-weekly-schedule-list::-webkit-scrollbar {
+  width: 4px !important;
+  height: 4px !important;
+}
+
+.card [style*="overflow-y: auto"]::-webkit-scrollbar-track,
+#dashboard-exams-container::-webkit-scrollbar-track,
+#dashboard-assignments-container::-webkit-scrollbar-track,
+.balance-progress-group::-webkit-scrollbar-track,
+.lab-completion-container::-webkit-scrollbar-track,
+.announcement-list::-webkit-scrollbar-track,
+.focus-hub-list::-webkit-scrollbar-track,
+#gpa-prefix-breakdown-container::-webkit-scrollbar-track,
+#study-plans-list-container::-webkit-scrollbar-track,
+#dash-weekly-schedule-list::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.card [style*="overflow-y: auto"]::-webkit-scrollbar-thumb,
+#dashboard-exams-container::-webkit-scrollbar-thumb,
+#dashboard-assignments-container::-webkit-scrollbar-thumb,
+.balance-progress-group::-webkit-scrollbar-thumb,
+.lab-completion-container::-webkit-scrollbar-thumb,
+.announcement-list::-webkit-scrollbar-thumb,
+.focus-hub-list::-webkit-scrollbar-thumb,
+#gpa-prefix-breakdown-container::-webkit-scrollbar-thumb,
+#study-plans-list-container::-webkit-scrollbar-thumb,
+#dash-weekly-schedule-list::-webkit-scrollbar-thumb {
+  background: var(--accent-glow) !important;
+  border-radius: 10px !important;
+}
+
+.card [style*="overflow-y: auto"]::-webkit-scrollbar-thumb:hover,
+#dashboard-exams-container::-webkit-scrollbar-thumb:hover,
+#dashboard-assignments-container::-webkit-scrollbar-thumb:hover,
+.balance-progress-group::-webkit-scrollbar-thumb:hover,
+.lab-completion-container::-webkit-scrollbar-thumb:hover,
+.announcement-list::-webkit-scrollbar-thumb:hover,
+.focus-hub-list::-webkit-scrollbar-thumb:hover,
+#gpa-prefix-breakdown-container::-webkit-scrollbar-thumb:hover,
+#study-plans-list-container::-webkit-scrollbar-thumb:hover,
+#dash-weekly-schedule-list::-webkit-scrollbar-thumb:hover {
+  background: var(--accent) !important;
+}
+
+/* High contrast and font overrides for interview score metadata labels */
+#hud-interview-gpa-part,
+#hud-interview-sports-part,
+#hud-interview-project-part,
+#hud-interview-panel-part {
+  color: var(--text-secondary) !important;
+  font-weight: 500 !important;
+}
+
