@@ -1390,7 +1390,8 @@ body[data-theme="light"] .theme-toggle-switch:hover .theme-toggle-track {
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  color: var(--text-primary) !important; /* Maximizes crisp font clarity */
+  color: var(--text-primary) !important;
+  /* Maximizes crisp font clarity */
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(0, 229, 255, 0.08);
   white-space: nowrap;
@@ -1426,7 +1427,8 @@ body[data-theme="light"] .theme-toggle-switch:hover .theme-toggle-track {
 }
 
 #btn-save-note {
-  margin-top: auto; /* Force button layout to remain fully visible */
+  margin-top: auto;
+  /* Force button layout to remain fully visible */
   flex-shrink: 0;
 }
 
@@ -1594,8 +1596,10 @@ body.no-accent-lighting::after {
 /* C: GPA Radial progress ring container */
 .radial-ring-container {
   position: relative;
-  width: 140px; /* Upgraded from 100px */
-  height: 140px; /* Upgraded from 100px */
+  width: 140px;
+  /* Upgraded from 100px */
+  height: 140px;
+  /* Upgraded from 100px */
   margin: 10px auto;
   display: flex;
   align-items: center;
@@ -1626,7 +1630,8 @@ body.no-accent-lighting::after {
 .radial-ring-value {
   position: absolute;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 2rem; /* Upgraded from 1.6rem */
+  font-size: 2rem;
+  /* Upgraded from 1.6rem */
   font-weight: 800;
   color: #ffffff;
 }
@@ -1645,9 +1650,11 @@ body.no-accent-lighting::after {
   background: var(--accent) !important;
   transition: width 0.5s ease, background 0.3s ease !important;
 }
+
 #hud-progress-fill.unlocked {
   background: linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%) !important;
 }
+
 #hud-interview-score-fill,
 #progress-completion-fill {
   background: linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%) !important;
@@ -1662,18 +1669,23 @@ body.no-accent-lighting::after {
   border-radius: 2px;
   transition: background 0.3s ease, border-color 0.3s ease;
 }
+
 .heatmap-tile.tile-empty {
   background: rgba(255, 255, 255, 0.04);
 }
+
 .heatmap-tile.tile-low {
   background: var(--accent-glow);
 }
+
 .heatmap-tile.tile-mid-low {
   background: rgba(var(--accent-rgb-fallback, 0, 229, 255), 0.5);
 }
+
 .heatmap-tile.tile-mid-high {
   background: rgba(var(--accent-rgb-fallback, 0, 229, 255), 0.75);
 }
+
 .heatmap-tile.tile-peak {
   background: var(--accent) !important;
 }
@@ -1691,8 +1703,10 @@ body.no-accent-lighting::after {
   gap: 12px;
   width: 100%;
   margin-top: 6px;
-  max-height: 240px; /* Established layout boundary */
-  overflow-y: auto;  /* Scroll internally when items overflow */
+  max-height: 240px;
+  /* Established layout boundary */
+  overflow-y: auto;
+  /* Scroll internally when items overflow */
   padding-right: 4px;
 }
 
@@ -1779,8 +1793,10 @@ body.no-accent-lighting::after {
   flex-direction: column;
   gap: 12px;
   width: 100%;
-  max-height: 240px; /* Established layout boundary */
-  overflow-y: auto;  /* Scroll internally when items overflow */
+  max-height: 240px;
+  /* Established layout boundary */
+  overflow-y: auto;
+  /* Scroll internally when items overflow */
   padding-right: 4px;
 }
 
@@ -2277,6 +2293,7 @@ body[data-theme="light"] .metric-value {
 body[data-theme="light"] .task-item {
   background: rgba(0, 0, 0, 0.04);
 }
+
 body[data-theme="light"] .task-item:hover {
   background: rgba(0, 0, 0, 0.08);
   opacity: 1;
@@ -2293,9 +2310,11 @@ body[data-theme="light"] .hud-alert-card {
   border-color: rgba(0, 0, 0, 0.15);
   box-shadow: var(--shadow-lg), 0 0 15px rgba(0, 0, 0, 0.05);
 }
+
 body[data-theme="light"] .hud-alert-content h4 {
   color: #000000;
 }
+
 body[data-theme="light"] .hud-alert-content p {
   color: #444444;
 }
@@ -2344,13 +2363,16 @@ body[data-theme="light"] .command-palette-box {
   border-color: rgba(0, 0, 0, 0.12);
   box-shadow: var(--shadow-lg), 0 20px 40px rgba(0, 0, 0, 0.08);
 }
+
 body[data-theme="light"] .command-palette-input {
   color: #000000;
   border-bottom-color: rgba(0, 0, 0, 0.12);
 }
+
 body[data-theme="light"] .command-palette-item {
   color: #222222;
 }
+
 body[data-theme="light"] .command-palette-item:hover,
 body[data-theme="light"] .command-palette-item.selected {
   background: rgba(0, 0, 0, 0.08);
@@ -2368,11 +2390,13 @@ body[data-theme="light"] .theme-toggle-track {
   border-color: rgba(0, 0, 0, 0.15);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
+
 body[data-theme="light"] .theme-toggle-thumb {
   left: calc(100% - 19px);
   background: #111111;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
+
 body[data-theme="light"] .theme-icon-sun {
   opacity: 1;
   transform: translate(-50%, -50%) rotate(0deg) scale(1);
@@ -2385,6 +2409,7 @@ body[data-theme="light"] .badge.medium {
   color: #f57f17;
   border-color: rgba(245, 127, 23, 0.2);
 }
+
 body[data-theme="light"] .badge.high {
   background-color: rgba(27, 94, 32, 0.08);
   color: #1b5e20;
@@ -2398,10 +2423,23 @@ body[data-theme="light"] .radial-ring-value {
 
 /* Shake animation for input verification failures */
 @keyframes shake-anim {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-6px); }
-  40%, 80% { transform: translateX(6px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
 }
+
 .shake {
   animation: shake-anim 0.3s ease-in-out;
 }
@@ -2421,10 +2459,13 @@ body[data-theme="light"] .radial-ring-value {
 
 /* Glow and pulse animation for crimson risk badges */
 @keyframes critical-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 8px rgba(255, 23, 68, 0.25);
     border-color: var(--danger);
   }
+
   50% {
     box-shadow: 0 0 20px rgba(255, 23, 68, 0.6);
     border-color: #ff5252;
@@ -2441,6 +2482,7 @@ body[data-theme="light"] .radial-ring-value {
   border: 1px solid var(--border-color) !important;
   box-shadow: var(--shadow-md), inset 0 1px 1px rgba(255, 255, 255, 0.05) !important;
 }
+
 #dashboard-attendance-summary-card:hover {
   transform: translateY(-2px);
   border-color: var(--border-hover) !important;
@@ -2488,7 +2530,8 @@ body[data-theme="light"] .radial-ring-value {
   border-radius: 6px;
   border: 1px solid var(--border-hover) !important;
   background: var(--accent) !important;
-  color: #030a0e !important; /* Preserves explicit dark readability */
+  color: #030a0e !important;
+  /* Preserves explicit dark readability */
   box-shadow: 0 0 12px var(--accent-glow) !important;
   cursor: default;
   transition: all 0.3s ease;
@@ -2541,8 +2584,8 @@ body[data-theme="light"] .radial-ring-value {
 }
 
 /* 2. Premium Custom Scrollbar Overrides for Card Insets */
-.card [style*="overflow-y: auto"], 
-.balance-progress-group, 
+.card [style*="overflow-y: auto"],
+.balance-progress-group,
 .lab-completion-container,
 .announcement-list,
 .focus-hub-list,
@@ -2624,3 +2667,50 @@ body[data-theme="light"] .radial-ring-value {
   color: var(--text-primary) !important;
 }
 
+/* Sports Dashboard Grid and Card Locks */
+.sports-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1024px) {
+  .sports-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sports-card {
+  height: calc(100vh - 220px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.sports-card-content {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  flex-grow: 1 !important;
+  height: 100% !important;
+  padding-right: 6px !important;
+  box-sizing: border-box !important;
+}
+
+/* Custom Scrollbars for Sports Cards to match Teal Bio-Nanotech theme */
+.sports-card-content::-webkit-scrollbar {
+  width: 4px !important;
+}
+
+.sports-card-content::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.sports-card-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 229, 255, 0.2) !important;
+  border-radius: 4px !important;
+}
+
+.sports-card-content::-webkit-scrollbar-thumb:hover {
+  background: var(--accent, #00e5ff) !important;
+}

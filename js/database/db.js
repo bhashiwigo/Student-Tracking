@@ -860,3 +860,26 @@ export const Database = {
       });
   }
 };
+
+export const DegreeRequirements = {
+  bscTotal: 90,
+  honoursTotal: 120,
+  activeCoreTarget: 80
+};
+
+export const getDegreeConfig = async () => {
+  try {
+    const config = await Database.get('settings', 'degreeRequirements');
+    if (config && config.value) {
+      DegreeRequirements.bscTotal = Number(config.value.bscTotal) || 90;
+      DegreeRequirements.honoursTotal = Number(config.value.honoursTotal) || 120;
+      DegreeRequirements.activeCoreTarget = Number(config.value.activeCoreTarget) || 80;
+    } else {
+      // Initialize settings if missing in IndexedDB
+      await Database.put('settings', { key: 'degreeRequirements', value: { ...DegreeRequirements } });
+    }
+  } catch (err) {
+    console.error('Failed to get degree requirements config:', err);
+  }
+  return DegreeRequirements;
+};

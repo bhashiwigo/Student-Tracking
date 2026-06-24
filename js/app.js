@@ -3,7 +3,7 @@
  * Coordinates Navigation, Search Palette, Auth Gate, Calendar, and Module bootstrap
  */
 
-import { Database, checkAndRestoreFromCloud, triggerBackgroundSync } from './database/db.js';
+import { Database, checkAndRestoreFromCloud, triggerBackgroundSync, getDegreeConfig } from './database/db.js';
 import { Auth } from './auth.js';
 import { UserDatabase } from './database/userdb.js';
 import { BackupService } from './services/backup.js';
@@ -1101,6 +1101,13 @@ const App = {
     // Calendar refresh listener
     window.addEventListener('calendarItemsUpdated', () => this.renderCalendar());
 
+    // Config update listener
+    window.addEventListener('configUpdate', () => {
+      if (this.currentView === 'dashboard') {
+        this.renderDashboard();
+      }
+    });
+
     // Settings Profile save
     const settingsForm = document.getElementById('settings-profile-form');
     if (settingsForm) {
@@ -1239,6 +1246,33 @@ const App = {
           window.dispatchEvent(new CustomEvent('subjectsUpdated'));
         } catch (err) {
           console.error(err);
+        }
+      });
+    }
+
+    // Settings Benchmarks save
+    const benchmarksForm = document.getElementById('settings-benchmarks-form');
+    if (benchmarksForm) {
+      benchmarksForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const bscTotal = parseInt(document.getElementById('benchmark-bsc-total').value) || 90;
+        const honoursTotal = parseInt(document.getElementById('benchmark-honours-total').value) || 120;
+        const activeCoreTarget = parseInt(document.getElementById('benchmark-active-core-target').value) || 80;
+
+        try {
+          await Database.put('settings', {
+            key: 'degreeRequirements',
+            value: { bscTotal, honoursTotal, activeCoreTarget }
+          });
+
+          // Dispatch event to force HUD components to re-render
+          window.dispatchEvent(new CustomEvent('configUpdate'));
+          window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+
+          NotificationService.show('Benchmarks Updated', 'Academic targets successfully updated.', 'success');
+        } catch (err) {
+          console.error('Error saving benchmarks:', err);
+          NotificationService.show('Error', 'Failed to update benchmarks.', 'error');
         }
       });
     }
@@ -1872,6 +1906,20 @@ const App = {
       setVal('enrichment-societies', enrichment.societies !== undefined ? enrichment.societies : 0);
       setVal('enrichment-industry', enrichment.industry !== undefined ? enrichment.industry : 0);
     }
+
+    // Populate Benchmarks form safely from settings store
+    try {
+      const config = await getDegreeConfig();
+      const bscEl = document.getElementById('benchmark-bsc-total');
+      const honoursEl = document.getElementById('benchmark-honours-total');
+      const coreEl = document.getElementById('benchmark-active-core-target');
+      if (bscEl) bscEl.value = config.bscTotal || 90;
+      if (honoursEl) honoursEl.value = config.honoursTotal || 120;
+      if (coreEl) coreEl.value = config.activeCoreTarget || 80;
+    } catch (err) {
+      console.warn('Could not populate benchmarks settings:', err);
+    }
+
     if (targetGpaSetting) {
       document.getElementById('settings-target-gpa').value = targetGpaSetting.value;
     }

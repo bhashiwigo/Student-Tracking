@@ -5,7 +5,7 @@
  * DECOUPLED: Decouples parent Subject metadata from child Sub-Module operational parameters
  */
 
-import { Database } from '../database/db.js';
+import { Database, getDegreeConfig, DegreeRequirements } from '../database/db.js';
 import { NotificationService } from '../services/notifications.js';
 import { GPAModule } from './gpa.js';
 
@@ -391,6 +391,11 @@ export const AcademicModule = {
       this.updateAcademicMetrics();
     });
 
+    window.addEventListener('configUpdate', () => {
+      this.updateAcademicMetrics();
+      this.syncHUD();
+    });
+
     window.addEventListener('saveSubject', () => {
       this.updateAcademicMetrics();
     });
@@ -577,17 +582,23 @@ export const AcademicModule = {
   async updateAcademicMetrics() {
     try {
       const { completedCredits, remainingCredits, coreCredits, optionalCredits } = await this.calculateCredits();
+      const config = await getDegreeConfig();
+      const cgpaStats = await this._getGPADetails();
       
+      const isHonours = cgpaStats.threeYearCGPA >= 3.00;
+      const targetCredits = isHonours ? config.honoursTotal : config.bscTotal;
+      const trackLabel = isHonours ? 'Honours Track Progress' : 'BSc Track Progress';
+
       const compCrEl = document.getElementById('progress-completed-credits');
       if (compCrEl) compCrEl.innerText = `${completedCredits} Cr`;
 
-      // Compute progress % based on total curriculum credits (defaulting to 120 Cr as baseline)
-      const progressPct = Math.min(100, (completedCredits / 120) * 100);
+      // Compute progress % based on total curriculum credits from configuration settings
+      const progressPct = Math.min(100, (completedCredits / targetCredits) * 100);
 
-      // Remaining credits towards the 120 Cr baseline
+      // Remaining credits towards the target baseline
       const remCrEl = document.getElementById('progress-remaining-credits');
       if (remCrEl) {
-        const remainingVal = Math.max(0, 120 - completedCredits);
+        const remainingVal = Math.max(0, targetCredits - completedCredits);
         remCrEl.innerText = `${remainingVal} Cr`;
       }
 
@@ -604,9 +615,9 @@ export const AcademicModule = {
 
       // Degree Standing Logic
       let standing = 'Year 1 General';
-      if (completedCredits >= 120) {
+      if (completedCredits >= config.honoursTotal) {
         standing = 'Final Year';
-      } else if (completedCredits > 60) {
+      } else if (completedCredits > (config.bscTotal * 2 / 3)) { // dynamic threshold
         standing = 'Year 2';
       } else {
         standing = 'Year 1 General';
@@ -615,6 +626,12 @@ export const AcademicModule = {
       const standingEl = document.getElementById('progress-degree-standing');
       if (standingEl) {
         standingEl.innerText = standing;
+      }
+
+      // Dynamic track text: BSc Track Progress (0 / 90 Cr)
+      const labelEl = document.getElementById('progress-completion-label');
+      if (labelEl) {
+        labelEl.innerText = `${trackLabel} (${completedCredits} / ${targetCredits} Cr)`;
       }
 
       // Update active semester modules count

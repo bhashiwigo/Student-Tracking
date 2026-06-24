@@ -476,7 +476,7 @@
               </div>
               <div style="display: flex; flex-direction: column; gap: 6px; font-family: var(--font-family-app) !important; margin-top: 4px;">
                 <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">
-                  <span style="font-family: var(--font-family-app) !important;">Curriculum Completion</span>
+                  <span id="progress-completion-label" style="font-family: var(--font-family-app) !important;">Curriculum Completion</span>
                   <span id="progress-completion-pct" style="font-family: var(--font-family-app) !important; font-weight: 700;">0.0%</span>
                 </div>
                 <div style="height: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; width: 100%; box-sizing: border-box;">
@@ -999,16 +999,29 @@
           <button class="btn-solid" id="btn-add-sport">+ Log Activity</button>
         </div>
 
-        <div class="grid-layout">
-          <!-- Goals Panel -->
-          <div class="card col-4">
-            <div class="card-title">Fitness Targets</div>
-            <div id="sports-fitness-goals" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        <div class="sports-dashboard-grid">
+          <!-- Column 1: Fitness Targets -->
+          <div class="card sports-card">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">Fitness Targets</div>
+            <div id="sports-fitness-goals" class="sports-card-content">
+              <!-- Dyn items -->
+            </div>
           </div>
 
-          <!-- Event List -->
-          <div class="col-8 grid-layout" id="sports-list-container" style="gap: 20px;">
-            <!-- Dyn items -->
+          <!-- Column 2: Training Sessions -->
+          <div class="card sports-card">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">Training Sessions</div>
+            <div id="sports-training-sessions" class="sports-card-content">
+              <!-- Dyn items -->
+            </div>
+          </div>
+
+          <!-- Column 3: Matches / Game Days -->
+          <div class="card sports-card">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">Matches / Game Days</div>
+            <div id="sports-matches-gamedays" class="sports-card-content">
+              <!-- Dyn items -->
+            </div>
           </div>
         </div>
       </div>
@@ -1386,6 +1399,29 @@
 
           <!-- Right Side Component Track -->
           <div class="col-6" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%; gap: 20px; font-family: var(--font-family-app) !important;">
+            <!-- Academic Target Benchmarks Card -->
+            <div class="card" style="justify-content: flex-start; width: 100%; margin-bottom: 0; font-family: var(--font-family-app) !important;">
+              <div class="card-title" style="font-family: var(--font-family-app) !important;">Academic Benchmarks</div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; font-family: var(--font-family-app) !important;">
+                Configure the total credit requirements for graduation tracks and core course targets.
+              </p>
+              <form id="settings-benchmarks-form" style="display: flex; flex-direction: column; gap: 14px; margin-top: 12px; width: 100%;">
+                <div class="form-group" style="font-family: var(--font-family-app) !important;">
+                  <label class="form-label" style="font-family: var(--font-family-app) !important;">BSc Track Target (Credits)</label>
+                  <input type="number" id="benchmark-bsc-total" class="input-text" required min="1" style="font-family: var(--font-family-app) !important;">
+                </div>
+                <div class="form-group" style="font-family: var(--font-family-app) !important;">
+                  <label class="form-label" style="font-family: var(--font-family-app) !important;">Honours Track Target (Credits)</label>
+                  <input type="number" id="benchmark-honours-total" class="input-text" required min="1" style="font-family: var(--font-family-app) !important;">
+                </div>
+                <div class="form-group" style="font-family: var(--font-family-app) !important;">
+                  <label class="form-label" style="font-family: var(--font-family-app) !important;">Active Core Target (Credits)</label>
+                  <input type="number" id="benchmark-active-core-target" class="input-text" required min="1" style="font-family: var(--font-family-app) !important;">
+                </div>
+                <button type="submit" class="btn-solid" style="margin-top: 4px; font-family: var(--font-family-app) !important;">Update Benchmarks</button>
+              </form>
+            </div>
+
             <!-- Backup Card -->
             <div class="card" style="justify-content: flex-start; width: 100%; margin-bottom: 0; font-family: var(--font-family-app) !important;">
               <div class="card-title" style="font-family: var(--font-family-app) !important;">Database Storage & Backups</div>

@@ -24,103 +24,98 @@ export const SportsModule = {
   },
 
   async render() {
-    const container = document.getElementById('sports-list-container');
+    const trainingContainer = document.getElementById('sports-training-sessions');
+    const matchesContainer = document.getElementById('sports-matches-gamedays');
     const fitnessText = document.getElementById('sports-fitness-goals');
 
-    if (!container) return;
+    if (!fitnessText || !trainingContainer || !matchesContainer) return;
 
     try {
       const records = await Database.getAll('sports');
 
       // Update fitness goals summary separately if element exists
       const goals = records.filter(r => r.activityType === 'Goal');
-      if (fitnessText) {
-        fitnessText.innerHTML = goals.map(g => `
-          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding: 8px 0;">
-            <span style="font-size:0.85rem; display:flex; align-items:center; gap:8px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
-              ${g.goalText}
-            </span>
-            <button class="btn-icon delete-sport-goal-btn" data-id="${g.id}" style="width:20px; height:20px; display:flex; align-items:center; justify-content:center;">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-          </div>
-        `).join('') || '<div style="color:var(--text-muted); font-size:0.8rem;">No fitness goals set. Add a Goal below.</div>';
+      fitnessText.innerHTML = goals.map(g => `
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding: 8px 0; font-family: var(--font-family-app) !important;">
+          <span style="font-size:0.85rem; display:flex; align-items:center; gap:8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+            ${g.goalText}
+          </span>
+          <button class="btn-icon delete-sport-goal-btn" data-id="${g.id}" style="width:20px; height:20px; display:flex; align-items:center; justify-content:center;">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+      `).join('') || '<div style="color:var(--text-muted); font-size:0.8rem; padding: 12px 0;">No fitness goals set. Add a Goal below.</div>';
 
-        // BUG FIX: Scope delete listener to fitnessText, not document (avoids duplicate bindings)
-        fitnessText.querySelectorAll('.delete-sport-goal-btn').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const id = btn.getAttribute('data-id');
-            if (await window.authenticateDestructiveAction('Delete this fitness goal?')) {
-              this.handleDeleteSport(id);
-            }
-          });
-        });
-      }
-
-      // Filter events/training list (excludes Goals)
-      const events = records.filter(r => r.activityType !== 'Goal');
-
-      // BUG FIX: Return early when empty — previously set innerHTML then immediately
-      // overwrote it with events.map() which produced an empty string for 0 events.
-      if (events.length === 0) {
-        container.innerHTML = `
-          <div class="col-12" style="text-align: center; padding: 40px; color: var(--text-muted); font-size:0.85rem;">
-            No sports training or match schedules recorded.
-          </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = events.map(sp => {
-        const typeBadge = sp.activityType === 'Match'
-          ? `<span class="badge high">Match</span>`
-          : `<span class="badge low">Training</span>`;
-
-        return `
-          <div class="card col-6">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-              <div>
-                ${typeBadge}
-                <h3 style="font-size: 1.05rem; font-weight: 700; margin-top: 6px;">${sp.goalText || 'Sports Session'}</h3>
-              </div>
-              <div style="text-align: right;">
-                <span style="font-family:'JetBrains Mono', monospace; font-size: 1rem; font-weight:700; color:var(--accent);">${sp.trainingHours || 0} hrs</span>
-                <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase;">Duration</div>
-              </div>
-            </div>
-
-            <div style="font-size: 0.8rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 4px;">
-              <span><strong>Scheduled Date:</strong> ${sp.scheduleDate}</span>
-              <span><strong>Competition Level:</strong> ${sp.competitionLevel || 'N/A'}</span>
-              <span><strong>Achievement Level:</strong> ${sp.achievementLevel || 'N/A'}</span>
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-              <button class="btn-outline btn-sm edit-sport-btn" data-id="${sp.id}" style="flex: 1; padding: 4px 8px; font-size: 0.75rem;">Edit</button>
-              <button class="btn-outline btn-sm delete-sport-btn" data-id="${sp.id}" style="border-color: var(--danger); color: var(--danger); padding: 4px 8px; font-size: 0.75rem;">Delete</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      // BUG FIX: Use container.querySelectorAll (scoped) instead of document.querySelectorAll (global)
-      container.querySelectorAll('.delete-sport-btn').forEach(btn => {
+      // Scope delete listener to fitnessText, not document (avoids duplicate bindings)
+      fitnessText.querySelectorAll('.delete-sport-goal-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const id = btn.getAttribute('data-id');
-          if (await window.authenticateDestructiveAction('Delete this sports entry?')) {
+          if (await window.authenticateDestructiveAction('Delete this fitness goal?')) {
             this.handleDeleteSport(id);
           }
         });
       });
 
-      // Bind edits
-      container.querySelectorAll('.edit-sport-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const id = btn.getAttribute('data-id');
-          this.openModal(id);
+      // Update training sessions list
+      const trainings = records.filter(r => r.activityType === 'Training');
+      trainingContainer.innerHTML = trainings.map(sp => `
+        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; font-family: var(--font-family-app) !important; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <h4 style="font-size: 0.95rem; font-weight: 700; margin: 0; color: var(--text-primary);">${sp.goalText || 'Training Session'}</h4>
+            <span style="font-family:'JetBrains Mono', monospace; font-size: 0.85rem; font-weight:700; color:var(--accent);">${sp.trainingHours || 0} hrs</span>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 4px;">
+            <span><strong>Scheduled Date:</strong> ${sp.scheduleDate}</span>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 6px;">
+            <button class="btn-outline btn-sm edit-sport-btn" data-id="${sp.id}" style="flex: 1; padding: 4px 8px; font-size: 0.72rem;">Edit</button>
+            <button class="btn-outline btn-sm delete-sport-btn" data-id="${sp.id}" style="border-color: var(--danger); color: var(--danger); padding: 4px 8px; font-size: 0.72rem;">Delete</button>
+          </div>
+        </div>
+      `).join('') || '<div style="color:var(--text-muted); font-size:0.8rem; padding: 12px 0;">No training sessions recorded.</div>';
+
+      // Update matches list
+      const matches = records.filter(r => r.activityType === 'Match');
+      matchesContainer.innerHTML = matches.map(sp => `
+        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; font-family: var(--font-family-app) !important; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <h4 style="font-size: 0.95rem; font-weight: 700; margin: 0; color: var(--text-primary);">${sp.goalText || 'Match'}</h4>
+            <span style="font-family:'JetBrains Mono', monospace; font-size: 0.85rem; font-weight:700; color:var(--accent);">${sp.trainingHours || 0} hrs</span>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 4px;">
+            <span><strong>Scheduled Date:</strong> ${sp.scheduleDate}</span>
+            <span><strong>Competition Level:</strong> ${sp.competitionLevel || 'N/A'}</span>
+            <span><strong>Achievement Level:</strong> ${sp.achievementLevel || 'N/A'}</span>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 6px;">
+            <button class="btn-outline btn-sm edit-sport-btn" data-id="${sp.id}" style="flex: 1; padding: 4px 8px; font-size: 0.72rem;">Edit</button>
+            <button class="btn-outline btn-sm delete-sport-btn" data-id="${sp.id}" style="border-color: var(--danger); color: var(--danger); padding: 4px 8px; font-size: 0.72rem;">Delete</button>
+          </div>
+        </div>
+      `).join('') || '<div style="color:var(--text-muted); font-size:0.8rem; padding: 12px 0;">No match schedules recorded.</div>';
+
+      // Bind action listeners for Trainings and Matches
+      const bindListeners = (el) => {
+        el.querySelectorAll('.delete-sport-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-id');
+            if (await window.authenticateDestructiveAction('Delete this sports entry?')) {
+              this.handleDeleteSport(id);
+            }
+          });
         });
-      });
+
+        el.querySelectorAll('.edit-sport-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-id');
+            this.openModal(id);
+          });
+        });
+      };
+
+      bindListeners(trainingContainer);
+      bindListeners(matchesContainer);
 
     } catch (err) {
       console.error('Sports render failed:', err);

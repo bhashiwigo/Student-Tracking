@@ -4,7 +4,7 @@
  * UPGRADED: Target CGPA Distribution Matrix & Mock Upgrade Repeat Simulator
  */
 
-import { Database } from '../database/db.js';
+import { Database, getDegreeConfig } from '../database/db.js';
 import { NotificationService } from '../services/notifications.js';
 
 const getCleanSubmoduleLabel = (sub, rawParents) => {
@@ -51,6 +51,7 @@ export const GPAModule = {
     await this.loadSettings();
     this.bindEvents();
     window.addEventListener('subjectsUpdated', () => this.render());
+    window.addEventListener('configUpdate', () => this.render());
     this.runGPAEngineUnitTests();
   },
 
@@ -323,13 +324,14 @@ export const GPAModule = {
             earnedCredits += sub.credits || 0;
           }
         });
-        const bscPct = Math.min(100, (earnedCredits / 90) * 100);
-        const honsPct = Math.min(100, (earnedCredits / 120) * 100);
+        const config = await getDegreeConfig();
+        const bscPct = Math.min(100, (earnedCredits / config.bscTotal) * 100);
+        const honsPct = Math.min(100, (earnedCredits / config.honoursTotal) * 100);
         
         progressContainer.innerHTML = `
           <div style="display: flex; flex-direction: column; gap: 4px; font-family: var(--font-family-app) !important;">
             <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">
-              <span style="font-family: var(--font-family-app) !important;">BSc Track Progress (${earnedCredits}/90 Cr)</span>
+              <span style="font-family: var(--font-family-app) !important;">BSc Track Progress (${earnedCredits}/${config.bscTotal} Cr)</span>
               <span style="font-family: var(--font-family-app) !important; font-weight: 700;">${bscPct.toFixed(1)}%</span>
             </div>
             <div style="height: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; width: 100%;">
@@ -338,7 +340,7 @@ export const GPAModule = {
           </div>
           <div style="display: flex; flex-direction: column; gap: 4px; font-family: var(--font-family-app) !important;">
             <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">
-              <span style="font-family: var(--font-family-app) !important;">Honours Track Progress (${earnedCredits}/120 Cr)</span>
+              <span style="font-family: var(--font-family-app) !important;">Honours Track Progress (${earnedCredits}/${config.honoursTotal} Cr)</span>
               <span style="font-family: var(--font-family-app) !important; font-weight: 700;">${honsPct.toFixed(1)}%</span>
             </div>
             <div style="height: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; width: 100%;">
