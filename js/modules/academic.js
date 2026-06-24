@@ -249,9 +249,51 @@ Database.delete = function(storeName, key) {
 // ── AcademicModule Definition ──────────────────────────────────────────────────
 export const AcademicModule = {
   activeSemester: '1-1',
+  complianceTokens: null,
 
-  init() {
+  async init() {
     this.bindEvents();
+    await this.initializeConfig();
+  },
+
+  async initializeConfig() {
+    try {
+      let activeProjectCodes = await Database.get('settings', 'activeProjectCodes');
+      if (!activeProjectCodes) {
+        activeProjectCodes = { key: 'activeProjectCodes', value: ['COM 3405', 'ICT 3411'] };
+        await Database.put('settings', activeProjectCodes);
+      }
+      let complianceWeighting = await Database.get('settings', 'complianceWeighting');
+      if (!complianceWeighting) {
+        complianceWeighting = { key: 'complianceWeighting', value: { gpa: 70, enrichment: 15, sports: 5, project: 5, interview: 5 } };
+        await Database.put('settings', complianceWeighting);
+      }
+      this.complianceTokens = {
+        activeProjectCodes: activeProjectCodes.value,
+        complianceWeighting: complianceWeighting.value
+      };
+    } catch (err) {
+      console.error('Failed to initialize compliance configurations:', err);
+    }
+  },
+
+  async getComplianceTokens() {
+    try {
+      const projectCodes = await Database.get('settings', 'activeProjectCodes');
+      const weights = await Database.get('settings', 'complianceWeighting');
+      const result = {
+        activeProjectCodes: (projectCodes && projectCodes.value) || ['COM 3405', 'ICT 3411'],
+        complianceWeighting: (weights && weights.value) || { gpa: 70, enrichment: 15, sports: 5, project: 5, interview: 5 }
+      };
+      this.complianceTokens = result;
+      return result;
+    } catch (err) {
+      console.error('Error fetching compliance tokens:', err);
+      return {
+        activeProjectCodes: ['COM 3405', 'ICT 3411'],
+        complianceWeighting: { gpa: 70, enrichment: 15, sports: 5, project: 5, interview: 5 }
+      };
+    }
   },
 
   bindEvents() {
@@ -295,13 +337,17 @@ export const AcademicModule = {
 
     if (editVivaBtn && inlineVivaInput) {
       // Setup event handler to unroll input field upon edit trigger click
-      editVivaBtn.onclick = (e) => {
+      editVivaBtn.onclick = async (e) => {
         e.stopPropagation();
         const isHidden = inlineVivaInput.style.display === 'none';
         inlineVivaInput.style.display = isHidden ? 'inline-block' : 'none';
         editVivaBtn.textContent = isHidden ? 'Save' : 'Edit Marks';
         if (!isHidden) {
-          const enteredVal = Math.min(Math.max(parseFloat(inlineVivaInput.value) || 0, 0), 20);
+          const tokens = await this.getComplianceTokens();
+          const maxInterview = (tokens && tokens.complianceWeighting && tokens.complianceWeighting.interview) !== undefined
+            ? tokens.complianceWeighting.interview
+            : 5;
+          const enteredVal = Math.min(Math.max(parseFloat(inlineVivaInput.value) || 0, 0), maxInterview);
           localStorage.setItem('rusl_viva_score', enteredVal);
           inlineVivaInput.style.display = 'none';
           // Re-trigger the whole master dashboard calculator flow pass
@@ -318,7 +364,8 @@ export const AcademicModule = {
     if (subCodeInput && projectMarkGroup) {
       subCodeInput.addEventListener('input', (e) => {
         const val = e.target.value;
-        if (val.includes('COM 3405') || val.includes('ICT 3411')) {
+        const projectCodes = (AcademicModule.complianceTokens && AcademicModule.complianceTokens.activeProjectCodes) || ['COM 3405', 'ICT 3411'];
+        if (projectCodes.some(code => val.includes(code))) {
           projectMarkGroup.style.setProperty('display', 'block', 'important');
         } else {
           projectMarkGroup.style.display = 'none';
@@ -337,12 +384,87 @@ export const AcademicModule = {
       }
       this.render();
     });
+
+    window.addEventListener('subjectsUpdated', () => {
+      this.syncHUD();
+    });
   },
 
   _calcSyllabusCompletion(checkpoints) {
     if (!Array.isArray(checkpoints) || checkpoints.length === 0) return 0;
     const done = checkpoints.filter(cp => cp.done).length;
     return Math.round((done / checkpoints.length) * 100);
+  },
+
+  async calculateBest65CreditGPA() {
+    try {
+      const submodules = await Database.getAll('subjects');
+      const gradeMap = {
+        'A+': 4.00, 'A': 4.00, 'A-': 3.70,
+        'B+': 3.30, 'B': 3.00, 'B-': 2.70,
+        'C+': 2.30, 'C': 2.00, 'C-': 1.70,
+        'D+': 1.30, 'D': 1.00, 'E': 0.00
+      };
+      
+      const gradedSubs = (submodules || [])
+        .filter(s => s.grade && gradeMap[s.grade] !== undefined && (s.credits || 0) > 0)
+        .map(s => ({
+          credits: parseFloat(s.credits) || 0,
+          gp: gradeMap[s.grade],
+          isCompulsory: s.isCompulsory === true || s.type === 'CORE'
+        }));
+      
+      const compulsorySubs = gradedSubs.filter(s => s.isCompulsory);
+      const optionalSubs = gradedSubs.filter(s => !s.isCompulsory);
+      
+      let accumulatedCredits = 0;
+      let accumulatedGP = 0;
+      
+      // Add all compulsory subjects first
+      for (const s of compulsorySubs) {
+        accumulatedCredits += s.credits;
+        accumulatedGP += s.gp * s.credits;
+      }
+      
+      if (accumulatedCredits > 65) {
+        // If compulsory subjects exceed 65 credits, take the best 65 credits of compulsory subjects
+        compulsorySubs.sort((a, b) => b.gp - a.gp);
+        let cappedCredits = 0;
+        let cappedGP = 0;
+        for (const s of compulsorySubs) {
+          if (cappedCredits + s.credits <= 65) {
+            cappedCredits += s.credits;
+            cappedGP += s.gp * s.credits;
+          } else {
+            const remaining = 65 - cappedCredits;
+            cappedCredits += remaining;
+            cappedGP += s.gp * remaining;
+            break;
+          }
+        }
+        accumulatedCredits = cappedCredits;
+        accumulatedGP = cappedGP;
+      } else if (accumulatedCredits < 65) {
+        // If compulsory subjects are less than 65 credits, fill the rest with best optional/elective subjects
+        optionalSubs.sort((a, b) => b.gp - a.gp);
+        for (const s of optionalSubs) {
+          if (accumulatedCredits + s.credits <= 65) {
+            accumulatedCredits += s.credits;
+            accumulatedGP += s.gp * s.credits;
+          } else {
+            const remaining = 65 - accumulatedCredits;
+            accumulatedCredits += remaining;
+            accumulatedGP += s.gp * remaining;
+            break;
+          }
+        }
+      }
+      
+      return accumulatedCredits > 0 ? (accumulatedGP / accumulatedCredits) : 0.00;
+    } catch (err) {
+      console.error("Failed to calculate best 65 credit GPA:", err);
+      return 0.00;
+    }
   },
 
   async _getGPADetails() {
@@ -381,6 +503,15 @@ export const AcademicModule = {
     } catch (err) {
       console.error("Failed to calculate GPA details:", err);
       return { overallCGPA: 0.00, threeYearCGPA: 0.00 };
+    }
+  },
+
+  async syncHUD() {
+    try {
+      const stats = await this._getGPADetails();
+      await this.updateSpecialEligibilityHUD(stats);
+    } catch (err) {
+      console.error("Failed to sync HUD:", err);
     }
   },
 
@@ -426,104 +557,61 @@ export const AcademicModule = {
     try {
       const submodules = await Database.getAll('subjects');
       const sports = await Database.getAll('sports');
+      const tokens = await this.getComplianceTokens();
+      const weights = tokens.complianceWeighting;
+      const projectCodes = tokens.activeProjectCodes;
 
-      // 1. GPA Segment (70% Max Weight): GPA for best 65 credits of graded sub-modules.
-      const gradeMap = (window.GPAModule && window.GPAModule.gradeMap) || {
-        'A+': 4.00, 'A': 4.00, 'A-': 3.70,
-        'B+': 3.30, 'B': 3.00, 'B-': 2.70,
-        'C+': 2.30, 'C': 2.00, 'C-': 1.70,
-        'D+': 1.30, 'D': 1.00, 'E': 0.00
-      };
-      
-      const gradedSubs = (submodules || [])
-        .filter(s => s.grade && gradeMap[s.grade] !== undefined && (s.credits || 0) > 0)
-        .map(s => ({
-          credits: parseFloat(s.credits) || 0,
-          gp: gradeMap[s.grade]
-        }));
-      
-      gradedSubs.sort((a, b) => b.gp - a.gp);
-      
-      let best65Credits = 0;
-      let best65GP = 0;
-      for (const s of gradedSubs) {
-        if (best65Credits + s.credits <= 65) {
-          best65Credits += s.credits;
-          best65GP += s.gp * s.credits;
-        } else {
-          const remaining = 65 - best65Credits;
-          best65Credits += remaining;
-          best65GP += s.gp * remaining;
-          break;
-        }
-      }
-      const best65GPA = best65Credits > 0 ? (best65GP / best65Credits) : 0.00;
-      const gpaPart = Math.min((best65GPA / 4.0) * 70, 70);
+      // 1. GPA Segment (Dynamic Max Weight): GPA for best 65 credits of graded sub-modules.
+      const best65GPA = await this.calculateBest65CreditGPA();
+      const gpaPart = Math.min((best65GPA / 4.0) * weights.gpa, weights.gpa);
 
-      // 2. Sports Matches Segment (5% Max Weight): Mapped via match level / achievements
-      let sportsScoreSum = 0;
-      const matches = sports.filter(s => s.activityType === 'Match' || s.type === 'Match');
-      matches.forEach(m => {
-        const comp = m.competitionLevel || 'University';
-        const ach = m.achievementLevel || 'Participation';
-        let points = 1.25;
-        
+      // 2. Sports Achievement Segment (Dynamic Max Weight): Mapped via sum of achievements
+      let sportsScore = 0;
+      (sports || []).forEach(s => {
+        let score = 0;
+        const comp = s.competitionLevel;
+        const ach = s.achievementLevel;
         if (comp === 'National') {
-          if (ach === 'Winner') points = 5.0;
-          else if (ach === '1st Runner-up') points = 4.0;
-          else if (ach === '2nd Runner-up') points = 3.0;
-          else points = 2.0;
+          if (ach === 'Winner') score = 5.0;
+          else if (ach === '1st Runner-up') score = 4.0;
+          else if (ach === '2nd Runner-up') score = 3.5;
+          else if (ach === 'Participation') score = 2.5;
         } else if (comp === 'University') {
-          if (ach === 'Winner') points = 3.0;
-          else if (ach === '1st Runner-up') points = 2.5;
-          else if (ach === '2nd Runner-up') points = 2.0;
-          else points = 1.5;
-        } else if (comp === 'Provincial/School') {
-          if (ach === 'Winner') points = 2.0;
-          else if (ach === '1st Runner-up') points = 1.5;
-          else if (ach === '2nd Runner-up') points = 1.25;
-          else points = 1.0;
+          if (ach === 'Winner') score = 3.0;
+          else if (ach === '1st Runner-up' || ach === '2nd Runner-up' || ach === 'Runner-up') score = 2.0;
+          else if (ach === 'Participation') score = 1.0;
+        } else if (comp === 'Provincial/School' || comp === 'Provincial' || comp === 'School') {
+          if (ach === 'Participation') score = 0.5;
         }
-        sportsScoreSum += points;
+        sportsScore += score;
       });
-      const sportsPart = Math.min(sportsScoreSum, 5.0);
+      const sportsPart = Math.min(sportsScore, weights.sports);
 
-      // 3. Group Project Segment (5% Max Weight): evaluates (projectMark/100)*5 or falls back.
-      const projectSub = submodules.find(s => 
-        (s.submoduleCode && (s.submoduleCode.includes('COM 3405') || s.submoduleCode.includes('ICT 3411'))) ||
-        (s.id && (s.id.includes('COM 3405') || s.id.includes('ICT 3411'))) ||
-        (s.moduleTitle && (s.moduleTitle.includes('COM 3405') || s.moduleTitle.includes('ICT 3411')))
+      // 3. Group Project Segment (Dynamic Max Weight): evaluates (projectMark/100)*weight or falls back.
+      const projectSub = (submodules || []).find(s => 
+        s.isProject === true ||
+        (s.submoduleCode && projectCodes.some(code => s.submoduleCode.includes(code))) ||
+        (s.id && projectCodes.some(code => s.id.includes(code))) ||
+        (s.moduleTitle && projectCodes.some(code => s.moduleTitle.includes(code)))
       );
       
       let projectPart = 0;
-      if (projectSub) {
-        if (projectSub.projectMark !== undefined && projectSub.projectMark !== null && projectSub.projectMark !== '') {
-          projectPart = (parseFloat(projectSub.projectMark) / 100) * 5;
-        } else if (projectSub.grade && gradeMap[projectSub.grade] !== undefined) {
-          projectPart = (gradeMap[projectSub.grade] / 4.0) * 5;
-        } else if (projectSub.internalMarks) {
-          const ca = parseFloat(projectSub.internalMarks.ca) || 0;
-          const quiz = parseFloat(projectSub.internalMarks.quiz) || 0;
-          const lab = parseFloat(projectSub.internalMarks.lab) || 0;
-          const avgInternal = (ca + quiz + lab) / 3;
-          projectPart = (avgInternal / 100) * 5;
-        } else if (projectSub.completed || projectSub.status === 'Completed') {
-          projectPart = 5.0;
-        }
+      if (projectSub && projectSub.projectMark !== undefined && projectSub.projectMark !== null && projectSub.projectMark !== '') {
+        projectPart = (parseFloat(projectSub.projectMark) / 100) * weights.project;
       }
 
-      // 4. Academic Enrichment Segment (15% Max Weight): voluntary, hackathon, industry engagement.
+      // 4. Academic Enrichment Segment (Dynamic Max Weight): voluntary, hackathon, industry engagement.
       const profile = await Database.get('students', 'profile');
       const enrichment = (profile && profile.enrichment) || { hackathons: 0, societies: 0, industry: 0 };
-      const hackathons = parseInt(enrichment.hackathons) || 0;
-      const societies = parseInt(enrichment.societies) || 0;
-      const industry = parseInt(enrichment.industry) || 0;
-      const enrichmentPart = Math.min(hackathons + societies + industry, 15.0);
+      const hackathons = Math.min(parseInt(enrichment.hackathons) || 0, 8);
+      const societies = Math.min(parseInt(enrichment.societies) || 0, 2);
+      const industry = Math.min(parseInt(enrichment.industry) || 0, 5);
+      const enrichmentPart = Math.min(hackathons + societies + industry, weights.enrichment);
 
-      // 5. Viva Segment (20% Max Weight): Read contextually from localStorage.
-      const vivaPart = Math.min(parseFloat(localStorage.getItem('rusl_viva_score')) || 0.0, 20.0);
+      // 5. Interview Performance Segment (Dynamic Max Weight): Read contextually from localStorage.
+      const vivaPart = Math.min(parseFloat(localStorage.getItem('rusl_viva_score')) || 0.0, weights.interview);
 
-      const finalInterviewSum = parseFloat((gpaPart + sportsPart + projectPart + enrichmentPart + vivaPart).toFixed(1));
+      const finalInterviewSum = Math.min(parseFloat((gpaPart + sportsPart + projectPart + enrichmentPart + vivaPart).toFixed(1)), 100.0);
 
       // Update UI elements
       const interviewText = document.getElementById('hud-interview-score-text');
@@ -538,16 +626,17 @@ export const AcademicModule = {
 
       if (inlineVivaInput) {
         inlineVivaInput.value = vivaPart;
+        inlineVivaInput.setAttribute('max', weights.interview);
       }
 
       if (interviewText) interviewText.textContent = `${finalInterviewSum.toFixed(1)}%`;
       if (interviewFill) interviewFill.style.width = `${finalInterviewSum}%`;
 
-      if (partGPA) partGPA.textContent = `GPA (65 Cr, 70% max): ${gpaPart.toFixed(1)}%`;
-      if (partSports) partSports.textContent = `Sports Matches (5% max): ${sportsPart.toFixed(1)}%`;
-      if (partProject) partProject.textContent = `Group Project COM 3405/ICT 3411 (5% max): ${projectPart.toFixed(1)}%`;
-      if (partEnrichment) partEnrichment.textContent = `Academic Enrichment (15% max): ${enrichmentPart.toFixed(1)}%`;
-      if (partPanel) partPanel.textContent = `Viva (20% max): ${vivaPart.toFixed(1)}%`;
+      if (partGPA) partGPA.textContent = `GPA (65 Cr, ${weights.gpa}% max): ${gpaPart.toFixed(1)}%`;
+      if (partSports) partSports.textContent = `Sports Achievement (${weights.sports}% max): ${sportsPart.toFixed(1)}%`;
+      if (partProject) partProject.textContent = `Group Project (${projectCodes.join('/')}) (${weights.project}% max): ${projectPart.toFixed(1)}%`;
+      if (partEnrichment) partEnrichment.textContent = `Academic Enrichment (${weights.enrichment}% max): ${enrichmentPart.toFixed(1)}%`;
+      if (partPanel) partPanel.textContent = `Interview Performance (${weights.interview}% max): ${vivaPart.toFixed(1)}%`;
 
     } catch (err) {
       console.error('Error calculating interview score:', err);
@@ -1245,7 +1334,8 @@ export const AcademicModule = {
             document.getElementById('submodule-code-input').value = subCode;
             const projectMarkGroup = document.getElementById('project-final-mark-group');
             if (projectMarkGroup) {
-              if (subCode.includes('COM 3405') || subCode.includes('ICT 3411')) {
+              const projectCodes = (AcademicModule.complianceTokens && AcademicModule.complianceTokens.activeProjectCodes) || ['COM 3405', 'ICT 3411'];
+              if (sub.isProject || projectCodes.some(code => subCode.includes(code))) {
                 projectMarkGroup.style.setProperty('display', 'block', 'important');
               } else {
                 projectMarkGroup.style.display = 'none';
@@ -1417,7 +1507,13 @@ export const AcademicModule = {
       }
 
       const projectMarkEl = document.getElementById('module-project-mark');
-      const projectMark = (submoduleCode.includes('COM 3405') || submoduleCode.includes('ICT 3411')) && projectMarkEl
+      const projectCodes = (AcademicModule.complianceTokens && AcademicModule.complianceTokens.activeProjectCodes) || ['COM 3405', 'ICT 3411'];
+      const isProject = (submoduleCode && projectCodes.some(code => submoduleCode.includes(code))) || 
+                        (title && title.toLowerCase().includes('project')) || 
+                        (submoduleCode && submoduleCode.toLowerCase().includes('project'));
+      const isCompulsory = type === 'CORE';
+
+      const projectMark = isProject && projectMarkEl
         ? parseFloat(projectMarkEl.value) || 0
         : undefined;
 
@@ -1444,7 +1540,9 @@ export const AcademicModule = {
         gradePoint: existingSub.gradePoint !== undefined ? existingSub.gradePoint : (existingSub.grade && GRADE_MAP[existingSub.grade] !== undefined ? GRADE_MAP[existingSub.grade] : 0.00),
         internalMarks: { ca, quiz, lab },
         projectMark: projectMark,
-        syllabusCheckpoints: existingSub.syllabusCheckpoints || DEFAULT_SYLLABUS_CHECKPOINTS.map(label => ({ label, done: false }))
+        syllabusCheckpoints: existingSub.syllabusCheckpoints || DEFAULT_SYLLABUS_CHECKPOINTS.map(label => ({ label, done: false })),
+        isProject: isProject,
+        isCompulsory: isCompulsory
       };
 
       if (mode === 'add') {
