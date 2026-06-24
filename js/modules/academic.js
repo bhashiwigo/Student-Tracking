@@ -254,6 +254,7 @@ export const AcademicModule = {
   async init() {
     this.bindEvents();
     await this.initializeConfig();
+    await this.updateAcademicMetrics();
   },
 
   async initializeConfig() {
@@ -387,6 +388,15 @@ export const AcademicModule = {
 
     window.addEventListener('subjectsUpdated', () => {
       this.syncHUD();
+      this.updateAcademicMetrics();
+    });
+
+    window.addEventListener('saveSubject', () => {
+      this.updateAcademicMetrics();
+    });
+
+    window.addEventListener('saveModule', () => {
+      this.updateAcademicMetrics();
     });
   },
 
@@ -503,6 +513,122 @@ export const AcademicModule = {
     } catch (err) {
       console.error("Failed to calculate GPA details:", err);
       return { overallCGPA: 0.00, threeYearCGPA: 0.00 };
+    }
+  },
+
+  async calculateCredits() {
+    try {
+      const [rawSubjects, allSubmodules] = await Promise.all([
+        originalGetAll.call(Database, 'subjects'),
+        Database.getAll('subjects')
+      ]);
+
+      const subjectTypeMap = {};
+      (rawSubjects || []).forEach(s => {
+        if (s.isParent) {
+          subjectTypeMap[s.code] = (s.courseType || s.type || 'CORE').toUpperCase();
+        }
+      });
+
+      let completedCredits = 0;
+      let remainingCredits = 0;
+      let coreCredits = 0;
+      let optionalCredits = 0;
+
+      (allSubmodules || []).forEach(sub => {
+        const credits = Number(sub.credits) || 0;
+        let typeStr = 'CORE';
+        if (sub.isSubmodule && sub.parentSubjectCode) {
+          typeStr = subjectTypeMap[sub.parentSubjectCode] || 'CORE';
+        } else {
+          typeStr = (sub.courseType || sub.type || 'CORE').toUpperCase();
+        }
+
+        if (sub.grade && sub.grade !== 'RESET_UNDEFINED') {
+          completedCredits += credits;
+        } else {
+          remainingCredits += credits;
+        }
+
+        if (typeStr === 'OPTIONAL') {
+          optionalCredits += credits;
+        } else {
+          coreCredits += credits;
+        }
+      });
+
+      return {
+        completedCredits,
+        remainingCredits,
+        coreCredits,
+        optionalCredits
+      };
+    } catch (err) {
+      console.error('Error calculating credits:', err);
+      return {
+        completedCredits: 0,
+        remainingCredits: 0,
+        coreCredits: 0,
+        optionalCredits: 0
+      };
+    }
+  },
+
+  async updateAcademicMetrics() {
+    try {
+      const { completedCredits, remainingCredits, coreCredits, optionalCredits } = await this.calculateCredits();
+      
+      const compCrEl = document.getElementById('progress-completed-credits');
+      if (compCrEl) compCrEl.innerText = `${completedCredits} Cr`;
+
+      // Compute progress % based on total curriculum credits (defaulting to 120 Cr as baseline)
+      const progressPct = Math.min(100, (completedCredits / 120) * 100);
+
+      // Remaining credits towards the 120 Cr baseline
+      const remCrEl = document.getElementById('progress-remaining-credits');
+      if (remCrEl) {
+        const remainingVal = Math.max(0, 120 - completedCredits);
+        remCrEl.innerText = `${remainingVal} Cr`;
+      }
+
+      const pctEl = document.getElementById('progress-completion-pct');
+      if (pctEl) pctEl.innerText = `${progressPct.toFixed(1)}%`;
+
+      const fillEl = document.getElementById('progress-completion-fill');
+      if (fillEl) fillEl.style.width = `${progressPct}%`;
+
+      const ratioEl = document.getElementById('progress-core-optional-ratio');
+      if (ratioEl) {
+        ratioEl.innerText = `Core: ${coreCredits} Cr | Optional: ${optionalCredits} Cr`;
+      }
+
+      // Degree Standing Logic
+      let standing = 'Year 1 General';
+      if (completedCredits >= 120) {
+        standing = 'Final Year';
+      } else if (completedCredits > 60) {
+        standing = 'Year 2';
+      } else {
+        standing = 'Year 1 General';
+      }
+
+      const standingEl = document.getElementById('progress-degree-standing');
+      if (standingEl) {
+        standingEl.innerText = standing;
+      }
+
+      // Update active semester modules count
+      const activeModulesEl = document.getElementById('progress-active-modules');
+      if (activeModulesEl) {
+        const semSetting = await Database.get('settings', 'currentSemester');
+        const activeSemester = semSetting ? semSetting.value : '1-1';
+        const allSubmodules = await Database.getAll('subjects');
+        const activeSemesterSubmodules = (allSubmodules || []).filter(sub => sub.isSubmodule && sub.semester === activeSemester);
+        activeModulesEl.innerText = `${activeSemesterSubmodules.length} Active Units`;
+      }
+
+    } catch (err) {
+      console.error('Error updating academic metrics HUD:', err);
     }
   },
 

@@ -2619,3 +2619,8 @@ body[data-theme="light"] .radial-ring-value {
   font-weight: 500 !important;
 }
 
+/* Override remaining credits yellow color warning to harmonize with primary text */
+#progress-remaining-credits {
+  color: var(--text-primary) !important;
+}
+
