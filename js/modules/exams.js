@@ -11,8 +11,12 @@ import { Auth } from '../auth.js';
 export const ExamsModule = {
   countdownIntervals: [],
   reminderTimeouts: [],
+  activeSemester: localStorage.getItem('rusl_active_semester') || '1-1',
 
   async init() {
+    // Seed active semester from global setting
+    this.activeSemester = localStorage.getItem('rusl_active_semester') || '1-1';
+
     this.bindEvents();
     window.addEventListener('subjectsUpdated', () => this.populateSubjectsDropdown());
     window.addEventListener('data-registry-update', () => {
@@ -46,6 +50,17 @@ export const ExamsModule = {
         this.checkAttendanceEligibility(e.target.value);
       });
     }
+
+    // Semester filter — wire up change handler and seed value
+    const semFilter = document.getElementById('exam-semester-filter');
+    if (semFilter) {
+      semFilter.value = this.activeSemester;
+      semFilter.addEventListener('change', (e) => {
+        this.activeSemester = e.target.value;
+        this.populateSubjectsDropdown();
+        this.render();
+      });
+    }
   },
 
   async populateSubjectsDropdown() {
@@ -53,15 +68,26 @@ export const ExamsModule = {
     if (!dropdown) return;
 
     try {
-      const subjects = await Database.getAll('subjects');
-      dropdown.innerHTML = subjects.map(s => {
+      const allSubjects = await Database.getAll('subjects');
+
+      // Context-aware: only show subjects from the currently selected semester.
+      // A subject's semester is derived from its own `semester` field or from its
+      // parent subject if it is a submodule.
+      const semesterSubjects = allSubjects.filter(s => {
+        const sem = s.semester || '';
+        return sem === this.activeSemester;
+      });
+
+      const list = semesterSubjects.length > 0 ? semesterSubjects : allSubjects;
+
+      dropdown.innerHTML = list.map(s => {
         const parentName = getSubjectDisplayName(s.isSubmodule ? s.parentSubjectCode : s.code);
         const subName = s.isSubmodule ? getSubjectDisplayName(s.code) : '';
         const displayLabel = s.isSubmodule ? `${parentName} — ${subName}` : parentName;
         return `
           <option value="${s.code}" style="font-family: var(--font-family-app) !important;">${displayLabel}</option>
         `;
-      }).join('') || '<option value="" style="font-family: var(--font-family-app) !important;">No course units added</option>';
+      }).join('') || '<option value="" style="font-family: var(--font-family-app) !important;">No course units for this semester</option>';
     } catch (err) {
       console.error('Load exam subjects dropdown failed:', err);
     }
@@ -71,24 +97,45 @@ export const ExamsModule = {
     const container = document.getElementById('exams-list-container');
     if (!container) return;
 
+    // Sync semester filter UI with current state
+    const semFilter = document.getElementById('exam-semester-filter');
+    if (semFilter && semFilter.value !== this.activeSemester) {
+      semFilter.value = this.activeSemester;
+    }
+
     // Clear active timers
     this.countdownIntervals.forEach(clearInterval);
     this.countdownIntervals = [];
 
     try {
-      const exams = await Database.getAll('exams');
+      const allExams = await Database.getAll('exams');
       const subjects = await Database.getAll('subjects');
 
-      // Schedule reminders when we fetch the exams
-      this.scheduleReminders(exams);
-      
-      // Render visual Gantt roadmap at the top
+      // Build a lookup: subjectCode → subject record (for semester resolution)
+      const subjectMap = {};
+      subjects.forEach(s => { subjectMap[s.code] = s; });
+
+      // Filter exams to the active semester by resolving each exam's course unit
+      // to its subject record and checking that subject's semester field.
+      const exams = allExams.filter(ex => {
+        const code = ex.courseId || ex.subjectCode || '';
+        const sub = subjectMap[code];
+        if (!sub) return true; // no subject linked — show it (safer UX)
+        const subSem = sub.semester || '';
+        return subSem === this.activeSemester;
+      });
+
+      // Schedule reminders on unfiltered full list
+      this.scheduleReminders(allExams);
+
+      // Render visual Gantt roadmap at the top (filtered set)
       this.renderGantt(exams, subjects);
 
       if (exams.length === 0) {
+        const [yr, sem] = this.activeSemester.split('-');
         container.innerHTML = `
           <div class="col-12" style="text-align: center; padding: 40px; color: var(--text-muted); font-family: var(--font-family-app) !important;">
-            No upcoming examinations logged.
+            No examinations logged for Year ${yr} — Semester ${sem === '1' ? 'I' : 'II'}.
           </div>
         `;
         return;
@@ -249,12 +296,33 @@ export const ExamsModule = {
 
     ganttContainer.style.display = 'block';
 
+    const now = Date.now();
+
+    // ── Build timeline data ────────────────────────────────────────────────────
+    // Bar start  = date the exam was added (derived from the 'ex-<timestamp>' id
+    //              or the ex.createdAt field if present). Falls back to today.
+    // Bar end    = exam deadline.
+    // This gives a true "preparation window" proportional bar.
     const timelineData = exams.map(ex => {
       const deadline = new Date(`${ex.date}T${ex.time || '08:30'}`);
       const priority = ex.priority || 'Medium';
-      const prepDays = priority === 'High' ? 7 : priority === 'Medium' ? 4 : 2;
-      const startDate = new Date(deadline.getTime() - prepDays * 24 * 60 * 60 * 1000);
-      
+
+      // Derive bar-start from record creation timestamp
+      let barStart;
+      if (ex.createdAt) {
+        barStart = new Date(ex.createdAt);
+      } else if (ex.id && ex.id.startsWith('ex-')) {
+        const ts = parseInt(ex.id.replace('ex-', ''), 10);
+        barStart = isNaN(ts) ? new Date(now) : new Date(ts);
+      } else {
+        barStart = new Date(now);
+      }
+
+      // If barStart is somehow after deadline, clamp it to 2 days before
+      if (barStart >= deadline) {
+        barStart = new Date(deadline.getTime() - 2 * 86400000);
+      }
+
       const courseLabel = ex.courseId || ex.subjectCode || 'N/A';
       const sub = subjects.find(s => s.code === courseLabel);
       const parentName = getSubjectDisplayName(sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseLabel);
@@ -265,47 +333,64 @@ export const ExamsModule = {
         id: ex.id,
         name: ex.title || ex.name || 'Untitled Exam',
         subject: resolvedDisplayName,
-        priority: priority,
-        startDate: startDate,
-        deadline: deadline,
+        priority,
+        barStart,
+        deadline,
         dateStr: ex.date
       };
     });
 
+    // Sort by deadline ascending
     timelineData.sort((a, b) => a.deadline - b.deadline);
 
-    const minS = new Date(Math.min(...timelineData.map(d => d.startDate.getTime())));
-    minS.setHours(0,0,0,0);
-    
-    const maxD = new Date(Math.max(...timelineData.map(d => d.deadline.getTime())));
-    maxD.setHours(23,59,59,999);
+    // ── Global timeline bounds ─────────────────────────────────────────────────
+    const globalStart = new Date(Math.min(...timelineData.map(d => d.barStart.getTime())));
+    globalStart.setHours(0, 0, 0, 0);
 
-    const totalDuration = maxD.getTime() - minS.getTime() || 86400000;
+    const globalEnd = new Date(Math.max(...timelineData.map(d => d.deadline.getTime())));
+    globalEnd.setHours(23, 59, 59, 999);
 
-    const numMarkers = 6;
-    const markers = [];
-    for (let i = 0; i < numMarkers; i++) {
-      const time = minS.getTime() + (totalDuration * i) / (numMarkers - 1);
-      const d = new Date(time);
-      markers.push(d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
-    }
+    const totalDuration = globalEnd.getTime() - globalStart.getTime() || 86400000;
 
+    // ── Date markers (6 evenly spaced ticks) ──────────────────────────────────
+    const NUM_MARKERS = 6;
+    const markers = Array.from({ length: NUM_MARKERS }, (_, i) => {
+      const t = globalStart.getTime() + (totalDuration * i) / (NUM_MARKERS - 1);
+      return new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    });
+
+    // ── Render rows ────────────────────────────────────────────────────────────
     const rowsHtml = timelineData.map(item => {
-      const leftPct = (item.startDate.getTime() - minS.getTime()) / totalDuration * 100;
-      const widthPct = (item.deadline.getTime() - item.startDate.getTime()) / totalDuration * 100;
+      // Proportional bar positioning
+      // leftPct  = (barStart  - globalStart) / totalDuration × 100
+      // widthPct = (deadline  - barStart)   / totalDuration × 100
+      const leftPct = Math.max(0, (item.barStart.getTime() - globalStart.getTime()) / totalDuration * 100);
+      const widthPct = Math.min(100 - leftPct, (item.deadline.getTime() - item.barStart.getTime()) / totalDuration * 100);
 
-      const priorityColors = { High: 'var(--danger)', Medium: 'var(--warning)', Low: 'var(--accent)' };
-      const color = priorityColors[item.priority] || 'var(--accent)';
+      // Dynamic Priority Decay: auto-upgrade to High if exam is ≤ 7 days away
+      const daysUntil = Math.ceil((item.deadline.getTime() - now) / 86400000);
+      const effectivePriority = daysUntil <= 7 ? 'High' : item.priority;
 
+      // Calm-Contrast palette
+      const COLORS = {
+        High: 'rgba(220, 38, 38, 0.7)',   // Deep Rose / Muted Crimson
+        Medium: 'rgba(217, 119, 6, 0.7)',   // Soft Amber / Honey
+        Low: 'rgba(20, 184, 26, 0.7);'   // Soft Green (Theme-compliant Teal/Green)
+      };
+      const color = COLORS[effectivePriority] || COLORS.Low;
+
+      // Each row is a .gantt-row — 32px height locked by CSS, flex:0 0 32px prevents grow/shrink
       return `
-        <div style="display: flex; align-items: center; gap: 12px; min-width: 600px; font-family: var(--font-family-app) !important;">
-          <div style="width: 180px; flex-shrink: 0; font-size: 0.78rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; font-family: var(--font-family-app) !important;">
-            <strong style="color: var(--text-primary); font-family: var(--font-family-app) !important;">${item.subject}</strong> - <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">${item.name}</span>
+        <div class="gantt-row" style="min-width: 640px;">
+          <!-- Label column: 200px strict, single-line + ellipsis -->
+          <div class="gantt-row-label">
+            <strong title="${item.name}">${item.name}</strong>
           </div>
-          <div style="flex: 1; height: 30px; background: rgba(255,255,255,0.02); border-radius: 4px; position: relative; border: 1px solid var(--border-color); font-family: var(--font-family-app) !important;">
-            <div style="position: absolute; left: ${leftPct}%; width: ${widthPct}%; top: 4px; height: 20px; background: ${color}; opacity: 0.35; border-radius: 3px; border-left: 3px solid ${color}; display: flex; align-items: center; padding: 0 6px; box-sizing: border-box; font-family: var(--font-family-app) !important;">
-              <span style="font-size: 0.65rem; font-weight: 700; color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: var(--font-family-app) !important;">
-                ${item.priority} Prep (until ${item.dateStr})
+          <!-- Proportional bar track -->
+          <div class="gantt-track">
+            <div class="gantt-bar" style="left: ${leftPct.toFixed(2)}%; width: ${Math.max(widthPct, 1).toFixed(2)}%; background: ${color}; border-left: 3px solid ${color};">
+              <span class="gantt-bar-label">
+                ${effectivePriority}${daysUntil <= 7 ? ' ⚠' : ''} · until ${item.dateStr}
               </span>
             </div>
           </div>
@@ -314,23 +399,26 @@ export const ExamsModule = {
     }).join('');
 
     ganttContainer.innerHTML = `
-      <div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-x: auto; margin-bottom: 24px; font-family: var(--font-family-app) !important;">
-        <div style="display: flex; justify-content: space-between; align-items: center; font-family: var(--font-family-app) !important;">
-          <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--accent); font-family: var(--font-family-app) !important; display: inline-flex; align-items: center; gap: 6px;">
+      <div class="card gantt-card">
+        <!-- Header row -->
+        <div class="gantt-header-row" style="padding: 0 4px 8px 4px; flex-shrink:0;">
+          <span class="gantt-title-label">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="alert-svg"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            <span>Visual Gantt Exam Preparation Roadmap</span>
+            Visual Gantt Exam Preparation Roadmap
           </span>
-          <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 500; font-family: var(--font-family-app) !important;">
-            Staggered preparation ranges dynamically calculated by priority levels
-          </span>
+          <span class="gantt-subtitle-label">Proportional preparation windows · priority-decayed</span>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 8px; font-family: var(--font-family-app) !important;">
-          <div style="display: flex; align-items: center; gap: 12px; min-width: 600px; font-family: var(--font-family-app) !important;">
-            <div style="width: 180px; flex-shrink: 0; font-family: var(--font-family-app) !important;"></div>
-            <div style="flex: 1; display: flex; justify-content: space-between; padding: 0 4px; font-size: 0.68rem; color: var(--text-muted); font-weight: 600; font-family: var(--font-family-app) !important;">
-              ${markers.map(m => `<span style="font-family: var(--font-family-app) !important;">${m}</span>`).join('')}
-            </div>
+
+        <!-- Date marker ruler — flex-shrink:0 keeps it above the scroll viewport -->
+        <div class="gantt-ruler" style="min-width: 640px; padding: 0 4px 6px 4px; flex-shrink:0; border-bottom: 1px solid rgba(255,255,255,0.06);">
+          <div class="gantt-ruler-spacer"></div>
+          <div class="gantt-ruler-ticks">
+            ${markers.map(m => `<span>${m}</span>`).join('')}
           </div>
+        </div>
+
+        <!-- Scrollable rows viewport — this is the ONLY element that scrolls -->
+        <div class="gantt-rows-wrapper">
           ${rowsHtml}
         </div>
       </div>
@@ -447,7 +535,7 @@ export const ExamsModule = {
         const delay = time3d - now;
         const timerId = setTimeout(() => {
           let currentSent = {};
-          try { currentSent = JSON.parse(localStorage.getItem('exam_reminders_sent') || '{}'); } catch(e){}
+          try { currentSent = JSON.parse(localStorage.getItem('exam_reminders_sent') || '{}'); } catch (e) { }
           if (!currentSent[key3d]) {
             NotificationService.show('Exam Scheduled', `Upcoming Exam: ${title} is scheduled in 3 days.`, 'exam');
             currentSent[key3d] = true;
@@ -464,7 +552,7 @@ export const ExamsModule = {
         const delay = time24h - now;
         const timerId = setTimeout(() => {
           let currentSent = {};
-          try { currentSent = JSON.parse(localStorage.getItem('exam_reminders_sent') || '{}'); } catch(e){}
+          try { currentSent = JSON.parse(localStorage.getItem('exam_reminders_sent') || '{}'); } catch (e) { }
           if (!currentSent[key24h]) {
             NotificationService.show('Exam Warning', `Critical Warning: ${title} starts in 24 hours!`, 'warning');
             currentSent[key24h] = true;
@@ -479,7 +567,7 @@ export const ExamsModule = {
   async checkAttendanceEligibility(subjectCode) {
     const warningBanner = document.getElementById('exam-validation-warning');
     const saveBtn = document.querySelector('#exam-form button[type="submit"]');
-    
+
     if (!subjectCode) {
       if (warningBanner) warningBanner.style.display = 'none';
       if (saveBtn) saveBtn.removeAttribute('disabled');
@@ -533,9 +621,10 @@ export const ExamsModule = {
     const form = document.getElementById('exam-form');
     if (!modal || !form) return;
 
+    // Re-populate dropdown filtered to the currently active semester
     await this.populateSubjectsDropdown();
     form.reset();
-    
+
     document.getElementById('exam-modal-title').innerText = id ? 'Edit Exam' : 'Schedule Exam';
     document.getElementById('exam-mode').value = id ? 'edit' : 'add';
     document.getElementById('exam-id').value = id || '';
@@ -614,6 +703,8 @@ export const ExamsModule = {
       venue,
       priority,
       userId,
+      // Store the active semester so filtering works even if subject is renamed/moved
+      semester: this.activeSemester,
       // legacy keys for backward compatibility
       name,
       subjectCode,
@@ -638,7 +729,7 @@ export const ExamsModule = {
 
       this.closeModal();
       this.render();
-      
+
       // Notify calendar and main dashboard
       window.dispatchEvent(new CustomEvent('calendarItemsUpdated'));
       window.dispatchEvent(new CustomEvent('subjectsUpdated')); // trigger app.js to reload renderDashboard

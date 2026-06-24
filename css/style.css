@@ -2714,3 +2714,366 @@ body[data-theme="light"] .radial-ring-value {
 .sports-card-content::-webkit-scrollbar-thumb:hover {
   background: var(--accent, #00e5ff) !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   DATE / TIME PICKER ICON — DARK THEME VISIBILITY PATCH
+   Inverts the native browser calendar/clock glyphs so they render
+   as soft white/grey instead of opaque black on glassmorphic inputs.
+   brightness(0.85) keeps the icon readable without being too harsh.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Dark theme (default) — invert + soften icon */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(0.85);
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+/* Hover state — full accent brightness */
+input[type="date"]:hover::-webkit-calendar-picker-indicator,
+input[type="time"]:hover::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]:hover::-webkit-calendar-picker-indicator,
+input[type="date"]:focus::-webkit-calendar-picker-indicator,
+input[type="time"]:focus::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]:focus::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  filter: invert(1) brightness(1) sepia(1) saturate(3) hue-rotate(155deg);
+  /* sepia+saturate+hue-rotate tints the icon to var(--accent) cyan on hover */
+}
+
+/* Light theme override — do NOT invert (the icon is already dark on a light bg) */
+body[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator,
+body[data-theme="light"] input[type="time"]::-webkit-calendar-picker-indicator,
+body[data-theme="light"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 0.65;
+}
+
+body[data-theme="light"] input[type="date"]:hover::-webkit-calendar-picker-indicator,
+body[data-theme="light"] input[type="time"]:hover::-webkit-calendar-picker-indicator,
+body[data-theme="light"] input[type="datetime-local"]:hover::-webkit-calendar-picker-indicator,
+body[data-theme="light"] input[type="date"]:focus::-webkit-calendar-picker-indicator,
+body[data-theme="light"] input[type="time"]:focus::-webkit-calendar-picker-indicator,
+body[data-theme="light"] input[type="datetime-local"]:focus::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 1;
+}
+
+/* Custom icon helper classes (for any SVG/span icons used in place of native inputs) */
+.icon-calendar,
+.icon-clock {
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+}
+
+.icon-calendar:hover,
+.icon-clock:hover {
+  color: var(--accent);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   GANTT ROADMAP — CALM-CONTRAST PALETTE TOKENS
+   Centralised values used by the inline-rendered Gantt bars in
+   js/modules/exams.js. Keeping them here allows theme-level overrides.
+   ══════════════════════════════════════════════════════════════════ */
+:root {
+  --gantt-prep-high: rgba(220, 38, 38, 0.70);
+  /* Deep Rose  / Muted Crimson  */
+  --gantt-prep-medium: rgba(217, 119, 6, 0.70);
+  /* Soft Amber / Honey          */
+  --gantt-prep-low: rgba(20, 184, 26, 0.7);
+  /* Soft Green / Theme Teal */
+}
+
+/* Typography sync — all text inside the Gantt container inherits the
+   global app font so monospaced fallbacks are never used. */
+#exams-gantt-container,
+#exams-gantt-container * {
+  font-family: var(--font-family-app), sans-serif !important;
+}
+
+/* Row label: subject name rendered in primary colour */
+#exams-gantt-container strong {
+  color: var(--text-primary);
+  text-shadow: none;
+}
+
+
+/* Row sub-label: exam title rendered in secondary colour */
+#exams-gantt-container span[style*="text-secondary"] {
+  color: var(--text-secondary);
+}
+
+/* ── Gantt card vertical scroll ─────────────────────────────────────────────── */
+/* Max-height + overflow set inline; these rules style the scrollbar to match   */
+/* the app's Teal Bio-Nanotech palette.                                         */
+#exams-gantt-container .card::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+#exams-gantt-container .card::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#exams-gantt-container .card::-webkit-scrollbar-thumb {
+  background: rgba(0, 229, 255, 0.25);
+  border-radius: 4px;
+}
+
+#exams-gantt-container .card::-webkit-scrollbar-thumb:hover {
+  background: var(--accent, #00e5ff);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   GANTT PROPORTIONAL MATRIX — FIXED-HEIGHT LAYOUT SYSTEM
+   All structural classes are prefixed .gantt-* for isolation.
+   The key invariant: every .gantt-row is exactly 60px tall so
+   labels and bars are always on the same horizontal plane.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Parent Container: fluid scrollable container only when content > 250px */
+.gantt-roadmap-container {
+  max-height: 220px !important;
+  /* Locks the Roadmap area height */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  flex: 1 1 auto;
+  border-radius: 8px;
+
+  /* Prevent layout shifts with overlay/thin scrollbar */
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(0, 229, 255, 0.25) transparent !important;
+}
+
+.gantt-roadmap-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.gantt-roadmap-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gantt-roadmap-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 229, 255, 0.25);
+  border-radius: 4px;
+}
+
+.gantt-roadmap-container::-webkit-scrollbar-thumb:hover {
+  background: var(--accent, #00e5ff);
+}
+
+/* Card wrapper inside container — does not push parent */
+.gantt-card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  flex-shrink: 0;
+  position: relative;
+  margin-bottom: 0 !important;
+  /* no extra bottom margin inside scroll container */
+  font-family: var(--font-family-app), sans-serif;
+}
+
+/* Header bar inside the card */
+.gantt-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.gantt-title-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-family-app), sans-serif;
+}
+
+.gantt-subtitle-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-family: var(--font-family-app), sans-serif;
+}
+
+/* Date-marker ruler row */
+.gantt-ruler {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.gantt-ruler-spacer {
+  width: 200px !important;
+  /* matches .gantt-row-label width */
+  flex-shrink: 0;
+}
+
+.gantt-ruler-ticks {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-family: var(--font-family-app), sans-serif;
+}
+
+/* Scrollable viewport — this is the ONLY element that scrolls.
+   flex: 1 + min-height: 0 are both required: without min-height:0
+   a flex child ignores max-height and expands its parent. */
+.gantt-rows-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: visible !important;
+}
+
+/* ── Core invariant: every row is exactly 32px ──────────────────── */
+.gantt-row {
+  height: 32px !important;
+  min-height: 32px !important;
+  flex: 0 0 32px !important;
+  margin: 0 !important;
+  padding: 0 5px !important;
+  display: flex;
+  align-items: center;
+  /* vertically centres BOTH label and bar track */
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.gantt-row:last-child {
+  border-bottom: none;
+}
+
+/* Label column: strict 200px, single-line truncation
+   The subject name is clipped with ellipsis — no wrapping that
+   would disturb the fixed 32px row height. */
+.gantt-row-label,
+.gantt-label {
+  /* alias kept for backward compat */
+  width: 200px !important;
+  min-width: 200px !important;
+  flex-shrink: 0;
+  display: block !important;
+  /* single-block for clean ellipsis */
+  height: 100%;
+  padding-right: 8px;
+  box-sizing: border-box;
+  /* vertical centering via flex trick on parent .gantt-row */
+  font-family: var(--font-family-app), sans-serif;
+  /* Content clipped to one visible line per semantic element */
+  overflow: hidden !important;
+  text-align: left !important;
+}
+
+/* Subject name line — strict single-line truncation */
+.gantt-row-label strong,
+.gantt-label strong {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 32px;
+  /* vertically centres single line in 32px row */
+  text-align: left !important;
+  margin: 0;
+}
+
+/* Exam title sub-line — hidden when space is tight to preserve row height */
+.gantt-sublabel {
+  display: none;
+  /* hidden by default; shown only if row is tall enough */
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Bar track: proportional canvas */
+.gantt-track {
+  flex: 1;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  position: relative;
+  overflow: hidden;
+  /* keeps bars inside track bounds */
+}
+
+/* Proportional bar: positioned absolutely within .gantt-track */
+.gantt-bar {
+  position: absolute;
+  top: 2px;
+  height: 16px;
+  border-radius: 3px;
+  opacity: 0.78;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  box-sizing: border-box;
+  transition: opacity 0.2s ease, filter 0.2s ease;
+  cursor: default;
+  min-width: 4px;
+}
+
+.gantt-bar:hover {
+  opacity: 1;
+  filter: brightness(1.15);
+}
+
+/* Bar label text */
+.gantt-bar-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-family-app), sans-serif;
+}
+
+/* Gantt card scrollbar — teal accent to match theme */
+.gantt-card::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.gantt-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gantt-card::-webkit-scrollbar-thumb {
+  background: rgba(0, 229, 255, 0.25);
+  border-radius: 4px;
+}
+
+.gantt-card::-webkit-scrollbar-thumb:hover {
+  background: var(--accent, #00e5ff);
+}
