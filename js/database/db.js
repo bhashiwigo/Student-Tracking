@@ -12,6 +12,65 @@ const DB_VERSION = 14; // Bumped to 14 to support focus_sessions and user_habits
 
 let dbInstance = null;
 
+export let subjectsCache = {};
+
+export const refreshSubjectsCache = () => {
+  return new Promise((resolve) => {
+    if (!dbInstance) {
+      resolve({});
+      return;
+    }
+    try {
+      const transaction = dbInstance.transaction('subjects', 'readonly');
+      const store = transaction.objectStore('subjects');
+      const request = store.getAll();
+      request.onsuccess = () => {
+        const records = request.result;
+        const newCache = {};
+        (records || []).forEach(record => {
+          if (record.isParent) {
+            const parentName = record.name || record.subjectTitle || record.courseTitle || record.code;
+            newCache[record.code] = parentName;
+            if (record.submodules && Array.isArray(record.submodules)) {
+              record.submodules.forEach(sub => {
+                const subName = sub.moduleTitle || sub.name;
+                if (sub.id) newCache[sub.id] = subName;
+                if (sub.submoduleCode) newCache[sub.submoduleCode] = subName;
+              });
+            }
+          } else {
+            const name = record.name || record.moduleTitle || record.code;
+            if (record.code) newCache[record.code] = name;
+            if (record.id) newCache[record.id] = name;
+          }
+        });
+        subjectsCache = newCache;
+        resolve(subjectsCache);
+      };
+      request.onerror = () => {
+        resolve(subjectsCache);
+      };
+    } catch (err) {
+      console.warn('[DB] Cache refresh transaction failed:', err);
+      resolve(subjectsCache);
+    }
+  });
+};
+
+export const getSubjectDisplayName = (subjectCode) => {
+  if (!subjectCode) return '';
+  const name = subjectsCache[subjectCode] || subjectCode;
+  return name.replace(/[_-][1-4]-[1-2]$/, '').trim();
+};
+
+window.getSubjectDisplayName = getSubjectDisplayName;
+
+window.addEventListener('subjectsUpdated', () => {
+  refreshSubjectsCache().then(() => {
+    window.dispatchEvent(new CustomEvent('data-registry-update'));
+  });
+});
+
 // Cross-module session lock: prevents nested background sync execution waves.
 // Clear any stale lock on startup after page reload with a short delay (processing interval safety).
 setTimeout(() => {
@@ -507,7 +566,9 @@ export const initDB = () => {
 
     request.onsuccess = (e) => {
       dbInstance = e.target.result;
-      resolve(dbInstance);
+      refreshSubjectsCache().then(() => {
+        resolve(dbInstance);
+      });
     };
 
     request.onerror = (e) => {

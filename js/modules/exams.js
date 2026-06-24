@@ -4,7 +4,7 @@
  * UPGRADED: Gantt Project Roadmap, Priority stagger logic, and interactive milestone checklists
  */
 
-import { Database } from '../database/db.js';
+import { Database, getSubjectDisplayName } from '../database/db.js';
 import { NotificationService } from '../services/notifications.js';
 import { Auth } from '../auth.js';
 
@@ -15,6 +15,10 @@ export const ExamsModule = {
   async init() {
     this.bindEvents();
     window.addEventListener('subjectsUpdated', () => this.populateSubjectsDropdown());
+    window.addEventListener('data-registry-update', () => {
+      this.populateSubjectsDropdown();
+      this.render();
+    });
 
     // Schedule reminders on startup
     try {
@@ -51,10 +55,11 @@ export const ExamsModule = {
     try {
       const subjects = await Database.getAll('subjects');
       dropdown.innerHTML = subjects.map(s => {
-        const displayCode = s.isSubmodule ? s.parentSubjectCode : s.code;
-        const displayName = s.name || s.moduleTitle || 'Unknown';
+        const parentName = getSubjectDisplayName(s.isSubmodule ? s.parentSubjectCode : s.code);
+        const subName = s.isSubmodule ? getSubjectDisplayName(s.code) : '';
+        const displayLabel = s.isSubmodule ? `${parentName} — ${subName}` : parentName;
         return `
-          <option value="${s.code}" style="font-family: var(--font-family-app) !important;">${displayCode} — ${displayName}</option>
+          <option value="${s.code}" style="font-family: var(--font-family-app) !important;">${displayLabel}</option>
         `;
       }).join('') || '<option value="" style="font-family: var(--font-family-app) !important;">No course units added</option>';
     } catch (err) {
@@ -107,10 +112,9 @@ export const ExamsModule = {
         const courseLabel = ex.courseId || ex.subjectCode || 'N/A';
 
         const sub = subjects.find(s => s.code === courseLabel);
-        let resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseLabel;
-        if (resolvedCode && (resolvedCode.startsWith('sub_') || resolvedCode.startsWith('SUB_'))) {
-          resolvedCode = 'Unknown Course';
-        }
+        const parentName = getSubjectDisplayName(sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseLabel);
+        const subName = sub && sub.isSubmodule ? getSubjectDisplayName(sub.code) : '';
+        const resolvedDisplayName = subName ? `${parentName} — ${subName}` : parentName;
 
         return `
           <div class="card col-6" id="exam-card-${ex.id}" style="display: flex; flex-direction: column; gap: 14px; font-family: var(--font-family-app) !important;">
@@ -120,8 +124,8 @@ export const ExamsModule = {
                   <span class="badge" style="background-color: var(--accent-glow); color: var(--accent); font-family: var(--font-family-app) !important;">${typeLabel}</span>
                   <span class="badge ${priorityClass}" style="font-family: var(--font-family-app) !important;">${priority} Priority</span>
                 </div>
-                <h3 style="font-size: 1.1rem; font-weight: 700; font-family: var(--font-family-app) !important;">${resolvedCode} : ${titleLabel}</h3>
-                <h4 style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin-top: 2px; font-family: var(--font-family-app) !important;">Course: ${resolvedCode}</h4>
+                <h3 style="font-size: 1.1rem; font-weight: 700; font-family: var(--font-family-app) !important;">${resolvedDisplayName} : ${titleLabel}</h3>
+                <h4 style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin-top: 2px; font-family: var(--font-family-app) !important;">Course: ${resolvedDisplayName}</h4>
               </div>
               <div style="text-align: right; font-family: var(--font-family-app) !important;">
                 <div class="exam-countdown" id="countdown-val-${ex.id}" style="font-family: 'JetBrains Mono', monospace, var(--font-family-app) !important; font-weight: 700; font-size: 1.1rem; color: var(--warning);">--:--</div>
@@ -253,15 +257,14 @@ export const ExamsModule = {
       
       const courseLabel = ex.courseId || ex.subjectCode || 'N/A';
       const sub = subjects.find(s => s.code === courseLabel);
-      let resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseLabel;
-      if (resolvedCode && (resolvedCode.startsWith('sub_') || resolvedCode.startsWith('SUB_'))) {
-        resolvedCode = 'Unknown Course';
-      }
+      const parentName = getSubjectDisplayName(sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : courseLabel);
+      const subName = sub && sub.isSubmodule ? getSubjectDisplayName(sub.code) : '';
+      const resolvedDisplayName = subName ? `${parentName} — ${subName}` : parentName;
 
       return {
         id: ex.id,
         name: ex.title || ex.name || 'Untitled Exam',
-        subject: resolvedCode,
+        subject: resolvedDisplayName,
         priority: priority,
         startDate: startDate,
         deadline: deadline,

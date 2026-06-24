@@ -4,15 +4,15 @@
  * UPGRADED: Target CGPA Distribution Matrix & Mock Upgrade Repeat Simulator
  */
 
-import { Database, getDegreeConfig } from '../database/db.js';
+import { Database, getDegreeConfig, getSubjectDisplayName } from '../database/db.js';
 import { NotificationService } from '../services/notifications.js';
 
 const getCleanSubmoduleLabel = (sub, rawParents) => {
   if (!sub) return 'CORE - Unknown';
   const parentCode = sub.parentSubjectCode;
   const parentExists = parentCode && (rawParents || []).some(p => p.code === parentCode);
-  const code = parentExists ? parentCode : 'CORE';
-  const title = sub.name || sub.moduleTitle || 'Unknown';
+  const code = parentExists ? getSubjectDisplayName(parentCode) : 'CORE';
+  const title = getSubjectDisplayName(sub.code) || sub.name || sub.moduleTitle || 'Unknown';
   return `${code} - ${title}`;
 };
 
@@ -52,6 +52,7 @@ export const GPAModule = {
     this.bindEvents();
     window.addEventListener('subjectsUpdated', () => this.render());
     window.addEventListener('configUpdate', () => this.render());
+    window.addEventListener('data-registry-update', () => this.render());
     this.runGPAEngineUnitTests();
   },
 
@@ -222,11 +223,13 @@ export const GPAModule = {
           ? `cursor: pointer; text-decoration: underline; text-underline-offset: 3px; color: var(--accent);`
           : `color: var(--text-primary);`;
 
-        const parentCode = sub.parentSubjectCode && (rawParents || []).some(p => p.code === sub.parentSubjectCode) ? sub.parentSubjectCode : 'CORE';
+        const parentExists = sub.parentSubjectCode && (rawParents || []).some(p => p.code === sub.parentSubjectCode);
+        const parentLabel = parentExists ? getSubjectDisplayName(sub.parentSubjectCode) : 'CORE';
+        const subLabel = getSubjectDisplayName(sub.code) || sub.name;
 
         return `
           <tr class="gpa-logbook-row" data-id="${sub.code}" style="border-bottom: 1px solid var(--border-color); font-size: 0.85rem;">
-            <td style="padding: 12px 8px;"><strong>${parentCode}</strong><br><span style="font-size:0.75rem; color:var(--text-secondary);">${sub.name}</span></td>
+            <td style="padding: 12px 8px;"><strong>${parentLabel}</strong><br><span style="font-size:0.75rem; color:var(--text-secondary);">${subLabel}</span></td>
             <td style="padding: 12px 8px; text-align: center;">${sub.credits}</td>
             <td class="sim-clickable-grade" data-code="${sub.code}" style="padding: 12px 8px; text-align: center; font-weight: 700; ${gradeStyle}">${displayGrade}</td>
             <td style="padding: 12px 8px; text-align: center;">${displayGPValue}</td>

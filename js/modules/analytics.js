@@ -6,15 +6,15 @@
  * CSS variable overrides take precedence over :root defaults.
  */
 
-import { Database } from '../database/db.js';
+import { Database, getSubjectDisplayName } from '../database/db.js';
 import { GPAModule } from './gpa.js';
 
 const getCleanSubmoduleLabel = (sub, rawParents) => {
   if (!sub) return 'CORE - Unknown';
   const parentCode = sub.parentSubjectCode;
   const parentExists = parentCode && (rawParents || []).some(p => p.code === parentCode);
-  const code = parentExists ? parentCode : 'CORE';
-  const title = sub.name || sub.moduleTitle || 'Unknown';
+  const code = parentExists ? getSubjectDisplayName(parentCode) : 'CORE';
+  const title = getSubjectDisplayName(sub.code) || sub.name || sub.moduleTitle || 'Unknown';
   return `${code} - ${title}`;
 };
 
@@ -130,6 +130,7 @@ export const AnalyticsModule = {
     window.addEventListener('attendanceUpdated',    scheduleRender);
     window.addEventListener('calendarItemsUpdated', scheduleRender);
     window.addEventListener('focusSessionsUpdated', scheduleRender);
+    window.addEventListener('data-registry-update',  scheduleRender);
 
     // Intercept predictor dropdown changes
     const selectPredictor = document.getElementById('predictor-subject-select');
@@ -410,7 +411,7 @@ export const AnalyticsModule = {
           cardTitleEl.innerText = 'Botany Component Tracking (Dynamic Weights & Credits)';
         }
 
-        const labels = botanySubjects.map(s => s.code);
+        const labels = botanySubjects.map(s => getSubjectDisplayName(s.code));
         const theoryData = botanySubjects.map(s => {
           const ca = s.internalMarks?.ca !== undefined ? parseFloat(s.internalMarks.ca) : 0;
           const quiz = s.internalMarks?.quiz !== undefined ? parseFloat(s.internalMarks.quiz) : 0;
@@ -717,7 +718,7 @@ export const AnalyticsModule = {
         const activeSemester = activeSemesterSetting ? activeSemesterSetting.value : '1-1';
         const semSubs = subjects.filter(s => s.semester === activeSemester).slice(0, 6);
         
-        const radarLabels = semSubs.map(s => s.code);
+        const radarLabels = semSubs.map(s => getSubjectDisplayName(s.code));
         const radarCredits = semSubs.map(s => (s.credits || 0) * 25);
         
         const radarAtt = semSubs.map(sub => {

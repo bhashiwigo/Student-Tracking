@@ -4,7 +4,7 @@
  * UPGRADED: Window blur detection, distraction logs, and Focus Quality Index metrics
  */
 
-import { Database } from '../database/db.js';
+import { Database, getSubjectDisplayName } from '../database/db.js';
 import { NotificationService } from '../services/notifications.js';
 import { Auth } from '../auth.js';
 
@@ -27,6 +27,10 @@ export const StudyModule = {
     this.updateStreakCount();
 
     window.addEventListener('subjectsUpdated', () => this.populatePomoSubjectsDropdown());
+    window.addEventListener('data-registry-update', () => {
+      this.populatePomoSubjectsDropdown();
+      this.render();
+    });
 
     // Focus Quality Interruption hooks
     window.addEventListener('blur', () => this.handleWindowBlur());
@@ -434,7 +438,7 @@ export const StudyModule = {
       const prevVal = select.value;
       
       select.innerHTML = subs.map(s => `
-        <option value="${s.id}">${s.parentSubjectCode} - ${s.name}</option>
+        <option value="${s.id}">${getSubjectDisplayName(s.parentSubjectCode)} - ${getSubjectDisplayName(s.code)}</option>
       `).join('') || '<option value="">No sub-modules added</option>';
 
       if (prevVal && subs.some(s => s.id === prevVal)) {

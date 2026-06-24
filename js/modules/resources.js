@@ -3,7 +3,7 @@
  * Handles Resource scheduling, CRUD actions, and metadata links
  */
 
-import { Database } from '../database/db.js';
+import { Database, getSubjectDisplayName } from '../database/db.js';
 import { NotificationService } from '../services/notifications.js';
 import { Auth } from '../auth.js';
 
@@ -11,6 +11,10 @@ export const ResourcesModule = {
   init() {
     this.bindEvents();
     window.addEventListener('subjectsUpdated', () => this.populateSubjectsDropdown());
+    window.addEventListener('data-registry-update', () => {
+      this.populateSubjectsDropdown();
+      this.render();
+    });
   },
 
   bindEvents() {
@@ -32,10 +36,11 @@ export const ResourcesModule = {
     try {
       const subjects = await Database.getAll('subjects');
       dropdown.innerHTML = subjects.map(s => {
-        const displayCode = s.isSubmodule ? s.parentSubjectCode : s.code;
-        const displayName = s.name || s.moduleTitle || 'Unknown';
+        const parentName = getSubjectDisplayName(s.isSubmodule ? s.parentSubjectCode : s.code);
+        const subName = s.isSubmodule ? getSubjectDisplayName(s.code) : '';
+        const displayLabel = s.isSubmodule ? `${parentName} — ${subName}` : parentName;
         return `
-          <option value="${s.code}" style="font-family: var(--font-family-app) !important;">${displayCode} — ${displayName}</option>
+          <option value="${s.code}" style="font-family: var(--font-family-app) !important;">${displayLabel}</option>
         `;
       }).join('') || '<option value="" style="font-family: var(--font-family-app) !important;">No course units added</option>';
     } catch (err) {
@@ -75,10 +80,9 @@ export const ResourcesModule = {
 
         const subjectCode = res.courseId;
         const sub = subjects.find(s => s.code === subjectCode);
-        let resolvedCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : subjectCode;
-        if (resolvedCode && (resolvedCode.startsWith('sub_') || resolvedCode.startsWith('SUB_'))) {
-          resolvedCode = 'Unknown Course';
-        }
+        const parentName = getSubjectDisplayName(sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : subjectCode);
+        const subName = sub && sub.isSubmodule ? getSubjectDisplayName(sub.code) : '';
+        const resolvedDisplayName = subName ? `${parentName} — ${subName}` : parentName;
 
         return `
           <div class="card col-6" id="resource-card-${res.id}" style="display: flex; flex-direction: column; gap: 14px; font-family: var(--font-family-app) !important;">
@@ -87,8 +91,8 @@ export const ResourcesModule = {
                 <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 6px; font-family: var(--font-family-app) !important;">
                   <span class="badge" style="background-color: var(--accent-glow); color: var(--accent); font-family: var(--font-family-app) !important;">${typeLabel}</span>
                 </div>
-                <h3 style="font-size: 1.1rem; font-weight: 700; font-family: var(--font-family-app) !important;">${resolvedCode} : ${res.title}</h3>
-                <h4 style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin-top: 2px; font-family: var(--font-family-app) !important;">Course: ${resolvedCode}</h4>
+                <h3 style="font-size: 1.1rem; font-weight: 700; font-family: var(--font-family-app) !important;">${resolvedDisplayName} : ${res.title}</h3>
+                <h4 style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin-top: 2px; font-family: var(--font-family-app) !important;">Course: ${resolvedDisplayName}</h4>
               </div>
             </div>
             

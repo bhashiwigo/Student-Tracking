@@ -4,10 +4,11 @@
  * UPGRADED: Simple Markdown parser layer & live HTML preview tabs
  */
 
-import { Database } from '../database/db.js';
+import { Database, getSubjectDisplayName } from '../database/db.js';
 import { NotificationService } from '../services/notifications.js';
 
 // Support 'subModules' and 'subjects' store name queries for subjects-to-submodules mapping
+// ... (retaining the original Database.getAll override)
 const originalGetAll = Database.getAll;
 Database.getAll = function(storeName) {
   if (storeName === 'subModules' || storeName === 'subjects') {
@@ -105,6 +106,10 @@ export const NotesModule = {
   init() {
     this.bindEvents();
     window.addEventListener('subjectsUpdated', () => this.populateSubjectsDropdown());
+    window.addEventListener('data-registry-update', () => {
+      this.populateSubjectsDropdown();
+      this.renderList();
+    });
   },
 
   bindEvents() {
@@ -168,13 +173,9 @@ export const NotesModule = {
       
       let optionsHTML = `<option value="" style="font-family: var(--font-family-app) !important;">No Module Tag</option>`;
       subModules.forEach(s => {
-        const subModule = {
-          id: s.code,
-          courseCode: s.parentSubjectCode,
-          title: s.name || s.moduleTitle || 'Unknown',
-          type: s.type || 'theory'
-        };
-        optionsHTML += `<option value="${subModule.id}" style="font-family: var(--font-family-app) !important;">${subModule.courseCode || ''} — ${subModule.title} (${subModule.type})</option>`;
+        const parentName = getSubjectDisplayName(s.parentSubjectCode || 'CORE');
+        const subName = getSubjectDisplayName(s.code);
+        optionsHTML += `<option value="${s.code}" style="font-family: var(--font-family-app) !important;">${parentName} — ${subName} (${s.type || 'theory'})</option>`;
       });
       dropdown.innerHTML = optionsHTML;
     } catch (err) {
@@ -229,16 +230,15 @@ export const NotesModule = {
       sidebar.innerHTML = filtered.map(note => {
         const noteTitle = note.title || 'Untitled Page';
         const sub = subjects.find(s => s.code === note.subjectCode);
-        let resolvedSubjectCode = sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : note.subjectCode;
-        if (resolvedSubjectCode && (resolvedSubjectCode.startsWith('sub_') || resolvedSubjectCode.startsWith('SUB_'))) {
-          resolvedSubjectCode = 'Unknown Subject';
-        }
+        const parentName = getSubjectDisplayName(sub ? (sub.isSubmodule ? sub.parentSubjectCode : sub.code) : note.subjectCode);
+        const subName = sub && sub.isSubmodule ? getSubjectDisplayName(sub.code) : '';
+        const resolvedDisplayName = subName ? `${parentName} — ${subName}` : parentName;
         
         return `
           <div class="note-item-link ${note.id === this.activeNoteId ? 'active' : ''}" data-id="${note.id}" style="font-family: var(--font-family-app) !important;">
             <div style="font-weight:600; text-overflow:ellipsis; overflow:hidden; font-family: var(--font-family-app) !important;">${noteTitle}</div>
             <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px; font-family: var(--font-family-app) !important;">
-              ${resolvedSubjectCode ? resolvedSubjectCode : 'General'} • ${note.date}
+              ${resolvedDisplayName ? resolvedDisplayName : 'General'} • ${note.date}
             </div>
           </div>
         `;

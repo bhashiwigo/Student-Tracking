@@ -5,7 +5,7 @@
  * AUDIT: Verified that no timestamp/date objects are formatted for UI insertion (purely numeric tracking).
  */
 
-import { Database } from '../database/db.js';
+import { Database, getSubjectDisplayName } from '../database/db.js';
 import { NotificationService } from '../services/notifications.js';
 
 /**
@@ -42,6 +42,7 @@ export const AttendanceModule = {
   init() {
     this.bindEvents();
     window.addEventListener('subjectsUpdated', () => this.render());
+    window.addEventListener('data-registry-update', () => this.render());
 
     const filter = document.getElementById('attendance-semester-filter');
     if (filter) {
@@ -148,12 +149,11 @@ export const AttendanceModule = {
           ? 'linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%) !important'
           : 'var(--danger) !important';
 
+        const parentName = getSubjectDisplayName(sub.parentSubjectCode || sub.code);
+        const subName = sub.isSubmodule ? getSubjectDisplayName(sub.code) : '';
         let displayTitle = sub.isSubmodule 
-          ? `${sub.parentSubjectCode} — ${sub.name}` 
-          : `${sub.code} — ${sub.name}`;
-        if (displayTitle.includes('sub_') || displayTitle.includes('SUB_')) {
-          displayTitle = displayTitle.replace(/sub_[^\s—:]+/gi, 'Unknown Subject').replace(/SUB_[^\s—:]+/gi, 'Unknown Subject');
-        }
+          ? `${parentName} — ${subName}` 
+          : `${parentName}`;
 
         let yxSx = 'N/A';
         if (sub.semester && sub.semester.includes('-')) {

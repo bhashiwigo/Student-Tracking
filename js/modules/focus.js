@@ -5,7 +5,7 @@
  * Streaks tracker & reflection notes saver.
  */
 
-import { Database } from '../database/db.js';
+import { Database, getSubjectDisplayName } from '../database/db.js';
 import { NotificationService } from '../services/notifications.js';
 import { Auth } from '../auth.js';
 
@@ -23,6 +23,10 @@ export const FocusModule = {
 
     window.addEventListener('subjectsUpdated', () => {
       this.populateSubmoduleDropdown();
+    });
+    window.addEventListener('data-registry-update', () => {
+      this.populateSubmoduleDropdown();
+      this.renderHistoryList();
     });
   },
 
@@ -138,9 +142,10 @@ export const FocusModule = {
       const prevVal = select.value;
 
       select.innerHTML = filtered.map(s => {
-        const resolvedCode = s.parentSubjectCode || 'CORE';
+        const parentName = getSubjectDisplayName(s.parentSubjectCode || 'CORE');
+        const submoduleName = getSubjectDisplayName(s.code);
         return `
-          <option value="${s.id}" style="font-family: var(--font-family-app) !important;">${resolvedCode} — ${s.name} (${s.type})</option>
+          <option value="${s.id}" style="font-family: var(--font-family-app) !important;">${parentName} — ${submoduleName} (${s.type || 'theory'})</option>
         `;
       }).join('') || '<option value="" style="font-family: var(--font-family-app) !important;">No submodules registered</option>';
 
@@ -353,7 +358,9 @@ export const FocusModule = {
 
       historyContainer.innerHTML = userSessions.slice(0, 10).map(s => {
         const sub = submodules.find(sub => sub.id === s.subModuleId);
-        const subName = sub ? `${sub.parentSubjectCode || 'CORE'} — ${sub.moduleTitle}` : 'General study';
+        const parentName = sub ? getSubjectDisplayName(sub.parentSubjectCode || 'CORE') : 'CORE';
+        const submoduleName = sub ? getSubjectDisplayName(sub.code) : '';
+        const subName = sub ? `${parentName} — ${submoduleName}` : 'General study';
         const formattedDate = new Date(s.date).toLocaleString(undefined, {
           month: 'short',
           day: 'numeric',
