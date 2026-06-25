@@ -786,7 +786,19 @@
             <h1>Exam Scheduler</h1>
             <p>Log exam papers, locations, and watch live target countdowns.</p>
           </div>
-          <button class="btn-solid" id="btn-add-exam">+ Schedule Exam</button>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <select class="select-input" id="exam-semester-filter" style="width: 180px;">
+              <option value="1-1">Year 1 - Semester I</option>
+              <option value="1-2">Year 1 - Semester II</option>
+              <option value="2-1">Year 2 - Semester I</option>
+              <option value="2-2">Year 2 - Semester II</option>
+              <option value="3-1">Year 3 - Semester I</option>
+              <option value="3-2">Year 3 - Semester II</option>
+              <option value="4-1">Year 4 - Semester I</option>
+              <option value="4-2">Year 4 - Semester II</option>
+            </select>
+            <button class="btn-solid" id="btn-add-exam">+ Schedule Exam</button>
+          </div>
         </div>
         <div id="exams-gantt-container" class="gantt-roadmap-container" style="display: none; margin-bottom: 20px; width: 100%;"></div>
         <div class="grid-layout" id="exams-list-container">

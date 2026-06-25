@@ -1220,6 +1220,13 @@ const App = {
           }
           AttendanceModule.activeSemester = targetedSemesterValue;
 
+          // Propagate to Exam Scheduler filter
+          const examFilter = document.getElementById('exam-semester-filter');
+          if (examFilter) {
+            examFilter.value = targetedSemesterValue;
+          }
+          ExamsModule.activeSemester = targetedSemesterValue;
+
           // Trigger view update routines
           if (typeof AcademicModule.renderSubjects === 'function') {
             AcademicModule.renderSubjects();
@@ -1495,7 +1502,15 @@ const App = {
       AcademicModule.activeSemester = defaultSemester;
       AcademicModule.renderSubjects();
     }
-    else if (this.currentView === 'exams') { ExamsModule.render(); }
+    else if (this.currentView === 'exams') {
+      const defaultSemester = localStorage.getItem('rusl_active_semester') || '1-1';
+      const examFilter = document.getElementById('exam-semester-filter');
+      if (examFilter) {
+        examFilter.value = defaultSemester;
+      }
+      ExamsModule.activeSemester = defaultSemester;
+      ExamsModule.render();
+    }
     else if (this.currentView === 'practicals') { PracticalsModule.render(); }
     else if (this.currentView === 'assignments') { AssignmentsModule.render(); }
     else if (this.currentView === 'gpa') { GPAModule.render(); }

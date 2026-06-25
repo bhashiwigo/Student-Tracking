@@ -57,6 +57,8 @@ export const ExamsModule = {
       semFilter.value = this.activeSemester;
       semFilter.addEventListener('change', (e) => {
         this.activeSemester = e.target.value;
+        // Persist so the filter survives page refresh / navigation
+        localStorage.setItem('rusl_active_semester', this.activeSemester);
         this.populateSubjectsDropdown();
         this.render();
       });
@@ -115,9 +117,16 @@ export const ExamsModule = {
       const subjectMap = {};
       subjects.forEach(s => { subjectMap[s.code] = s; });
 
-      // Filter exams to the active semester by resolving each exam's course unit
-      // to its subject record and checking that subject's semester field.
+      // Filter exams to the active semester.
+      // Strategy (two-pass for backward compat):
+      //   1. If the exam record carries its own `semester` field (new schema), use it.
+      //   2. Otherwise resolve via the linked subject's semester field (legacy schema).
       const exams = allExams.filter(ex => {
+        // Fast path: exam was saved with its own semester tag
+        if (ex.semester) {
+          return ex.semester === this.activeSemester;
+        }
+        // Fallback: look up the linked subject
         const code = ex.courseId || ex.subjectCode || '';
         const sub = subjectMap[code];
         if (!sub) return true; // no subject linked — show it (safer UX)
@@ -399,26 +408,29 @@ export const ExamsModule = {
     }).join('');
 
     ganttContainer.innerHTML = `
-      <div class="card gantt-card">
-        <!-- Header row -->
-        <div class="gantt-header-row" style="padding: 0 4px 8px 4px; flex-shrink:0;">
-          <span class="gantt-title-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="alert-svg"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            Visual Gantt Exam Preparation Roadmap
-          </span>
-          <span class="gantt-subtitle-label">Proportional preparation windows · priority-decayed</span>
-        </div>
+      <div class="card gantt-card gantt-card-wrapper">
+        <!-- Sticky Header & Dates Wrapper -->
+        <div class="gantt-header-sticky">
+          <!-- Header row -->
+          <div class="gantt-header-row" style="padding: 0 4px 8px 4px; flex-shrink:0;">
+            <span class="gantt-title-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="alert-svg"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              Visual Gantt Exam Preparation Roadmap
+            </span>
+            <span class="gantt-subtitle-label">Proportional preparation windows · priority-decayed</span>
+          </div>
 
-        <!-- Date marker ruler — flex-shrink:0 keeps it above the scroll viewport -->
-        <div class="gantt-ruler" style="min-width: 640px; padding: 0 4px 6px 4px; flex-shrink:0; border-bottom: 1px solid rgba(255,255,255,0.06);">
-          <div class="gantt-ruler-spacer"></div>
-          <div class="gantt-ruler-ticks">
-            ${markers.map(m => `<span>${m}</span>`).join('')}
+          <!-- Date marker ruler — flex-shrink:0 keeps it above the scroll viewport -->
+          <div class="gantt-ruler" style="min-width: 640px; padding: 0 4px 6px 4px; flex-shrink:0;">
+            <div class="gantt-ruler-spacer"></div>
+            <div class="gantt-ruler-ticks">
+              ${markers.map(m => `<span>${m}</span>`).join('')}
+            </div>
           </div>
         </div>
 
         <!-- Scrollable rows viewport — this is the ONLY element that scrolls -->
-        <div class="gantt-rows-wrapper">
+        <div class="gantt-scroll-body">
           ${rowsHtml}
         </div>
       </div>

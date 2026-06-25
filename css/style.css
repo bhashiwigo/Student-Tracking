@@ -2835,53 +2835,47 @@ body[data-theme="light"] input[type="datetime-local"]:focus::-webkit-calendar-pi
    labels and bars are always on the same horizontal plane.
    ══════════════════════════════════════════════════════════════════ */
 
-/* Parent Container: fluid scrollable container only when content > 250px */
+/* Parent Container: no parent scrolling, fluid outer shell */
 .gantt-roadmap-container {
-  max-height: 220px !important;
-  /* Locks the Roadmap area height */
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
+  overflow: visible !important;
+  max-height: none !important;
   flex: 1 1 auto;
   border-radius: 8px;
-
-  /* Prevent layout shifts with overlay/thin scrollbar */
-  scrollbar-width: thin !important;
-  scrollbar-color: rgba(0, 229, 255, 0.25) transparent !important;
-}
-
-.gantt-roadmap-container::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.gantt-roadmap-container::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.gantt-roadmap-container::-webkit-scrollbar-thumb {
-  background: rgba(0, 229, 255, 0.25);
-  border-radius: 4px;
-}
-
-.gantt-roadmap-container::-webkit-scrollbar-thumb:hover {
-  background: var(--accent, #00e5ff);
+  position: relative;
 }
 
 /* Card wrapper inside container — does not push parent */
-.gantt-card {
-  padding: 16px;
+.gantt-card,
+.gantt-roadmap-card {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  max-height: 400px !important;
+  overflow: hidden !important; /* Prevent parent scrolling */
+  padding: 10px !important; /* internal padding set to 10px instead of 20px */
   height: auto !important;
-  max-height: none !important;
   min-height: 0 !important;
-  overflow: visible !important;
   flex-shrink: 0;
   position: relative;
   margin-bottom: 0 !important;
-  /* no extra bottom margin inside scroll container */
   font-family: var(--font-family-app), sans-serif;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Hover & Glow inherit rule */
+.gantt-card-wrapper:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-hover) !important;
+  box-shadow: var(--shadow-lg), var(--shadow-glow), inset 0 1px 4px var(--accent-glow) !important;
+}
+
+/* Sticky Header container */
+.gantt-header-sticky {
+  position: sticky;
+  top: 0;
+  background: var(--bg-card); /* Ensure no transparency issues */
+  z-index: 10;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 /* Header bar inside the card */
@@ -2936,16 +2930,34 @@ body[data-theme="light"] input[type="datetime-local"]:focus::-webkit-calendar-pi
   font-family: var(--font-family-app), sans-serif;
 }
 
-/* Scrollable viewport — this is the ONLY element that scrolls.
-   flex: 1 + min-height: 0 are both required: without min-height:0
-   a flex child ignores max-height and expands its parent. */
-.gantt-rows-wrapper {
+/* Scrollable viewport — this is the ONLY element that scrolls. */
+.gantt-scroll-body {
   flex: 1;
+  overflow-y: auto !important; /* This container only will scroll */
+  overflow-x: hidden !important;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  overflow: visible !important;
+  
+  /* Prevent layout shifts with overlay/thin scrollbar */
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(0, 229, 255, 0.25) transparent !important;
+}
+
+.gantt-scroll-body::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.gantt-scroll-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gantt-scroll-body::-webkit-scrollbar-thumb {
+  background: rgba(0, 229, 255, 0.25);
+  border-radius: 4px;
+}
+
+.gantt-scroll-body::-webkit-scrollbar-thumb:hover {
+  background: var(--accent, #00e5ff);
 }
 
 /* ── Core invariant: every row is exactly 32px ──────────────────── */
@@ -2964,6 +2976,7 @@ body[data-theme="light"] input[type="datetime-local"]:focus::-webkit-calendar-pi
 
 .gantt-row:last-child {
   border-bottom: none;
+  margin-bottom: 0 !important; /* Remove bottom margin from last row */
 }
 
 /* Label column: strict 200px, single-line truncation
