@@ -44,6 +44,9 @@
   --bg-body-gradient: radial-gradient(circle at 30% 20%, #06151d 0%, #030a0e 70%, #010406 100%);
   --bg-glow-1: radial-gradient(circle, rgba(0, 229, 255, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
   --bg-glow-2: radial-gradient(circle, rgba(0, 230, 118, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
+
+  /* Countdown timer color — overridden per theme */
+  --countdown-color: var(--accent);
 }
 
 /* --- Visual Studio Custom Themes --- */
@@ -64,6 +67,11 @@ body[data-studio-theme="emerald-aurora"] {
   --bg-body-gradient: radial-gradient(circle at 30% 20%, #122c34 0%, #081418 70%, #03080a 100%);
   --bg-glow-1: radial-gradient(circle, rgba(69, 223, 177, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
   --bg-glow-2: radial-gradient(circle, rgba(128, 237, 153, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
+  --countdown-color: #45dfb1;
+  /* Gantt bars: Emerald green scale (High=vivid → Low=dark) */
+  --gantt-prep-high:   rgba(45, 212, 175, 0.88);  /* Vivid emerald-teal */
+  --gantt-prep-medium: rgba(20, 160, 130, 0.72);  /* Mid emerald        */
+  --gantt-prep-low:    rgba( 8,  95,  80, 0.58);  /* Dark muted green   */
 }
 
 body[data-studio-theme="sunset-amethyst"] {
@@ -82,6 +90,11 @@ body[data-studio-theme="sunset-amethyst"] {
   --bg-body-gradient: radial-gradient(circle at 30% 20%, #200f30 0%, #090310 70%, #040108 100%);
   --bg-glow-1: radial-gradient(circle, rgba(227, 182, 177, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
   --bg-glow-2: radial-gradient(circle, rgba(82, 44, 93, 0.06) 0%, rgba(0, 0, 0, 0) 70%);
+  --countdown-color: #e3b6b1;
+  /* Gantt bars: Amethyst/dusty-rose scale */
+  --gantt-prep-high:   rgba(200,  90, 140, 0.88); /* Vivid plum-rose    */
+  --gantt-prep-medium: rgba(160,  55, 100, 0.72); /* Mid mauve          */
+  --gantt-prep-low:    rgba(100,  25,  70, 0.58); /* Dark deep plum     */
 }
 
 body[data-studio-theme="deep-indigo"] {
@@ -100,6 +113,11 @@ body[data-studio-theme="deep-indigo"] {
   --bg-body-gradient: radial-gradient(circle at 30% 20%, #080a50 0%, #020320 70%, #010110 100%);
   --bg-glow-1: radial-gradient(circle, rgba(0, 180, 216, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
   --bg-glow-2: radial-gradient(circle, rgba(144, 224, 239, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
+  --countdown-color: #00b4d8;
+  /* Gantt bars: Deep-indigo/cerulean scale */
+  --gantt-prep-high:   rgba(  0, 180, 216, 0.88); /* Vivid sky-blue     */
+  --gantt-prep-medium: rgba(  0, 120, 165, 0.72); /* Mid cerulean       */
+  --gantt-prep-low:    rgba(  0,  65, 110, 0.58); /* Dark deep indigo   */
 }
 
 body[data-studio-theme="steel-slate"] {
@@ -118,6 +136,11 @@ body[data-studio-theme="steel-slate"] {
   --bg-body-gradient: radial-gradient(circle at 30% 20%, #202d3d 0%, #0e141c 70%, #070a0e 100%);
   --bg-glow-1: radial-gradient(circle, rgba(170, 183, 183, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
   --bg-glow-2: radial-gradient(circle, rgba(212, 216, 221, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
+  --countdown-color: #aab7b7;
+  /* Gantt bars: Steel-grey scale */
+  --gantt-prep-high:   rgba(170, 183, 183, 0.88); /* Vivid cool-silver  */
+  --gantt-prep-medium: rgba(110, 125, 130, 0.72); /* Mid slate          */
+  --gantt-prep-low:    rgba( 55,  70,  78, 0.58); /* Dark charcoal-grey */
 }
 
 body[data-studio-theme="crimson-obsidian"] {
@@ -136,6 +159,11 @@ body[data-studio-theme="crimson-obsidian"] {
   --bg-body-gradient: radial-gradient(circle at 30% 20%, #2a0005 0%, #080002 70%, #000000 100%);
   --bg-glow-1: radial-gradient(circle, rgba(208, 0, 24, 0.09) 0%, rgba(0, 0, 0, 0) 70%);
   --bg-glow-2: radial-gradient(circle, rgba(255, 82, 82, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
+  --countdown-color: #ff5252;
+  /* Gantt bars: Crimson/red scale (High=vivid → Low=dark maroon) */
+  --gantt-prep-high:   rgba(220,  20,  40, 0.88); /* Vivid crimson-red  */
+  --gantt-prep-medium: rgba(160,  10,  25, 0.75); /* Mid deep red       */
+  --gantt-prep-low:    rgba( 90,   5,  12, 0.62); /* Dark near-black red*/
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -172,6 +200,11 @@ body[data-theme="light"] {
   --shadow-md: 0 8px 32px 0 rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.08);
   --shadow-glow: 0 0 15px rgba(0, 0, 0, 0.04);
+  --countdown-color: #111111;
+  /* Gantt bars: High-contrast on light bg */
+  --gantt-prep-high:   rgba( 30,  30, 180, 0.85); /* Deep indigo-blue   */
+  --gantt-prep-medium: rgba( 80,  80, 160, 0.70); /* Mid blue-grey      */
+  --gantt-prep-low:    rgba(130, 130, 150, 0.55); /* Soft muted grey    */
 }
 
 /* Reset and Core Styles */
@@ -2744,6 +2777,16 @@ input[type="datetime-local"]:focus::-webkit-calendar-picker-indicator {
   /* sepia+saturate+hue-rotate tints the icon to var(--accent) cyan on hover */
 }
 
+:root {
+  /* ── Gantt Priority Palette ──────────────────────────────────────
+     Default (Cyber Teal): dark → mid → soft scale
+     Each theme block below overrides these with its own accent family.
+     ──────────────────────────────────────────────────────── */
+  --gantt-prep-high:   rgba(0, 180, 210, 0.88);   /* Vivid cyber-teal          */
+  --gantt-prep-medium: rgba(0, 130, 160, 0.72);   /* Mid teal                  */
+  --gantt-prep-low:    rgba(0,  80, 110, 0.58);   /* Dark, muted teal          */
+}
+
 /* Light theme override — do NOT invert (the icon is already dark on a light bg) */
 body[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator,
 body[data-theme="light"] input[type="time"]::-webkit-calendar-picker-indicator,
@@ -2775,18 +2818,79 @@ body[data-theme="light"] input[type="datetime-local"]:focus::-webkit-calendar-pi
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   GANTT ROADMAP — CALM-CONTRAST PALETTE TOKENS
-   Centralised values used by the inline-rendered Gantt bars in
-   js/modules/exams.js. Keeping them here allows theme-level overrides.
+   EXAM SCHEDULER — COUNTDOWN TIMER
+   Uses --countdown-color which is theme-specific (defined per theme
+   block above). No hardcoded colors — fully reactive to theme changes.
    ══════════════════════════════════════════════════════════════════ */
-:root {
-  --gantt-prep-high: rgba(220, 38, 38, 0.70);
-  /* Deep Rose  / Muted Crimson  */
-  --gantt-prep-medium: rgba(217, 119, 6, 0.70);
-  /* Soft Amber / Honey          */
-  --gantt-prep-low: rgba(20, 184, 26, 0.7);
-  /* Soft Green / Theme Teal */
+.exam-countdown {
+  color: var(--countdown-color) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  white-space: nowrap;
+  transition: color 0.35s ease;
 }
+
+/* Passed/started state — muted instead of inline color */
+.exam-countdown.exam-countdown--passed {
+  color: var(--text-muted) !important;
+  font-size: 0.78rem !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   EXAM CARD LAYOUT — HEADER ROW
+   flex row: title grows, countdown stays pinned right, never overlaps.
+   ══════════════════════════════════════════════════════════════════ */
+.exam-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  font-family: var(--font-family-app), sans-serif;
+}
+
+/* Title section: can shrink + truncate; never pushes the timer away */
+.exam-title-area {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.exam-title-area h3,
+.exam-title-area h4 {
+  font-family: var(--font-family-app), sans-serif !important;
+}
+
+/* Countdown widget: locked right, single-line, never wraps */
+.countdown-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;          /* never shrink — always fully visible */
+  text-align: right;
+}
+
+/* "REMAINING" micro-label beneath the timer */
+.timer-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-family: var(--font-family-app), sans-serif;
+  opacity: 0.85;
+}
+
+
+
+/* ══════════════════════════════════════════════════════════════════
+   GANTT ROADMAP — PRIORITY PALETTE TOKENS
+   --gantt-prep-high/medium/low are defined in :root (default Cyber Teal)
+   and overridden inside every theme block at the top of this file.
+   No color-mix() — explicit rgba values ensure cross-browser reliability.
+   ══════════════════════════════════════════════════════════════════ */
 
 /* Typography sync — all text inside the Gantt container inherits the
    global app font so monospaced fallbacks are never used. */
@@ -2850,8 +2954,10 @@ body[data-theme="light"] input[type="datetime-local"]:focus::-webkit-calendar-pi
   display: flex;
   flex-direction: column;
   max-height: 400px !important;
-  overflow: hidden !important; /* Prevent parent scrolling */
-  padding: 10px !important; /* internal padding set to 10px instead of 20px */
+  overflow: hidden !important;
+  /* Prevent parent scrolling */
+  padding: 10px !important;
+  /* internal padding set to 10px instead of 20px */
   height: auto !important;
   min-height: 0 !important;
   flex-shrink: 0;
@@ -2872,7 +2978,8 @@ body[data-theme="light"] input[type="datetime-local"]:focus::-webkit-calendar-pi
 .gantt-header-sticky {
   position: sticky;
   top: 0;
-  background: var(--bg-card); /* Ensure no transparency issues */
+  background: var(--bg-card);
+  /* Ensure no transparency issues */
   z-index: 10;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--border-color);
@@ -2933,10 +3040,11 @@ body[data-theme="light"] input[type="datetime-local"]:focus::-webkit-calendar-pi
 /* Scrollable viewport — this is the ONLY element that scrolls. */
 .gantt-scroll-body {
   flex: 1;
-  overflow-y: auto !important; /* This container only will scroll */
+  overflow-y: auto !important;
+  /* This container only will scroll */
   overflow-x: hidden !important;
   min-height: 0;
-  
+
   /* Prevent layout shifts with overlay/thin scrollbar */
   scrollbar-width: thin !important;
   scrollbar-color: rgba(0, 229, 255, 0.25) transparent !important;
@@ -2976,7 +3084,8 @@ body[data-theme="light"] input[type="datetime-local"]:focus::-webkit-calendar-pi
 
 .gantt-row:last-child {
   border-bottom: none;
-  margin-bottom: 0 !important; /* Remove bottom margin from last row */
+  margin-bottom: 0 !important;
+  /* Remove bottom margin from last row */
 }
 
 /* Label column: strict 200px, single-line truncation
@@ -3044,20 +3153,41 @@ body[data-theme="light"] input[type="datetime-local"]:focus::-webkit-calendar-pi
   position: absolute;
   top: 2px;
   height: 16px;
-  border-radius: 3px;
-  opacity: 0.78;
+  border-radius: 4px;
+  opacity: 0.85;
   display: flex;
   align-items: center;
   padding: 0 6px;
   box-sizing: border-box;
-  transition: opacity 0.2s ease, filter 0.2s ease;
+  transition: opacity 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
   cursor: default;
   min-width: 4px;
+  /* Shared glass polish */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* ── Priority-class background colors ────────────────────────── */
+.gantt-bar.high {
+  background-color: var(--gantt-prep-high) !important;
+  border-left: 3px solid var(--gantt-prep-high) !important;
+}
+
+.gantt-bar.medium {
+  background-color: var(--gantt-prep-medium) !important;
+  border-left: 3px solid var(--gantt-prep-medium) !important;
+}
+
+.gantt-bar.low {
+  background-color: var(--gantt-prep-low) !important;
+  border-left: 3px solid var(--gantt-prep-low) !important;
 }
 
 .gantt-bar:hover {
   opacity: 1;
-  filter: brightness(1.15);
+  filter: brightness(1.2);
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
 }
 
 /* Bar label text */

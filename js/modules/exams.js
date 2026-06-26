@@ -174,8 +174,9 @@ export const ExamsModule = {
 
         return `
           <div class="card col-6" id="exam-card-${ex.id}" style="display: flex; flex-direction: column; gap: 14px; font-family: var(--font-family-app) !important;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; font-family: var(--font-family-app) !important;">
-              <div style="font-family: var(--font-family-app) !important;">
+            <div class="exam-card-header">
+              <!-- Left: badges + title -->
+              <div class="exam-title-area">
                 <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 6px; font-family: var(--font-family-app) !important;">
                   <span class="badge" style="background-color: var(--accent-glow); color: var(--accent); font-family: var(--font-family-app) !important;">${typeLabel}</span>
                   <span class="badge ${priorityClass}" style="font-family: var(--font-family-app) !important;">${priority} Priority</span>
@@ -183,9 +184,10 @@ export const ExamsModule = {
                 <h3 style="font-size: 1.1rem; font-weight: 700; font-family: var(--font-family-app) !important;">${resolvedDisplayName} : ${titleLabel}</h3>
                 <h4 style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin-top: 2px; font-family: var(--font-family-app) !important;">Course: ${resolvedDisplayName}</h4>
               </div>
-              <div style="text-align: right; font-family: var(--font-family-app) !important;">
-                <div class="exam-countdown" id="countdown-val-${ex.id}" style="font-family: 'JetBrains Mono', monospace, var(--font-family-app) !important; font-weight: 700; font-size: 1.1rem; color: var(--warning);">--:--</div>
-                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-family: var(--font-family-app) !important;">Remaining</div>
+              <!-- Right: compact countdown widget -->
+              <div class="countdown-wrapper">
+                <span class="exam-countdown" id="countdown-val-${ex.id}">--d --h --m --s</span>
+                <span class="timer-label">Remaining</span>
               </div>
             </div>
             
@@ -380,13 +382,9 @@ export const ExamsModule = {
       const daysUntil = Math.ceil((item.deadline.getTime() - now) / 86400000);
       const effectivePriority = daysUntil <= 7 ? 'High' : item.priority;
 
-      // Calm-Contrast palette
-      const COLORS = {
-        High: 'rgba(220, 38, 38, 0.7)',   // Deep Rose / Muted Crimson
-        Medium: 'rgba(217, 119, 6, 0.7)',   // Soft Amber / Honey
-        Low: 'rgba(20, 184, 26, 0.7);'   // Soft Green (Theme-compliant Teal/Green)
-      };
-      const color = COLORS[effectivePriority] || COLORS.Low;
+      // CSS class drives the color — no hardcoded rgba values here.
+      // .gantt-bar.high / .medium / .low are defined in style.css.
+      const priorityClass = effectivePriority.toLowerCase(); // 'high' | 'medium' | 'low'
 
       // Each row is a .gantt-row — 32px height locked by CSS, flex:0 0 32px prevents grow/shrink
       return `
@@ -397,7 +395,7 @@ export const ExamsModule = {
           </div>
           <!-- Proportional bar track -->
           <div class="gantt-track">
-            <div class="gantt-bar" style="left: ${leftPct.toFixed(2)}%; width: ${Math.max(widthPct, 1).toFixed(2)}%; background: ${color}; border-left: 3px solid ${color};">
+            <div class="gantt-bar ${priorityClass}" style="left: ${leftPct.toFixed(2)}%; width: ${Math.max(widthPct, 1).toFixed(2)}%;">
               <span class="gantt-bar-label">
                 ${effectivePriority}${daysUntil <= 7 ? ' ⚠' : ''} · until ${item.dateStr}
               </span>
@@ -500,16 +498,17 @@ export const ExamsModule = {
       const diff = targetTime - now;
 
       if (diff <= 0) {
-        el.innerText = 'STARTED / PASSED';
-        el.style.color = 'var(--text-muted)';
+        el.textContent = 'STARTED / PASSED';
+        el.classList.add('exam-countdown--passed');
         return;
       }
 
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const days  = Math.floor(diff / (1000 * 60 * 60 * 24));
       const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const mins  = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const secs  = Math.floor((diff % (1000 * 60)) / 1000);
 
-      el.innerText = `${days}d ${hours}h ${mins}m`;
+      el.textContent = `${days}d ${hours}h ${mins}m ${secs}s`;
     };
 
     updateTimer();
