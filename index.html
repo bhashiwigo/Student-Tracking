@@ -1931,6 +1931,75 @@
     </div>
   </div>
 
+  <!-- Standalone Sub-Module Schedule Manager Modal -->
+  <div class="modal-overlay" id="sub-module-schedule-modal" style="z-index: 1010; font-family: var(--font-family-app) !important;">
+    <div class="modal-box" style="max-width: 600px; width: 90%; font-family: var(--font-family-app) !important; background: var(--bg-card); border: 1px solid var(--border-color); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border-radius: 16px; box-shadow: var(--shadow-lg);">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+        <h3 id="schedule-modal-title" style="font-size: 1.15rem; font-weight: 700; color: var(--accent);">Lecture Schedules</h3>
+        <button class="btn-icon modal-close-btn" type="button" aria-label="Close" style="color: var(--text-secondary); background: transparent; border: none; cursor: pointer;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; padding: 0;">
+        <input type="hidden" id="schedule-module-id" value="">
+        
+        <!-- Schedules Table Container -->
+        <div id="schedule-table-container" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0, 0, 0, 0.15);">
+          <table class="schedule-table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; color: var(--text-primary);">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border-color); text-align: left; font-size: 0.72rem; text-transform: uppercase; color: var(--text-secondary); background: rgba(255, 255, 255, 0.02);">
+                <th style="padding: 10px 12px; font-weight: 700; letter-spacing: 0.5px;">Date</th>
+                <th style="padding: 10px 12px; font-weight: 700; letter-spacing: 0.5px;">Time</th>
+                <th style="padding: 10px 12px; font-weight: 700; letter-spacing: 0.5px;">Venue</th>
+                <th style="padding: 10px 12px; font-weight: 700; letter-spacing: 0.5px; text-align: center; width: 100px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="schedule-table-body">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Add/Edit Mini Form -->
+        <div id="schedule-form-container" style="display: none; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; animation: fadeIn 0.3s ease;">
+          <h4 id="schedule-form-title" style="font-size: 0.85rem; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Add Lecture Schedule</h4>
+          <input type="hidden" id="schedule-entry-id" value="">
+          
+          <div style="display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+            <div class="form-group" style="flex: 1; min-width: 120px; margin: 0;">
+              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px; font-weight: 600; color: var(--text-secondary);">Date</label>
+              <input type="date" id="schedule-date" class="input-text" required style="font-family: var(--font-family-app) !important; font-size: 0.8rem; padding: 8px 10px; color-scheme: dark;">
+            </div>
+            <div class="form-group" style="flex: 1; min-width: 100px; margin: 0;">
+              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px; font-weight: 600; color: var(--text-secondary);">Time</label>
+              <input type="time" id="schedule-time" class="input-text" required style="font-family: var(--font-family-app) !important; font-size: 0.8rem; padding: 8px 10px; color-scheme: dark;">
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px; font-weight: 600; color: var(--text-secondary);">Venue</label>
+            <input type="text" id="schedule-venue" class="input-text" placeholder="e.g. Lecture Hall B, FAS Room 102" style="font-family: var(--font-family-app) !important; font-size: 0.8rem; padding: 8px 10px;">
+          </div>
+          
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button type="button" id="btn-cancel-schedule-entry" class="btn-outline btn-sm" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 6px;">Cancel</button>
+            <button type="button" id="btn-save-schedule-entry" class="btn-solid btn-sm" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 6px;">Save Entry</button>
+          </div>
+        </div>
+        
+        <button type="button" id="btn-show-add-schedule" class="btn-outline btn-sm" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-size: 0.8rem; font-weight: 600; border-radius: 8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Add Lecture Schedule
+        </button>
+      </div>
+      <div class="modal-footer" style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 8px; display: flex; justify-content: flex-end;">
+        <button type="button" class="btn-outline modal-close-btn" style="padding: 8px 16px; border-radius: 8px;">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Add/Edit Exam Modal -->
   <div class="modal-overlay" id="exam-modal">
     <div class="modal-box">

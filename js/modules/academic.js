@@ -76,7 +76,8 @@ Database.getAll = function(storeName) {
               isSubmodule: true,
               userId: parent.userId || '',
               targetGrade: sub.targetGrade || '',
-              studyMinutes: sub.studyMinutes || 0
+              studyMinutes: sub.studyMinutes || 0,
+              lectureSchedule: sub.lectureSchedule || []
             });
           });
         } else if (!parent.isParent) {
@@ -128,7 +129,8 @@ Database.get = function(storeName, key) {
                 isSubmodule: true,
                 userId: parent.userId || '',
                 targetGrade: sub.targetGrade || '',
-                studyMinutes: sub.studyMinutes || 0
+                studyMinutes: sub.studyMinutes || 0,
+                lectureSchedule: sub.lectureSchedule || []
               };
             }
           }
@@ -169,7 +171,8 @@ Database.put = function(storeName, value) {
           internalMarks: value.internalMarks,
           syllabusCheckpoints: value.syllabusCheckpoints,
           targetGrade: value.targetGrade,
-          studyMinutes: value.studyMinutes || 0
+          studyMinutes: value.studyMinutes || 0,
+          lectureSchedule: value.lectureSchedule || []
         };
         
         if (idx !== -1) {
@@ -212,7 +215,8 @@ Database.add = function(storeName, value) {
           internalMarks: value.internalMarks || { ca: 0, quiz: 0, lab: 0 },
           syllabusCheckpoints: value.syllabusCheckpoints || [],
           targetGrade: value.targetGrade || '',
-          studyMinutes: value.studyMinutes || 0
+          studyMinutes: value.studyMinutes || 0,
+          lectureSchedule: value.lectureSchedule || []
         };
         
         parent.submodules.push(subPayload);
@@ -403,12 +407,162 @@ export const AcademicModule = {
     window.addEventListener('saveModule', () => {
       this.updateAcademicMetrics();
     });
+
+    this.bindScheduleEvents();
   },
 
   _calcSyllabusCompletion(checkpoints) {
     if (!Array.isArray(checkpoints) || checkpoints.length === 0) return 0;
     const done = checkpoints.filter(cp => cp.done).length;
     return Math.round((done / checkpoints.length) * 100);
+  },
+
+  // ── moduleHistory helpers ─────────────────────────────────────────────────
+  // Persists module lifecycle events (completion timestamps) to localStorage.
+  // Key: 'uni_life_history'  |  Shape: { [moduleId]: { completedAt: ISO string } }
+
+  _loadModuleHistory() {
+    try {
+      return JSON.parse(localStorage.getItem('uni_life_history') || '{}');
+    } catch {
+      return {};
+    }
+  },
+
+  _saveModuleHistory(history) {
+    try {
+      localStorage.setItem('uni_life_history', JSON.stringify(history));
+    } catch (err) {
+      console.warn('Could not persist moduleHistory:', err);
+    }
+  },
+
+  /**
+   * checkModuleCompletion(sub)
+   * Considers a sub-module "completed" when:
+   *   - Every syllabus checkpoint is ticked, AND
+   *   - A final grade has been recorded.
+   * On first detection, stamps a completedAt timestamp into moduleHistory.
+   * Returns: boolean
+   */
+  checkModuleCompletion(sub) {
+    const allCheckpointsDone =
+      Array.isArray(sub.syllabusCheckpoints) &&
+      sub.syllabusCheckpoints.length > 0 &&
+      sub.syllabusCheckpoints.every(cp => cp.done);
+    const hasGrade = !!(sub.grade && sub.grade.trim());
+    const isComplete = allCheckpointsDone && hasGrade;
+
+    if (isComplete) {
+      // Persist completion event if not already recorded
+      const history = this._loadModuleHistory();
+      if (!history[sub.id]) {
+        history[sub.id] = { completedAt: new Date().toISOString() };
+        this._saveModuleHistory(history);
+      }
+    }
+
+    return isComplete;
+  },
+
+  /**
+   * _getModuleStatus(sub)
+   * Drives the status badge decision tree based on the new lectureSchedule array:
+   *   Filters out past lectures, finds the closest future lecture, and maps:
+   *   'completed'    — no future lectures, and sub-module is complete (checkpoints + grade)
+   *   'today'        — next lecture is today (within next 24h OR just passed today)
+   *   'tomorrow'     — next lecture is tomorrow
+   *   'future'       — next lecture is 2+ days away
+   *   'none'         — no upcoming lectures and not completed
+   *
+   * Returns: { type: string, label: string, fullDate: string, venue: string }
+   */
+  _getModuleStatus(sub) {
+    const now = new Date();
+    let closestFuture = null;
+    let closestTimeDiff = Infinity;
+
+    if (Array.isArray(sub.lectureSchedule) && sub.lectureSchedule.length > 0) {
+      sub.lectureSchedule.forEach(s => {
+        if (!s.date || !s.time) return;
+        const schedDate = new Date(`${s.date}T${s.time}`);
+        if (isNaN(schedDate.getTime())) return;
+
+        const diff = schedDate.getTime() - now.getTime();
+        // Filter out past lectures (meaning they occurred before right now)
+        if (diff >= 0) {
+          if (diff < closestTimeDiff) {
+            closestTimeDiff = diff;
+            closestFuture = { ...s, dateTime: schedDate };
+          }
+        }
+      });
+    }
+
+    if (closestFuture) {
+      const lectureDate = closestFuture.dateTime;
+      
+      // Compute midnight boundaries
+      const todayStart = new Date(now);
+      todayStart.setHours(0, 0, 0, 0);
+      const tomorrowStart = new Date(todayStart);
+      tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+      const dayAfterTomorrow = new Date(tomorrowStart);
+      dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+
+      const label = this._formatNextLectureLabel(lectureDate);
+      const fullDate = lectureDate.toLocaleString(undefined, {
+        weekday: 'short', day: 'numeric', month: 'short',
+        hour: '2-digit', minute: '2-digit'
+      }) + (closestFuture.venue ? ` @ ${closestFuture.venue}` : '');
+
+      if (closestFuture.venue) {
+        label.venue = closestFuture.venue;
+      }
+
+      if (lectureDate >= todayStart && lectureDate < tomorrowStart) {
+        return { 
+          type: 'today', 
+          label: `Today · ${lectureDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`, 
+          fullDate,
+          venue: closestFuture.venue || ''
+        };
+      }
+      if (lectureDate >= tomorrowStart && lectureDate < dayAfterTomorrow) {
+        return { 
+          type: 'tomorrow', 
+          label: `Tomorrow · ${lectureDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`, 
+          fullDate,
+          venue: closestFuture.venue || ''
+        };
+      }
+      return { 
+        type: 'future', 
+        label, 
+        fullDate,
+        venue: closestFuture.venue || ''
+      };
+    }
+
+    // Fallback: completed beats empty/past schedule
+    if (this.checkModuleCompletion(sub)) {
+      return { type: 'completed', label: 'Completed', fullDate: '', venue: '' };
+    }
+
+    return { type: 'none', label: '', fullDate: '', venue: '' };
+  },
+
+  /**
+   * _formatNextLectureLabel(date)
+   * Produces a ≤22-character display string: "Mon, 30 Jun · 08:00"
+   * Truncation protects card layout integrity.
+   */
+  _formatNextLectureLabel(date) {
+    const formatted = date.toLocaleString(undefined, {
+      weekday: 'short', day: 'numeric', month: 'short',
+      hour: '2-digit', minute: '2-digit'
+    });
+    return formatted.length > 22 ? formatted.slice(0, 21) + '…' : formatted;
   },
 
   async calculateBest65CreditGPA() {
@@ -967,10 +1121,48 @@ export const AcademicModule = {
               </div>
             ` : '';
 
-            return `
-              <div class="sub-module-isolated-card" style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-top: 12px; box-shadow: var(--shadow-sm); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); display: flex; flex-direction: column; gap: 12px; font-family: var(--font-family-app) !important;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                  <div style="flex: 1;">
+            return (() => {
+              // ── Compute module status before rendering ──────────────────
+              const modStatus = this._getModuleStatus(sub);
+
+              // Build top-right status badge HTML
+              let statusBadgeHTML = '';
+              if (modStatus.type === 'completed') {
+                statusBadgeHTML = `
+                  <div class="sub-card-status-anchor">
+                    <span class="badge-completed" title="Module fully completed">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      Completed
+                    </span>
+                  </div>`;
+              } else if (modStatus.type !== 'none') {
+                // 'today' | 'tomorrow' | 'future' | 'past'
+                const pastStyle = modStatus.type === 'past'
+                  ? 'opacity: 0.55; text-decoration: line-through;'
+                  : '';
+                const urgentGlow = modStatus.type === 'today'
+                  ? 'box-shadow: 0 0 0 0 var(--accent-glow); animation: badge-next-lecture-pulse 1.4s ease-in-out infinite;'
+                  : '';
+                statusBadgeHTML = `
+                  <div class="sub-card-status-anchor">
+                    <span class="badge-next-lecture" title="${modStatus.fullDate || modStatus.label}" style="${pastStyle}${urgentGlow}">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                      <span class="nl-label">${modStatus.label}</span>
+                    </span>
+                  </div>`;
+              }
+
+              // Venue line (shown only when set on the closest future lecture)
+              const venueLineHTML = modStatus.venue
+                ? `<span><strong>Next Venue:</strong> ${modStatus.venue}</span>`
+                : '';
+
+              return `
+              <div class="sub-module-isolated-card" style="position: relative; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-top: 12px; box-shadow: var(--shadow-sm); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); display: flex; flex-direction: column; gap: 12px; font-family: var(--font-family-app) !important;">
+                ${statusBadgeHTML}
+
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-right: ${modStatus.type !== 'none' ? '170px' : '0'};">
+                  <div style="flex: 1; min-width: 0;">
                     <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; font-family: var(--font-family-app) !important;">
                       <div class="sub-modules-hub-badge" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(0, 229, 255, 0.18); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; font-weight: 600; color: var(--accent); font-family: var(--font-family-app) !important; margin: 0;">
                         Sub-Modules Hub
@@ -980,9 +1172,9 @@ export const AcademicModule = {
                       </div>
                       ${riskBadgeHTML}
                     </div>
-                    <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0; font-family: var(--font-family-app) !important;">${sub.submoduleCode ? sub.submoduleCode + ' - ' : ''}${sub.moduleTitle}</h4>
+                    <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0; font-family: var(--font-family-app) !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${sub.submoduleCode ? sub.submoduleCode + ' - ' : ''}${sub.moduleTitle}</h4>
                   </div>
-                  <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                  <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; margin-left: 8px;">
                     <span class="badge low" style="background-color: var(--accent-glow); color: var(--accent); white-space: nowrap; font-family: var(--font-family-app) !important;">${sub.credits} Cr</span>
                     <span class="badge low" style="background-color: rgba(255, 255, 255, 0.05); color: var(--text-secondary); text-transform: uppercase; font-size: 0.65rem; font-family: var(--font-family-app) !important;">${sub.type}</span>
                   </div>
@@ -991,6 +1183,7 @@ export const AcademicModule = {
                 <div style="font-size: 0.78rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 3px; font-family: var(--font-family-app) !important;">
                   <span><strong>Lecturer:</strong> ${sub.lecturerName || 'Not assigned'}</span>
                   <span><strong>Contact:</strong> ${sub.lecturerContact || 'N/A'}</span>
+                  ${venueLineHTML}
                 </div>
 
                 <div style="margin-top: 8px;">
@@ -1052,12 +1245,18 @@ export const AcademicModule = {
                   </div>
                 </div>
 
-                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <div style="display: flex; gap: 8px; margin-top: 12px; align-items: center;">
+                  <button class="btn-schedule-icon schedule-lecture-btn" data-id="${sub.id}"
+                          title="Schedule / Update Next Lecture">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    Schedule
+                  </button>
                   <button class="btn-outline btn-sm edit-submodule-btn" data-id="${sub.id}" style="flex: 1; padding: 6px 10px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">Edit Sub-Module</button>
                   <button class="btn-outline btn-sm delete-submodule-btn" data-id="${sub.id}" style="border-color: var(--danger); color: var(--danger); padding: 6px 10px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">Delete Sub-Module</button>
                 </div>
               </div>
             `;
+            })();
           }).join('');
         }
 
@@ -1176,6 +1375,30 @@ export const AcademicModule = {
           }
         });
       });
+
+      // Bind Schedule icon-buttons — opens dedicated standalone schedule modal
+      container.querySelectorAll('.schedule-lecture-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-id');
+          this.openScheduleModal(id);
+        });
+      });
+
+      // ── Midnight auto-refresh: re-evaluate badge states at 00:00 local ──
+      // Clears any previously scheduled refresh to avoid stacking timers.
+      if (this._midnightRefreshTimer) {
+        clearTimeout(this._midnightRefreshTimer);
+        this._midnightRefreshTimer = null;
+      }
+      const _now = new Date();
+      const _midnight = new Date(_now);
+      _midnight.setDate(_midnight.getDate() + 1);
+      _midnight.setHours(0, 0, 5, 0); // 00:00:05 — 5s buffer past midnight
+      const _msToMidnight = _midnight.getTime() - _now.getTime();
+      this._midnightRefreshTimer = setTimeout(() => {
+        this._midnightRefreshTimer = null;
+        this.render(); // Full re-render triggers _getModuleStatus() with the new date
+      }, _msToMidnight);
 
       // Restore expanded wrappers
       expandedCodes.forEach(code => {
@@ -1757,6 +1980,225 @@ export const AcademicModule = {
       window.dispatchEvent(new CustomEvent('subjectsUpdated'));
     } catch (err) {
       console.error('Delete sub-module failed:', err);
+    }
+  },
+
+  // ── Standalone Schedule Management Modal ──────────────────────────────────
+  async openScheduleModal(submoduleId) {
+    const modal = document.getElementById('sub-module-schedule-modal');
+    if (!modal) return;
+
+    try {
+      const sub = await Database.get('subjects', submoduleId);
+      if (!sub) {
+        console.error('Sub-module not found for scheduling:', submoduleId);
+        return;
+      }
+
+      // Populate basic info
+      document.getElementById('schedule-module-id').value = submoduleId;
+      const titleEl = document.getElementById('schedule-modal-title');
+      if (titleEl) {
+        titleEl.textContent = `Schedules: ${sub.submoduleCode ? sub.submoduleCode + ' - ' : ''}${sub.moduleTitle || sub.name}`;
+      }
+
+      // Hide add form by default
+      this.hideScheduleForm();
+
+      // Render the schedules table
+      const schedules = sub.lectureSchedule || [];
+      this.renderScheduleTable(schedules);
+
+      // Open the modal
+      modal.classList.add('visible');
+    } catch (err) {
+      console.error('Failed to open schedule modal:', err);
+    }
+  },
+
+  renderScheduleTable(schedules) {
+    const tbody = document.getElementById('schedule-table-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (!Array.isArray(schedules) || schedules.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="4" style="text-align: center; padding: 20px; color: var(--text-secondary); font-style: italic;">
+            No scheduled lectures logged.
+          </td>
+        </tr>`;
+      return;
+    }
+
+    // Sort schedules chronologically by date and time
+    const sorted = [...schedules].sort((a, b) => {
+      const ad = new Date(`${a.date}T${a.time}`);
+      const bd = new Date(`${b.date}T${b.time}`);
+      return ad.getTime() - bd.getTime();
+    });
+
+    sorted.forEach(entry => {
+      const row = document.createElement('tr');
+      row.style.borderBottom = '1px solid rgba(255, 255, 255, 0.05)';
+      
+      row.innerHTML = `
+        <td style="padding: 10px 12px; color: var(--text-primary);">${entry.date}</td>
+        <td style="padding: 10px 12px; color: var(--text-primary);">${entry.time}</td>
+        <td style="padding: 10px 12px; color: var(--text-secondary);">${entry.venue || 'N/A'}</td>
+        <td style="padding: 10px 12px; text-align: center;">
+          <div style="display: flex; gap: 8px; justify-content: center;">
+            <button class="btn-outline btn-sm edit-schedule-btn" data-id="${entry.id}" style="padding: 4px 8px; font-size: 0.72rem; border-radius: 4px;">Edit</button>
+            <button class="btn-outline btn-sm delete-schedule-btn" data-id="${entry.id}" style="padding: 4px 8px; font-size: 0.72rem; border-radius: 4px; border-color: var(--danger); color: var(--danger);">Delete</button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    // Wire actions inside the table
+    tbody.querySelectorAll('.edit-schedule-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        this.editScheduleEntry(id);
+      });
+    });
+
+    tbody.querySelectorAll('.delete-schedule-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        this.deleteScheduleEntry(id);
+      });
+    });
+  },
+
+  showAddScheduleForm() {
+    document.getElementById('schedule-entry-id').value = '';
+    document.getElementById('schedule-date').value = '';
+    document.getElementById('schedule-time').value = '';
+    document.getElementById('schedule-venue').value = '';
+
+    document.getElementById('schedule-form-title').textContent = 'Add Lecture Schedule';
+    document.getElementById('schedule-form-container').style.display = 'block';
+    document.getElementById('btn-show-add-schedule').style.display = 'none';
+  },
+
+  hideScheduleForm() {
+    document.getElementById('schedule-form-container').style.display = 'none';
+    document.getElementById('btn-show-add-schedule').style.display = 'block';
+  },
+
+  async saveScheduleEntry() {
+    const moduleId = document.getElementById('schedule-module-id').value;
+    const entryId = document.getElementById('schedule-entry-id').value;
+    const date = document.getElementById('schedule-date').value;
+    const time = document.getElementById('schedule-time').value;
+    const venue = document.getElementById('schedule-venue').value.trim();
+
+    if (!moduleId || !date || !time) {
+      alert('Please select both a date and time.');
+      return;
+    }
+
+    try {
+      const sub = await Database.get('subjects', moduleId);
+      if (!sub) return;
+
+      if (!Array.isArray(sub.lectureSchedule)) {
+        sub.lectureSchedule = [];
+      }
+
+      if (entryId) {
+        // Edit mode
+        const idx = sub.lectureSchedule.findIndex(s => s.id === entryId);
+        if (idx !== -1) {
+          sub.lectureSchedule[idx] = { id: entryId, date, time, venue };
+        }
+      } else {
+        // Add mode
+        const newId = 'ls_' + Date.now();
+        sub.lectureSchedule.push({ id: newId, date, time, venue });
+      }
+
+      await Database.put('subjects', sub);
+      NotificationService.show('Schedule Saved', 'Lecture schedule updated successfully.', 'success');
+
+      // Re-populate and hide form
+      this.openScheduleModal(moduleId);
+
+      // Re-render dashboard card badges
+      this.render();
+      window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+    } catch (err) {
+      console.error('Failed to save schedule entry:', err);
+    }
+  },
+
+  async editScheduleEntry(entryId) {
+    const moduleId = document.getElementById('schedule-module-id').value;
+    if (!moduleId) return;
+
+    try {
+      const sub = await Database.get('subjects', moduleId);
+      if (!sub || !Array.isArray(sub.lectureSchedule)) return;
+
+      const entry = sub.lectureSchedule.find(s => s.id === entryId);
+      if (!entry) return;
+
+      document.getElementById('schedule-entry-id').value = entry.id;
+      document.getElementById('schedule-date').value = entry.date;
+      document.getElementById('schedule-time').value = entry.time;
+      document.getElementById('schedule-venue').value = entry.venue || '';
+
+      document.getElementById('schedule-form-title').textContent = 'Edit Lecture Schedule';
+      document.getElementById('schedule-form-container').style.display = 'block';
+      document.getElementById('btn-show-add-schedule').style.display = 'none';
+    } catch (err) {
+      console.error('Failed to edit schedule entry:', err);
+    }
+  },
+
+  async deleteScheduleEntry(entryId) {
+    const moduleId = document.getElementById('schedule-module-id').value;
+    if (!moduleId) return;
+
+    if (!confirm('Are you sure you want to delete this lecture slot?')) return;
+
+    try {
+      const sub = await Database.get('subjects', moduleId);
+      if (!sub || !Array.isArray(sub.lectureSchedule)) return;
+
+      sub.lectureSchedule = sub.lectureSchedule.filter(s => s.id !== entryId);
+
+      await Database.put('subjects', sub);
+      NotificationService.show('Schedule Removed', 'Lecture slot deleted.', 'warning');
+
+      // Re-render modal table
+      this.openScheduleModal(moduleId);
+
+      // Re-render dashboard cards
+      this.render();
+      window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+    } catch (err) {
+      console.error('Failed to delete schedule entry:', err);
+    }
+  },
+
+  bindScheduleEvents() {
+    const showFormBtn = document.getElementById('btn-show-add-schedule');
+    if (showFormBtn) {
+      showFormBtn.onclick = () => this.showAddScheduleForm();
+    }
+
+    const cancelBtn = document.getElementById('btn-cancel-schedule-entry');
+    if (cancelBtn) {
+      cancelBtn.onclick = () => this.hideScheduleForm();
+    }
+
+    const saveBtn = document.getElementById('btn-save-schedule-entry');
+    if (saveBtn) {
+      saveBtn.onclick = () => this.saveScheduleEntry();
     }
   }
 };
