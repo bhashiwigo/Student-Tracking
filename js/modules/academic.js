@@ -62,7 +62,9 @@ Database.getAll = function(storeName) {
               credits: sub.credits,
               semester: sub.semester,
               lecturer: sub.lecturerName,
+              lecturerName: sub.lecturerName || '',
               info: sub.lecturerContact,
+              lecturerContact: sub.lecturerContact || '',
               theoryWeight: sub.theoryWeight,
               practicalWeight: sub.practicalWeight,
               type: sub.type || 'theory',
@@ -115,7 +117,9 @@ Database.get = function(storeName, key) {
                 credits: sub.credits,
                 semester: sub.semester,
                 lecturer: sub.lecturerName,
+                lecturerName: sub.lecturerName || '',
                 info: sub.lecturerContact,
+                lecturerContact: sub.lecturerContact || '',
                 theoryWeight: sub.theoryWeight,
                 practicalWeight: sub.practicalWeight,
                 type: sub.type || 'theory',
@@ -407,6 +411,19 @@ export const AcademicModule = {
     window.addEventListener('saveModule', () => {
       this.updateAcademicMetrics();
     });
+
+    const subModuleListContainer = document.querySelector('.sub-module-list-container');
+    if (subModuleListContainer) {
+      subModuleListContainer.addEventListener('click', (e) => {
+        const btn = e.target.closest('.schedule-lecture-btn');
+        if (btn) {
+          e.preventDefault();
+          const id = btn.dataset.id || btn.getAttribute('data-id');
+          console.log("Opening schedule for:", id);
+          this.openScheduleModal(id);
+        }
+      });
+    }
 
     this.bindScheduleEvents();
   },
@@ -1082,182 +1099,7 @@ export const AcademicModule = {
             </div>
           `;
         } else {
-          submodulesHTML = semesterSubmodules.map(sub => {
-            const checkpoints = Array.isArray(sub.syllabusCheckpoints) && sub.syllabusCheckpoints.length > 0
-              ? sub.syllabusCheckpoints
-              : DEFAULT_SYLLABUS_CHECKPOINTS.map(label => ({ label, done: false }));
-            
-            const syllPct = this._calcSyllabusCompletion(checkpoints);
-            const doneCount = checkpoints.filter(c => c.done).length;
-
-            const currentSelfStudyHours = (sub.studyMinutes || 0) / 60;
-            const thresholdHours = sub.credits * 30;
-            const slqfPct = Math.min(100, (currentSelfStudyHours / thresholdHours) * 100);
-
-            const semesterLabels = {
-              '1-1': 'Year 1 - Sem I',
-              '1-2': 'Year 1 - Sem II',
-              '2-1': 'Year 2 - Sem I',
-              '2-2': 'Year 2 - Sem II',
-              '3-1': 'Year 3 - Sem I',
-              '3-2': 'Year 3 - Sem II',
-              '4-1': 'Year 4 - Sem I',
-              '4-2': 'Year 4 - Sem II'
-            };
-            const semLabel = semesterLabels[sub.semester] || sub.semester || 'N/A';
-
-            const attRecord = attendance.find(a => a.subjectCode === sub.id);
-            let attendancePct = 100;
-            if (attRecord) {
-              const present = (attRecord.lecture?.present || 0) + (attRecord.practical?.present || 0) + (attRecord.fieldWork?.present || 0);
-              const total = (attRecord.lecture?.total || 0) + (attRecord.practical?.total || 0) + (attRecord.fieldWork?.total || 0);
-              if (total > 0) {
-                attendancePct = (present / total) * 100;
-              }
-            }
-            const riskBadgeHTML = attendancePct < 80 ? `
-              <div class="critical-risk-badge" style="background: rgba(255, 23, 68, 0.18); border: 1px solid var(--danger); color: var(--danger); border-radius: 6px; padding: 4px 10px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; box-shadow: 0 0 10px rgba(255, 23, 68, 0.2); width: fit-content; font-family: var(--font-family-app) !important; white-space: nowrap;">
-                CRITICAL ELIGIBILITY RISK: EXAMINATION BARRED
-              </div>
-            ` : '';
-
-            return (() => {
-              // ── Compute module status before rendering ──────────────────
-              const modStatus = this._getModuleStatus(sub);
-
-              // Build top-right status badge HTML
-              let statusBadgeHTML = '';
-              if (modStatus.type === 'completed') {
-                statusBadgeHTML = `
-                  <div class="sub-card-status-anchor">
-                    <span class="badge-completed" title="Module fully completed">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                      Completed
-                    </span>
-                  </div>`;
-              } else if (modStatus.type !== 'none') {
-                // 'today' | 'tomorrow' | 'future' | 'past'
-                const pastStyle = modStatus.type === 'past'
-                  ? 'opacity: 0.55; text-decoration: line-through;'
-                  : '';
-                const urgentGlow = modStatus.type === 'today'
-                  ? 'box-shadow: 0 0 0 0 var(--accent-glow); animation: badge-next-lecture-pulse 1.4s ease-in-out infinite;'
-                  : '';
-                statusBadgeHTML = `
-                  <div class="sub-card-status-anchor">
-                    <span class="badge-next-lecture" title="${modStatus.fullDate || modStatus.label}" style="${pastStyle}${urgentGlow}">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                      <span class="nl-label">${modStatus.label}</span>
-                    </span>
-                  </div>`;
-              }
-
-              // Venue line (shown only when set on the closest future lecture)
-              const venueLineHTML = modStatus.venue
-                ? `<span><strong>Next Venue:</strong> ${modStatus.venue}</span>`
-                : '';
-
-              return `
-              <div class="sub-module-isolated-card" style="position: relative; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-top: 12px; box-shadow: var(--shadow-sm); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); display: flex; flex-direction: column; gap: 12px; font-family: var(--font-family-app) !important;">
-                ${statusBadgeHTML}
-
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-right: ${modStatus.type !== 'none' ? '170px' : '0'};">
-                  <div style="flex: 1; min-width: 0;">
-                    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; font-family: var(--font-family-app) !important;">
-                      <div class="sub-modules-hub-badge" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(0, 229, 255, 0.18); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; font-weight: 600; color: var(--accent); font-family: var(--font-family-app) !important; margin: 0;">
-                        Sub-Modules Hub
-                      </div>
-                      <div class="badge" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); font-family: var(--font-family-app) !important; margin: 0; white-space: nowrap;">
-                        ${semLabel}
-                      </div>
-                      ${riskBadgeHTML}
-                    </div>
-                    <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0; font-family: var(--font-family-app) !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${sub.submoduleCode ? sub.submoduleCode + ' - ' : ''}${sub.moduleTitle}</h4>
-                  </div>
-                  <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; margin-left: 8px;">
-                    <span class="badge low" style="background-color: var(--accent-glow); color: var(--accent); white-space: nowrap; font-family: var(--font-family-app) !important;">${sub.credits} Cr</span>
-                    <span class="badge low" style="background-color: rgba(255, 255, 255, 0.05); color: var(--text-secondary); text-transform: uppercase; font-size: 0.65rem; font-family: var(--font-family-app) !important;">${sub.type}</span>
-                  </div>
-                </div>
-
-                <div style="font-size: 0.78rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 3px; font-family: var(--font-family-app) !important;">
-                  <span><strong>Lecturer:</strong> ${sub.lecturerName || 'Not assigned'}</span>
-                  <span><strong>Contact:</strong> ${sub.lecturerContact || 'N/A'}</span>
-                  ${venueLineHTML}
-                </div>
-
-                <div style="margin-top: 8px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span class="syllabus-progress-header" data-sub-id="${sub.id}" style="font-size: 0.75rem; font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">
-                      Syllabus Progress: ${doneCount}/${checkpoints.length} topics (${syllPct}%)
-                    </span>
-                  </div>
-                  <div style="height: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 3px; overflow: hidden; margin-bottom: 12px;">
-                    <div class="syllabus-progress-bar" id="tracker-bar-${sub.id}" data-sub-id="${sub.id}" style="width: ${syllPct}%; height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s ease;"></div>
-                  </div>
-                  <div class="syllabus-checkpoints-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-family: var(--font-family-app) !important;">
-                    ${checkpoints.map((cp, idx) => `
-                      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.75rem; color: ${cp.done ? 'var(--text-secondary)' : 'var(--text-primary)'}; font-family: var(--font-family-app) !important;">
-                        <input type="checkbox" class="syll-check syllabus-sync-checkbox" data-sub-id="${sub.id}" data-idx="${idx}" ${cp.done ? 'checked' : ''} style="width: 14px; height: 14px; cursor: pointer; accent-color: var(--accent);">
-                        <span style="font-family: var(--font-family-app) !important; text-decoration: ${cp.done ? 'line-through' : 'none'};">${cp.label}</span>
-                      </label>
-                    `).join('')}
-                  </div>
-                </div>
-
-                <div class="marks-matrix" style="margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; font-family: var(--font-family-app) !important;">
-                  <div class="module-section-title" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">Theory & Internal Assessments Matrix</div>
-                  
-                  <div class="marks-progress-row" style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">
-                    <span class="marks-progress-label" style="width: 70px; color: var(--text-secondary); font-family: var(--font-family-app) !important;">CA Marks</span>
-                    <div class="marks-progress-bar-bg" style="flex: 1; height: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 3px; overflow: hidden;">
-                      <div class="marks-progress-bar-fill" style="width: ${sub.internalMarks?.ca || 0}%; height: 100%; background: var(--accent); border-radius: 3px;"></div>
-                    </div>
-                    <span class="marks-progress-value" style="width: 45px; text-align: right; color: var(--text-primary); font-family: var(--font-family-app) !important;">${sub.internalMarks?.ca || 0}/100</span>
-                  </div>
-
-                  <div class="marks-progress-row" style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">
-                    <span class="marks-progress-label" style="width: 70px; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Quiz Marks</span>
-                    <div class="marks-progress-bar-bg" style="flex: 1; height: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 3px; overflow: hidden;">
-                      <div class="marks-progress-bar-fill" style="width: ${sub.internalMarks?.quiz || 0}%; height: 100%; background: var(--accent); border-radius: 3px;"></div>
-                    </div>
-                    <span class="marks-progress-value" style="width: 45px; text-align: right; color: var(--text-primary); font-family: var(--font-family-app) !important;">${sub.internalMarks?.quiz || 0}/100</span>
-                  </div>
-
-                  <div class="marks-progress-row" style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">
-                    <span class="marks-progress-label" style="width: 70px; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Lab Marks</span>
-                    <div class="marks-progress-bar-bg" style="flex: 1; height: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 3px; overflow: hidden;">
-                      <div class="marks-progress-bar-fill" style="width: ${sub.internalMarks?.lab || 0}%; height: 100%; background: var(--accent); border-radius: 3px;"></div>
-                    </div>
-                    <span class="marks-progress-value" style="width: 45px; text-align: right; color: var(--text-primary); font-family: var(--font-family-app) !important;">${sub.internalMarks?.lab || 0}/100</span>
-                  </div>
-                </div>
-
-                <div class="slqf-learning-hours" style="margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; font-family: var(--font-family-app) !important;">
-                  <div class="module-section-title" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">SLQF Self-Study workload</div>
-                  
-                  <div class="marks-progress-row" style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">
-                    <span class="marks-progress-label" style="width: 70px; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Self-Study</span>
-                    <div class="marks-progress-bar-bg" style="flex: 1; height: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 3px; overflow: hidden;">
-                      <div class="marks-progress-bar-fill" style="width: ${slqfPct}%; height: 100%; background: var(--accent); border-radius: 3px;"></div>
-                    </div>
-                    <span class="marks-progress-value" style="width: 75px; text-align: right; color: var(--text-primary); font-family: var(--font-family-app) !important;">${currentSelfStudyHours.toFixed(1)} / ${thresholdHours} hrs</span>
-                  </div>
-                </div>
-
-                <div style="display: flex; gap: 8px; margin-top: 12px; align-items: center;">
-                  <button class="btn-schedule-icon schedule-lecture-btn" data-id="${sub.id}"
-                          title="Schedule / Update Next Lecture">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                    Schedule
-                  </button>
-                  <button class="btn-outline btn-sm edit-submodule-btn" data-id="${sub.id}" style="flex: 1; padding: 6px 10px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">Edit Sub-Module</button>
-                  <button class="btn-outline btn-sm delete-submodule-btn" data-id="${sub.id}" style="border-color: var(--danger); color: var(--danger); padding: 6px 10px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">Delete Sub-Module</button>
-                </div>
-              </div>
-            `;
-            })();
-          }).join('');
+          submodulesHTML = semesterSubmodules.map(sub => this.renderSubModuleCard(sub, attendance)).join('');
         }
 
         return `
@@ -1376,13 +1218,7 @@ export const AcademicModule = {
         });
       });
 
-      // Bind Schedule icon-buttons — opens dedicated standalone schedule modal
-      container.querySelectorAll('.schedule-lecture-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const id = btn.getAttribute('data-id');
-          this.openScheduleModal(id);
-        });
-      });
+
 
       // ── Midnight auto-refresh: re-evaluate badge states at 00:00 local ──
       // Clears any previously scheduled refresh to avoid stacking timers.
@@ -2016,11 +1852,23 @@ export const AcademicModule = {
     }
   },
 
-  renderScheduleTable(schedules) {
+  async renderScheduleTable(schedulesOrId) {
     const tbody = document.getElementById('schedule-table-body');
     if (!tbody) return;
 
     tbody.innerHTML = '';
+
+    let schedules = [];
+    if (typeof schedulesOrId === 'string') {
+      try {
+        const sub = await Database.get('subjects', schedulesOrId);
+        schedules = sub ? (sub.lectureSchedule || []) : [];
+      } catch (err) {
+        console.error('Failed to load schedules for table:', err);
+      }
+    } else {
+      schedules = Array.isArray(schedulesOrId) ? schedulesOrId : [];
+    }
 
     if (!Array.isArray(schedules) || schedules.length === 0) {
       tbody.innerHTML = `
@@ -2039,6 +1887,8 @@ export const AcademicModule = {
       return ad.getTime() - bd.getTime();
     });
 
+    const submoduleId = document.getElementById('schedule-module-id').value;
+
     sorted.forEach(entry => {
       const row = document.createElement('tr');
       row.style.borderBottom = '1px solid rgba(255, 255, 255, 0.05)';
@@ -2050,7 +1900,7 @@ export const AcademicModule = {
         <td style="padding: 10px 12px; text-align: center;">
           <div style="display: flex; gap: 8px; justify-content: center;">
             <button class="btn-outline btn-sm edit-schedule-btn" data-id="${entry.id}" style="padding: 4px 8px; font-size: 0.72rem; border-radius: 4px;">Edit</button>
-            <button class="btn-outline btn-sm delete-schedule-btn" data-id="${entry.id}" style="padding: 4px 8px; font-size: 0.72rem; border-radius: 4px; border-color: var(--danger); color: var(--danger);">Delete</button>
+            <button class="btn-outline btn-sm delete-schedule-btn" data-id="${entry.id}" data-sub-id="${submoduleId}" style="padding: 4px 8px; font-size: 0.72rem; border-radius: 4px; border-color: var(--danger); color: var(--danger);">Delete</button>
           </div>
         </td>
       `;
@@ -2059,17 +1909,11 @@ export const AcademicModule = {
 
     // Wire actions inside the table
     tbody.querySelectorAll('.edit-schedule-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.onclick = (e) => {
+        e.preventDefault();
         const id = btn.getAttribute('data-id');
         this.editScheduleEntry(id);
-      });
-    });
-
-    tbody.querySelectorAll('.delete-schedule-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        this.deleteScheduleEntry(id);
-      });
+      };
     });
   },
 
@@ -2159,29 +2003,26 @@ export const AcademicModule = {
     }
   },
 
-  async deleteScheduleEntry(entryId) {
-    const moduleId = document.getElementById('schedule-module-id').value;
-    if (!moduleId) return;
-
-    if (!confirm('Are you sure you want to delete this lecture slot?')) return;
+  async deleteSchedule(subId, scheduleId) {
+    if (!subId || !scheduleId) return;
 
     try {
-      const sub = await Database.get('subjects', moduleId);
+      const sub = await Database.get('subjects', subId);
       if (!sub || !Array.isArray(sub.lectureSchedule)) return;
 
-      sub.lectureSchedule = sub.lectureSchedule.filter(s => s.id !== entryId);
+      sub.lectureSchedule = sub.lectureSchedule.filter(s => s.id !== scheduleId);
 
       await Database.put('subjects', sub);
       NotificationService.show('Schedule Removed', 'Lecture slot deleted.', 'warning');
 
-      // Re-render modal table
-      this.openScheduleModal(moduleId);
+      // Call renderScheduleTable(subId) specifically to update the view
+      this.renderScheduleTable(subId);
 
       // Re-render dashboard cards
       this.render();
       window.dispatchEvent(new CustomEvent('subjectsUpdated'));
     } catch (err) {
-      console.error('Failed to delete schedule entry:', err);
+      console.error('Failed to delete schedule:', err);
     }
   },
 
@@ -2200,7 +2041,269 @@ export const AcademicModule = {
     if (saveBtn) {
       saveBtn.onclick = () => this.saveScheduleEntry();
     }
+
+    // Single delegated listener for delete-schedule-btn to support dynamic elements
+    const tbody = document.getElementById('schedule-table-body');
+    if (tbody) {
+      tbody.addEventListener('click', (e) => {
+        const btn = e.target.classList.contains('delete-schedule-btn') 
+          ? e.target 
+          : e.target.closest('.delete-schedule-btn');
+        if (btn) {
+          e.preventDefault();
+          const scheduleId = btn.getAttribute('data-id');
+          const subModuleId = btn.getAttribute('data-sub-id');
+          if (confirm("Confirm delete?")) {
+            this.deleteSchedule(subModuleId, scheduleId);
+          }
+        }
+      });
+    }
+  },
+
+  // ── Smart Next-Lecture Scheduler Helpers ──────────────────────────────────
+  getNextLectureDate(lectureSchedule) {
+    if (!Array.isArray(lectureSchedule) || lectureSchedule.length === 0) return null;
+    
+    const nowBoundary = new Date().setHours(0, 0, 0, 0);
+    
+    const parsedDates = lectureSchedule.map(item => {
+      if (item && typeof item === 'object') {
+        if (item.date && item.time) {
+          return new Date(`${item.date}T${item.time}`);
+        } else if (item.date) {
+          return new Date(item.date);
+        }
+      } else if (typeof item === 'string' || typeof item === 'number') {
+        return new Date(item);
+      }
+      return null;
+    }).filter(d => d !== null && !isNaN(d.getTime()));
+
+    // Filter array: date >= new Date().setHours(0,0,0,0)
+    const filteredDates = parsedDates.filter(date => date.getTime() >= nowBoundary);
+
+    // Sort: sort((a, b) => new Date(a) - new Date(b))
+    filteredDates.sort((a, b) => a - b);
+
+    // Return the nearest future date
+    return filteredDates.length > 0 ? filteredDates[0] : null;
+  },
+
+  renderSubModuleCard(sub, attendance) {
+    const checkpoints = Array.isArray(sub.syllabusCheckpoints) && sub.syllabusCheckpoints.length > 0
+      ? sub.syllabusCheckpoints
+      : DEFAULT_SYLLABUS_CHECKPOINTS.map(label => ({ label, done: false }));
+    
+    const syllPct = this._calcSyllabusCompletion(checkpoints);
+    const doneCount = checkpoints.filter(c => c.done).length;
+
+    const currentSelfStudyHours = (sub.studyMinutes || 0) / 60;
+    const thresholdHours = sub.credits * 30;
+    const slqfPct = Math.min(100, (currentSelfStudyHours / thresholdHours) * 100);
+
+    const semesterLabels = {
+      '1-1': 'Year 1 - Sem I',
+      '1-2': 'Year 1 - Sem II',
+      '2-1': 'Year 2 - Sem I',
+      '2-2': 'Year 2 - Sem II',
+      '3-1': 'Year 3 - Sem I',
+      '3-2': 'Year 3 - Sem II',
+      '4-1': 'Year 4 - Sem I',
+      '4-2': 'Year 4 - Sem II'
+    };
+    const semLabel = semesterLabels[sub.semester] || sub.semester || 'N/A';
+
+    const attRecord = attendance.find(a => a.subjectCode === sub.id);
+    let attendancePct = 100;
+    if (attRecord) {
+      const present = (attRecord.lecture?.present || 0) + (attRecord.practical?.present || 0) + (attRecord.fieldWork?.present || 0);
+      const total = (attRecord.lecture?.total || 0) + (attRecord.practical?.total || 0) + (attRecord.fieldWork?.total || 0);
+      if (total > 0) {
+        attendancePct = (present / total) * 100;
+      }
+    }
+    const riskBadgeHTML = attendancePct < 80 ? `
+      <div class="critical-risk-badge" style="background: rgba(255, 23, 68, 0.18); border: 1px solid var(--danger); color: var(--danger); border-radius: 6px; padding: 4px 10px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; box-shadow: 0 0 10px rgba(255, 23, 68, 0.2); width: fit-content; font-family: var(--font-family-app) !important; white-space: nowrap;">
+        CRITICAL ELIGIBILITY RISK: EXAMINATION BARRED
+      </div>
+    ` : '';
+
+    // Execute getNextLectureDate for this card
+    const nextDate = this.getNextLectureDate(sub.lectureSchedule);
+    
+    let statusBadgeHTML = '';
+    let nextVenue = '';
+    
+    if (nextDate) {
+      // Find the schedule slot corresponding to this date to extract venue
+      const slot = Array.isArray(sub.lectureSchedule)
+        ? sub.lectureSchedule.find(s => {
+            const d = new Date(`${s.date}T${s.time}`);
+            return d.getTime() === nextDate.getTime();
+          })
+        : null;
+      nextVenue = slot ? slot.venue : '';
+
+      const now = new Date();
+      // Compute midnight boundaries
+      const todayStart = new Date(now);
+      todayStart.setHours(0, 0, 0, 0);
+      const tomorrowStart = new Date(todayStart);
+      tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+      const dayAfterTomorrow = new Date(tomorrowStart);
+      dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+
+      let badgeLabel = this._formatNextLectureLabel(nextDate);
+      const fullDate = nextDate.toLocaleString(undefined, {
+        weekday: 'short', day: 'numeric', month: 'short',
+        hour: '2-digit', minute: '2-digit'
+      }) + (nextVenue ? ` @ ${nextVenue}` : '');
+
+      if (nextDate >= todayStart && nextDate < tomorrowStart) {
+        badgeLabel = `Today · ${nextDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+      } else if (nextDate >= tomorrowStart && nextDate < dayAfterTomorrow) {
+        badgeLabel = `Tomorrow · ${nextDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+      }
+
+      statusBadgeHTML = `
+        <span class="badge-next-lecture" title="${fullDate}">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          Next Lecture: ${badgeLabel}
+        </span>`;
+    } else {
+      // Fallback: completed beats empty/past schedule
+      if (this.checkModuleCompletion(sub)) {
+        statusBadgeHTML = `
+          <span class="badge-completed" title="Module Completed">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Module Completed
+          </span>`;
+      } else {
+        statusBadgeHTML = `
+          <span class="badge" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 20px;">
+            No Upcoming
+          </span>`;
+      }
+    }
+
+    // Next Venue text badge (styled to be compact and readable)
+    const venueLineHTML = nextVenue
+      ? `<span class="badge" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; white-space: nowrap;">
+          Venue: ${nextVenue}
+        </span>`
+      : '';
+
+    return `
+      <div class="sub-module-isolated-card" style="position: relative; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-top: 12px; box-shadow: var(--shadow-sm); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); display: flex; flex-direction: column; gap: 12px; font-family: var(--font-family-app) !important;">
+        
+        <!-- defined 2-column header layout via CSS Grid -->
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; width: 100%; align-items: start;">
+          <!-- LEFT COLUMN: Sub-module Title and chips -->
+          <div style="min-width: 0;">
+            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; font-family: var(--font-family-app) !important;">
+              <div class="sub-modules-hub-badge" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(0, 229, 255, 0.18); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; font-weight: 600; color: var(--accent); font-family: var(--font-family-app) !important; margin: 0; white-space: nowrap;">
+                Sub-Modules Hub
+              </div>
+              <div class="badge" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); font-family: var(--font-family-app) !important; margin: 0; white-space: nowrap;">
+                ${semLabel}
+              </div>
+              ${riskBadgeHTML}
+            </div>
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0; font-family: var(--font-family-app) !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${sub.submoduleCode ? sub.submoduleCode + ' - ' : ''}${sub.moduleTitle}</h4>
+          </div>
+          
+          <!-- RIGHT COLUMN: Credits and Type badges -->
+          <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; justify-self: end; margin-left: 8px;">
+            <span class="badge low" style="background-color: var(--accent-glow); color: var(--accent); white-space: nowrap; font-family: var(--font-family-app) !important; font-size: 0.72rem; font-weight: 600;">${sub.credits} Cr</span>
+            <span class="badge low" style="background-color: rgba(255, 255, 255, 0.05); color: var(--text-secondary); text-transform: uppercase; font-size: 0.65rem; font-family: var(--font-family-app) !important;">${sub.type}</span>
+          </div>
+        </div>
+
+        <!-- NEW ROW BELOW: Dedicated Next Lecture and Venue row -->
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: -2px; font-family: var(--font-family-app) !important;">
+          ${statusBadgeHTML}
+          ${venueLineHTML}
+        </div>
+
+        <!-- Metadata Section (Lecturer & Contact) -->
+        <div style="font-size: 0.78rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 3px; font-family: var(--font-family-app) !important;">
+          <span><strong>Lecturer:</strong> <span id="lec-name">${sub.lecturerName || sub.lecturer || 'Not assigned'}</span></span>
+          <span><strong>Contact:</strong> <span id="lec-contact">${sub.lecturerContact || sub.info || 'N/A'}</span></span>
+        </div>
+
+        <div style="margin-top: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span class="syllabus-progress-header" data-sub-id="${sub.id}" style="font-size: 0.75rem; font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">
+              Syllabus Progress: ${doneCount}/${checkpoints.length} topics (${syllPct}%)
+            </span>
+          </div>
+          <div style="height: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 3px; overflow: hidden; margin-bottom: 12px;">
+            <div class="syllabus-progress-bar" id="tracker-bar-${sub.id}" data-sub-id="${sub.id}" style="width: ${syllPct}%; height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s ease;"></div>
+          </div>
+          <div class="syllabus-checkpoints-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-family: var(--font-family-app) !important;">
+            ${checkpoints.map((cp, idx) => `
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.75rem; color: ${cp.done ? 'var(--text-secondary)' : 'var(--text-primary)'}; font-family: var(--font-family-app) !important;">
+                <input type="checkbox" class="syll-check syllabus-sync-checkbox" data-sub-id="${sub.id}" data-idx="${idx}" ${cp.done ? 'checked' : ''} style="width: 14px; height: 14px; cursor: pointer; accent-color: var(--accent);">
+                <span style="font-family: var(--font-family-app) !important; text-decoration: ${cp.done ? 'line-through' : 'none'};">${cp.label}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="marks-matrix" style="margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; font-family: var(--font-family-app) !important;">
+          <div class="module-section-title" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">Theory & Internal Assessments Matrix</div>
+          
+          <div class="marks-progress-row" style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">
+            <span class="marks-progress-label" style="width: 70px; color: var(--text-secondary); font-family: var(--font-family-app) !important;">CA Marks</span>
+            <div class="marks-progress-bar-bg" style="flex: 1; height: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 3px; overflow: hidden;">
+              <div class="marks-progress-bar-fill" style="width: ${sub.internalMarks?.ca || 0}%; height: 100%; background: var(--accent); border-radius: 3px;"></div>
+            </div>
+            <span class="marks-progress-value" style="width: 45px; text-align: right; color: var(--text-primary); font-family: var(--font-family-app) !important;">${sub.internalMarks?.ca || 0}/100</span>
+          </div>
+
+          <div class="marks-progress-row" style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">
+            <span class="marks-progress-label" style="width: 70px; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Quiz Marks</span>
+            <div class="marks-progress-bar-bg" style="flex: 1; height: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 3px; overflow: hidden;">
+              <div class="marks-progress-bar-fill" style="width: ${sub.internalMarks?.quiz || 0}%; height: 100%; background: var(--accent); border-radius: 3px;"></div>
+            </div>
+            <span class="marks-progress-value" style="width: 45px; text-align: right; color: var(--text-primary); font-family: var(--font-family-app) !important;">${sub.internalMarks?.quiz || 0}/100</span>
+          </div>
+
+          <div class="marks-progress-row" style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">
+            <span class="marks-progress-label" style="width: 70px; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Lab Marks</span>
+            <div class="marks-progress-bar-bg" style="flex: 1; height: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 3px; overflow: hidden;">
+              <div class="marks-progress-bar-fill" style="width: ${sub.internalMarks?.lab || 0}%; height: 100%; background: var(--accent); border-radius: 3px;"></div>
+            </div>
+            <span class="marks-progress-value" style="width: 45px; text-align: right; color: var(--text-primary); font-family: var(--font-family-app) !important;">${sub.internalMarks?.lab || 0}/100</span>
+          </div>
+        </div>
+
+        <div class="slqf-learning-hours" style="margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; font-family: var(--font-family-app) !important;">
+          <div class="module-section-title" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">SLQF Self-Study workload</div>
+          
+          <div class="marks-progress-row" style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">
+            <span class="marks-progress-label" style="width: 70px; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Self-Study</span>
+            <div class="marks-progress-bar-bg" style="flex: 1; height: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 3px; overflow: hidden;">
+              <div class="marks-progress-bar-fill" style="width: ${slqfPct}%; height: 100%; background: var(--accent); border-radius: 3px;"></div>
+            </div>
+            <span class="marks-progress-value" style="width: 75px; text-align: right; color: var(--text-primary); font-family: var(--font-family-app) !important;">${currentSelfStudyHours.toFixed(1)} / ${thresholdHours} hrs</span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 12px; align-items: center;">
+          <button class="btn-schedule-icon schedule-lecture-btn" data-id="${sub.id}"
+                  title="Schedule / Update Next Lecture">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            Schedule
+          </button>
+          <button class="btn-outline btn-sm edit-submodule-btn" data-id="${sub.id}" style="flex: 1; padding: 6px 10px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">Edit Sub-Module</button>
+          <button class="btn-outline btn-sm delete-submodule-btn" data-id="${sub.id}" style="border-color: var(--danger); color: var(--danger); padding: 6px 10px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">Delete Sub-Module</button>
+        </div>
+      </div>
+    `;
   }
 };
+
 
 window.AcademicModule = AcademicModule;

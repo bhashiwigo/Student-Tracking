@@ -1405,9 +1405,7 @@ body[data-theme="light"] .theme-toggle-switch:hover .theme-toggle-track {
   letter-spacing: 0.4px;
   text-transform: uppercase;
   white-space: nowrap;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
   border: 1px solid var(--accent);
   color: var(--accent);
   background: var(--accent-glow);
