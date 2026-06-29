@@ -14,6 +14,7 @@ export const ExamsModule = {
   activeSemester: localStorage.getItem('rusl_active_semester') || '1-1',
 
   async init() {
+    window.ExamsModule = this;
     // Seed active semester from global setting
     this.activeSemester = localStorage.getItem('rusl_active_semester') || '1-1';
 
@@ -61,6 +62,36 @@ export const ExamsModule = {
         localStorage.setItem('rusl_active_semester', this.activeSemester);
         this.populateSubjectsDropdown();
         this.render();
+      });
+    }
+
+    // Event delegation for exams container click actions
+    const container = document.getElementById('exams-list-container');
+    if (container) {
+      container.addEventListener('click', async (e) => {
+        // 1. Handle grade submission
+        const submitGradeBtn = e.target.closest('.submit-grade-btn');
+        if (submitGradeBtn) {
+          e.preventDefault();
+          const examId = submitGradeBtn.getAttribute('data-id');
+          const card = document.getElementById(`exam-card-${examId}`);
+          const select = card ? card.querySelector('.exam-grade-select') : null;
+          if (select) {
+            const grade = select.value;
+            await this.submitExamGrade(examId, grade);
+          }
+          return;
+        }
+
+        // 2. Handle manual status override
+        const overrideBtn = e.target.closest('.override-status-btn');
+        if (overrideBtn) {
+          e.preventDefault();
+          const examId = overrideBtn.getAttribute('data-id');
+          const status = overrideBtn.getAttribute('data-status');
+          await this.overrideExamStatus(examId, status);
+          return;
+        }
       });
     }
   },
@@ -111,6 +142,20 @@ export const ExamsModule = {
 
     try {
       const allExams = await Database.getAll('exams');
+      
+      // Auto-refresh dynamic exam lifecycle status on load
+      for (const ex of allExams) {
+        const oldStatus = ex.status;
+        const oldIsRepeat = ex.isRepeat;
+        this.refreshExamStatus(ex);
+        if (ex.status !== oldStatus || ex.isRepeat !== oldIsRepeat) {
+          await Database.put('exams', ex);
+          if (window.AnalyticsModule && typeof window.AnalyticsModule.flagRepeatExam === 'function') {
+            window.AnalyticsModule.flagRepeatExam(ex.id, ex.status === 'REPEAT/FAIL');
+          }
+        }
+      }
+
       const subjects = await Database.getAll('subjects');
 
       // Build a lookup: subjectCode → subject record (for semester resolution)
@@ -172,6 +217,71 @@ export const ExamsModule = {
         const subName = sub && sub.isSubmodule ? getSubjectDisplayName(sub.code) : '';
         const resolvedDisplayName = subName ? `${parentName} — ${subName}` : parentName;
 
+        const examDateObj = new Date(`${ex.date}T${ex.time || '08:30'}`);
+        const isPast = examDateObj.getTime() < Date.now();
+
+        let statusText = ex.status || 'SCHEDULED';
+        let statusStyle = '';
+        if (statusText === 'PASS' || statusText === 'COMPLETED') {
+          statusStyle = `border: 1px solid var(--success); background: rgba(0, 230, 118, 0.1); color: var(--success);`;
+        } else if (statusText === 'REPEAT/FAIL') {
+          statusStyle = `border: 1px solid var(--danger); background: rgba(255, 23, 68, 0.1); color: var(--danger);`;
+        } else if (statusText === 'PENDING' || statusText === 'SKIPPED') {
+          statusStyle = `border: 1px solid var(--warning); background: rgba(255, 145, 0, 0.1); color: var(--warning);`;
+        } else {
+          statusText = 'SCHEDULED';
+          statusStyle = `border: 1px solid var(--accent); background: rgba(0, 229, 255, 0.08); color: var(--accent);`;
+        }
+
+        const countdownOrStatusHTML = (statusText === 'SCHEDULED')
+          ? `<div class="countdown-wrapper">
+              <span class="exam-countdown" id="countdown-val-${ex.id}">--d --h --m --s</span>
+              <span class="timer-label">Remaining</span>
+             </div>`
+          : `<div class="countdown-wrapper" style="align-items: flex-end;">
+              <span class="badge" style="font-family: var(--font-family-app) !important; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; ${statusStyle} text-transform: uppercase;">${statusText}</span>
+              <span class="timer-label" style="margin-top: 4px;">Status</span>
+             </div>`;
+
+        let resultSectionHTML = '';
+        if (isPast) {
+          const gradesList = ['A+', 'A', 'B+', 'B', 'C+', 'C', 'D', 'F', 'I', 'E'];
+          const optionsHtml = ['None', ...gradesList].map(g => {
+            const selectedAttr = ex.grade === g ? 'selected' : '';
+            return `<option value="${g}" ${selectedAttr}>${g}</option>`;
+          }).join('');
+
+          let overrideHtml = '';
+          if (statusText === 'PENDING') {
+            overrideHtml = `
+              <div style="display: flex; gap: 8px; align-items: center; font-family: var(--font-family-app) !important;">
+                <button class="btn-solid btn-sm override-status-btn" data-id="${ex.id}" data-status="COMPLETED" style="padding: 4px 10px; font-size: 0.72rem; height: 26px; font-weight: 700; font-family: var(--font-family-app) !important;">Completed</button>
+                <button class="btn-outline btn-sm override-status-btn" data-id="${ex.id}" data-status="SKIPPED" style="border-color: var(--warning); color: var(--warning); padding: 4px 10px; font-size: 0.72rem; height: 26px; font-weight: 700; font-family: var(--font-family-app) !important;">Skipped</button>
+              </div>
+            `;
+          } else if (statusText === 'COMPLETED' || statusText === 'SKIPPED') {
+            overrideHtml = `<span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600; font-family: var(--font-family-app) !important;">Marked as ${statusText}</span>`;
+          }
+
+          resultSectionHTML = `
+            <div style="border-top: 1px solid var(--border-color); padding-top: 12px; display: flex; flex-direction: column; gap: 10px; font-family: var(--font-family-app) !important;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px; font-family: var(--font-family-app) !important;">
+                  <span style="font-size: 0.76rem; font-weight: 700; color: var(--text-secondary);">Grade:</span>
+                  <select class="select-input exam-grade-select" data-id="${ex.id}" style="width: 100px; height: 26px; font-size: 0.78rem; padding: 0 4px; font-family: var(--font-family-app) !important; background: rgba(255, 255, 255, 0.05); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px;">
+                    ${optionsHtml}
+                  </select>
+                </div>
+                <button class="btn-solid btn-sm submit-grade-btn" data-id="${ex.id}" style="padding: 4px 10px; font-size: 0.72rem; height: 26px; font-weight: 700; font-family: var(--font-family-app) !important;">Submit Grade</button>
+              </div>
+              ${overrideHtml ? `<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+                <span style="font-size: 0.76rem; font-weight: 700; color: var(--text-secondary);">Status Override:</span>
+                ${overrideHtml}
+              </div>` : ''}
+            </div>
+          `;
+        }
+
         return `
           <div class="card col-6" id="exam-card-${ex.id}" style="display: flex; flex-direction: column; gap: 14px; font-family: var(--font-family-app) !important;">
             <div class="exam-card-header">
@@ -184,11 +294,8 @@ export const ExamsModule = {
                 <h3 style="font-size: 1.1rem; font-weight: 700; font-family: var(--font-family-app) !important;">${resolvedDisplayName} : ${titleLabel}</h3>
                 <h4 style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin-top: 2px; font-family: var(--font-family-app) !important;">Course: ${resolvedDisplayName}</h4>
               </div>
-              <!-- Right: compact countdown widget -->
-              <div class="countdown-wrapper">
-                <span class="exam-countdown" id="countdown-val-${ex.id}">--d --h --m --s</span>
-                <span class="timer-label">Remaining</span>
-              </div>
+              <!-- Right: compact countdown widget or status badge -->
+              ${countdownOrStatusHTML}
             </div>
             
             <div style="border-top: 1px solid var(--border-color); padding-top: 10px; font-size: 0.8rem; color: var(--text-secondary); display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-family: var(--font-family-app) !important;">
@@ -223,6 +330,9 @@ export const ExamsModule = {
               </div>
             </div>
 
+            <!-- Dynamic Result Submission Section -->
+            ${resultSectionHTML}
+
             <div style="display: flex; gap: 10px; margin-top: 4px; border-top: 1px solid var(--border-color); padding-top: 12px; font-family: var(--font-family-app) !important;">
               <button class="btn-outline btn-sm edit-exam-btn" data-id="${ex.id}" style="flex: 1; padding: 5px 8px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">Edit</button>
               <button class="btn-outline btn-sm delete-exam-btn" data-id="${ex.id}" style="border-color: var(--danger); color: var(--danger); padding: 5px 8px; font-size: 0.75rem; font-family: var(--font-family-app) !important;">Delete</button>
@@ -231,9 +341,13 @@ export const ExamsModule = {
         `;
       }).join('');
 
-      // Launch timers
+      // Launch timers only for upcoming exams
       exams.forEach(ex => {
-        this.startCountdownTimer(ex.id, `${ex.date}T${ex.time || '08:30'}`);
+        const examDateObj = new Date(`${ex.date}T${ex.time || '08:30'}`);
+        const isPast = examDateObj.getTime() < Date.now();
+        if (!isPast) {
+          this.startCountdownTimer(ex.id, `${ex.date}T${ex.time || '08:30'}`);
+        }
       });
 
       // Bind milestone checkboxes
@@ -759,6 +873,103 @@ export const ExamsModule = {
       window.dispatchEvent(new CustomEvent('subjectsUpdated')); // trigger app.js to reload renderDashboard
     } catch (err) {
       console.error('Delete exam failed:', err);
+    }
+  },
+
+  refreshExamStatus(exam) {
+    const examDateObj = new Date(`${exam.date}T${exam.time || '08:30'}`);
+    const isPast = examDateObj.getTime() < Date.now();
+    
+    if (!exam.status) {
+      exam.status = isPast ? 'PENDING' : 'SCHEDULED';
+    }
+    
+    if (isPast && exam.status === 'SCHEDULED') {
+      exam.status = 'PENDING';
+    }
+    
+    // Auto-process if a grade was already entered in database
+    if (exam.grade && exam.grade !== 'None' && exam.grade !== '') {
+      this.processExamResult(exam, exam.grade);
+    }
+    
+    return exam;
+  },
+
+  processExamResult(exam, grade) {
+    if (!exam) return;
+    exam.grade = grade || '';
+    
+    if (grade && grade !== 'None') {
+      const gradePoints = {
+        'A+': 4.0, 'A': 4.0, 'A-': 3.7, 'B+': 3.3, 'B': 3.0, 'B-': 2.7,
+        'C+': 2.3, 'C': 2.0, 'C-': 1.7, 'D+': 1.3, 'D': 1.0, 'F': 0.0,
+        'I': 0.0, 'E': 0.0
+      };
+      
+      const gp = gradePoints[grade] !== undefined ? gradePoints[grade] : 0.0;
+      if (gp >= 2.0) {
+        exam.status = 'PASS';
+        exam.isRepeat = false;
+      } else {
+        exam.status = 'REPEAT/FAIL';
+        exam.isRepeat = true;
+      }
+    } else {
+      // Revert back to PENDING/SCHEDULED if grade cleared
+      const examDateObj = new Date(`${exam.date}T${exam.time || '08:30'}`);
+      const isPast = examDateObj.getTime() < Date.now();
+      exam.status = isPast ? 'PENDING' : 'SCHEDULED';
+      exam.isRepeat = false;
+    }
+  },
+
+  async submitExamGrade(examId, grade) {
+    try {
+      const exam = await Database.get('exams', examId);
+      if (!exam) return;
+
+      this.processExamResult(exam, grade);
+      await Database.put('exams', exam);
+      NotificationService.show('Grade Submitted', `Result registered for ${exam.title || 'exam'}.`, 'success');
+
+      if (window.AnalyticsModule && typeof window.AnalyticsModule.flagRepeatExam === 'function') {
+        window.AnalyticsModule.flagRepeatExam(examId, exam.status === 'REPEAT/FAIL');
+      }
+
+      this.render();
+      window.dispatchEvent(new CustomEvent('calendarItemsUpdated'));
+      window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+    } catch (err) {
+      console.error('Submit grade failed:', err);
+    }
+  },
+
+  async overrideExamStatus(examId, status) {
+    try {
+      const exam = await Database.get('exams', examId);
+      if (!exam) return;
+
+      exam.status = status;
+      // Re-process grade automation if a grade is present, otherwise clear isRepeat
+      if (exam.grade && exam.grade !== 'None' && exam.grade !== '') {
+        this.processExamResult(exam, exam.grade);
+      } else {
+        exam.isRepeat = false;
+      }
+
+      await Database.put('exams', exam);
+      NotificationService.show('Status Updated', `Exam marked as ${status}.`, 'success');
+
+      if (window.AnalyticsModule && typeof window.AnalyticsModule.flagRepeatExam === 'function') {
+        window.AnalyticsModule.flagRepeatExam(examId, exam.status === 'REPEAT/FAIL');
+      }
+
+      this.render();
+      window.dispatchEvent(new CustomEvent('calendarItemsUpdated'));
+      window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+    } catch (err) {
+      console.error('Status override failed:', err);
     }
   }
 };

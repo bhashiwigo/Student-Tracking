@@ -8,6 +8,7 @@
 
 import { Database, getSubjectDisplayName } from '../database/db.js';
 import { GPAModule } from './gpa.js';
+import { NotificationService } from '../services/notifications.js';
 
 const getCleanSubmoduleLabel = (sub, rawParents) => {
   if (!sub) return 'CORE - Unknown';
@@ -116,7 +117,19 @@ const destroyAllCharts = () => {
 };
 
 export const AnalyticsModule = {
+  flaggedRepeats: {},
+  flagRepeatExam(examId, isRepeat) {
+    if (isRepeat) {
+      this.flaggedRepeats[examId] = true;
+      console.log(`[AnalyticsModule] REPEAT status flagged for exam: ${examId}`);
+      NotificationService.show('Repeat Exam Flagged', `An exam has been flagged as REPEAT and registered in Analytics.`, 'warning');
+    } else {
+      delete this.flaggedRepeats[examId];
+    }
+  },
+
   init() {
+    window.AnalyticsModule = this;
     // Debounce all data-change events to 120 ms so rapid sequential IndexedDB
     // writes collapse into a single chart redraw instead of destroy+recreate
     // multiple times per second.

@@ -843,7 +843,7 @@ export const AcademicModule = {
     const cgpa3Year = stats.threeYearCGPA;
     const cgpaOverall = stats.overallCGPA;
     
-    cgpaDisplay.innerText = `3-Yr GPA: ${cgpa3Year.toFixed(2)} (Overall: ${cgpaOverall.toFixed(2)})`;
+    cgpaDisplay.innerText = `3 Year GPA: ${cgpa3Year.toFixed(2)} (Overall: ${cgpaOverall.toFixed(2)})`;
     
     const pct = Math.min(100, (cgpa3Year / 3.00) * 100);
     progressFill.style.width = `${pct}%`;
@@ -1974,6 +1974,9 @@ export const AcademicModule = {
       // Re-render dashboard card badges
       this.render();
       window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+      if (typeof window.updateCalendarEvents === 'function') {
+        window.updateCalendarEvents();
+      }
     } catch (err) {
       console.error('Failed to save schedule entry:', err);
     }
@@ -2021,6 +2024,9 @@ export const AcademicModule = {
       // Re-render dashboard cards
       this.render();
       window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+      if (typeof window.updateCalendarEvents === 'function') {
+        window.updateCalendarEvents();
+      }
     } catch (err) {
       console.error('Failed to delete schedule:', err);
     }

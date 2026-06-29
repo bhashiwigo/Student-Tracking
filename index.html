@@ -16,9 +16,11 @@
     rel="stylesheet">
   <link rel="stylesheet" href="css/style.css?v=9">
   <style>
-    html, body {
+    html,
+    body {
       background-color: #030a0e;
     }
+
     body[data-theme="light"] {
       background-color: #e3e3e3;
     }
@@ -64,7 +66,10 @@
   <div class="focus-overlay" id="focus-hud-overlay">
     <div class="focus-label" id="pomo-type-label">Focus Interval</div>
     <div class="focus-timer" id="focus-overlay-timer">25:00</div>
-    <div id="focus-overlay-quality" style="font-size: 1.1rem; color: rgba(255,255,255,0.7); margin-top: -10px; font-weight: 600; margin-bottom: 15px;">Quality Index: <span id="focus-overlay-quality-val" style="color: var(--success); font-family: 'JetBrains Mono', monospace;">100%</span></div>
+    <div id="focus-overlay-quality"
+      style="font-size: 1.1rem; color: rgba(255,255,255,0.7); margin-top: -10px; font-weight: 600; margin-bottom: 15px;">
+      Quality Index: <span id="focus-overlay-quality-val"
+        style="color: var(--success); font-family: 'JetBrains Mono', monospace;">100%</span></div>
     <div style="display: flex; gap: 16px;">
       <button class="btn-solid" id="pomo-break" style="background-color: #f59e0b;">Take Break</button>
       <button class="btn-outline" id="btn-exit-focus" style="border-color: #ffffff; color: #ffffff;">Exit Focus
@@ -250,7 +255,11 @@
           </div>
 
           <div class="auth-pin-hint" style="display: flex; align-items: center; gap: 6px; justify-content: center;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lock-svg"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round" class="lock-svg">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
             <span>Your PIN keeps your data private on shared devices</span>
           </div>
 
@@ -293,59 +302,140 @@
 
       <nav class="nav-group">
         <a href="#" class="nav-link active" data-target="dashboard">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="9"></rect>
+            <rect x="14" y="3" width="7" height="5"></rect>
+            <rect x="14" y="12" width="7" height="9"></rect>
+            <rect x="3" y="16" width="7" height="5"></rect>
+          </svg>
           <span>Dashboard</span>
         </a>
         <a href="#" class="nav-link" data-target="academic">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.91a2 2 0 0 0 1.66 0z"></path><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"></path></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.91a2 2 0 0 0 1.66 0z">
+            </path>
+            <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"></path>
+          </svg>
           <span>Academic Manager</span>
         </a>
         <a href="#" class="nav-link" data-target="exams">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><circle cx="12" cy="16" r="3"></circle><polyline points="12 15 12 16 13 16"></polyline></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+            <circle cx="12" cy="16" r="3"></circle>
+            <polyline points="12 15 12 16 13 16"></polyline>
+          </svg>
           <span>Exam Scheduler</span>
         </a>
         <a href="#" class="nav-link" data-target="practicals">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12"></path><path d="M19 18v-3c0-2.23-1.47-4.11-3.5-4.72V4H8.5v6.28C6.47 10.89 5 12.77 5 15v3a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4z"></path></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 3h12"></path>
+            <path
+              d="M19 18v-3c0-2.23-1.47-4.11-3.5-4.72V4H8.5v6.28C6.47 10.89 5 12.77 5 15v3a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4z">
+            </path>
+          </svg>
           <span>Practical Labs</span>
         </a>
         <a href="#" class="nav-link" data-target="assignments">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><line x1="9" y1="12" x2="15" y2="12"></line><line x1="9" y1="16" x2="13" y2="16"></line><line x1="9" y1="8" x2="10" y2="8"></line><line x1="14" y1="8" x2="15" y2="8"></line></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+            <line x1="9" y1="12" x2="15" y2="12"></line>
+            <line x1="9" y1="16" x2="13" y2="16"></line>
+            <line x1="9" y1="8" x2="10" y2="8"></line>
+            <line x1="14" y1="8" x2="15" y2="8"></line>
+          </svg>
           <span>Assignments</span>
         </a>
         <a href="#" class="nav-link" data-target="resources" style="font-family: var(--font-family-app) !important;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><path d="M2 10h20"></path></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            <path d="M2 10h20"></path>
+          </svg>
           <span>Academic Resources</span>
         </a>
         <a href="#" class="nav-link" data-target="attendance">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <polyline points="16 11 18 13 22 9"></polyline>
+          </svg>
           <span>Attendance logs</span>
         </a>
         <a href="#" class="nav-link" data-target="gpa">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="5" x2="5" y2="19"></line>
+            <circle cx="6.5" cy="6.5" r="2.5"></circle>
+            <circle cx="17.5" cy="17.5" r="2.5"></circle>
+          </svg>
           <span>GPA Calculator</span>
         </a>
         <a href="#" class="nav-link" data-target="analytics">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
           <span>Analytics Trends</span>
         </a>
         <a href="#" class="nav-link" data-target="study">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline><line x1="12" y1="2" x2="12" y2="4"></line></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+            <line x1="12" y1="2" x2="12" y2="4"></line>
+          </svg>
           <span>Focus Planner</span>
         </a>
         <a href="#" class="nav-link" data-target="calendar">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
           <span>Month Planner</span>
         </a>
         <a href="#" class="nav-link" data-target="notes">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+          </svg>
           <span>Notebook Pages</span>
         </a>
         <a href="#" class="nav-link" data-target="sports">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 6.5 11 11"></path><path d="m21 21-1-1"></path><path d="m3 3 1 1"></path><path d="m18 22 4-4"></path><path d="m2 6 4-4"></path><path d="m3 10 7-7"></path><path d="m14 21 7-7"></path></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6.5 6.5 11 11"></path>
+            <path d="m21 21-1-1"></path>
+            <path d="m3 3 1 1"></path>
+            <path d="m18 22 4-4"></path>
+            <path d="m2 6 4-4"></path>
+            <path d="m3 10 7-7"></path>
+            <path d="m14 21 7-7"></path>
+          </svg>
           <span>Sports & Gym</span>
         </a>
         <a href="#" class="nav-link" data-target="settings">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z">
+            </path>
+          </svg>
           <span>Settings</span>
         </a>
       </nav>
@@ -383,7 +473,8 @@
 
         <!-- Current Semester Chip -->
         <div class="semester-chip" id="current-semester-chip" title="Current Active Semester">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="16" y1="2" x2="16" y2="6"></line>
             <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -421,7 +512,8 @@
       </header>
 
       <!-- VIEW 01: DASHBOARD -->
-      <div class="page-view active" id="view-dashboard">        <div class="page-header">
+      <div class="page-view active" id="view-dashboard">
+        <div class="page-header">
           <div>
             <h1 style="font-size: 1.5rem; font-weight: 800;">Biological Science Portfolio Hub</h1>
             <p>Rajarata University Biological Science student tracking application</p>
@@ -437,71 +529,113 @@
                 <circle class="ring-fill" cx="50" cy="50" r="40" id="dash-metric-gpa-ring" stroke-dasharray="251.2"
                   stroke-dashoffset="251.2" />
               </svg>
-              <div class="radial-ring-value" id="dash-metric-gpa" style="font-family: 'JetBrains Mono', monospace, var(--font-family-app) !important;">0.00</div>
+              <div class="radial-ring-value" id="dash-metric-gpa"
+                style="font-family: 'JetBrains Mono', monospace, var(--font-family-app) !important;">0.00</div>
             </div>
-            <div style="font-size: 0.72rem; color: var(--text-secondary); text-align: center; font-family: var(--font-family-app) !important; display: flex; flex-direction: column; gap: 2px;">
-              <span style="font-family: var(--font-family-app) !important;">Cumulative GPA: <span id="dash-metric-gpa-sub" style="font-family: var(--font-family-app) !important;">0.00</span></span>
-              <span style="font-family: var(--font-family-app) !important;">Semester Forecast: <span id="dash-metric-sem-gpa" style="font-family: var(--font-family-app) !important;">0.00</span></span>
+            <div
+              style="font-size: 0.72rem; color: var(--text-secondary); text-align: center; font-family: var(--font-family-app) !important; display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-family: var(--font-family-app) !important;">Cumulative GPA: <span
+                  id="dash-metric-gpa-sub" style="font-family: var(--font-family-app) !important;">0.00</span></span>
+              <span style="font-family: var(--font-family-app) !important;">Semester Forecast: <span
+                  id="dash-metric-sem-gpa" style="font-family: var(--font-family-app) !important;">0.00</span></span>
             </div>
           </div>
 
           <!-- D: RUSL Attendance Status -->
-          <div class="card col-4" style="align-items: center; justify-content: center;" id="dashboard-attendance-summary-card">
-            <div class="card-title" style="font-family: var(--font-family-app) !important;">Attendance Summary Widget</div>
+          <div class="card col-4" style="align-items: center; justify-content: center;"
+            id="dashboard-attendance-summary-card">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">Attendance Summary Widget
+            </div>
             <div class="radial-ring-container">
               <svg class="radial-ring" viewBox="0 0 100 100">
                 <circle class="ring-bg" cx="50" cy="50" r="40" />
                 <circle class="ring-fill att-ring-fill" cx="50" cy="50" r="40" id="dash-metric-att-ring"
                   stroke-dasharray="251.2" stroke-dashoffset="251.2" />
               </svg>
-              <div class="radial-ring-value" id="dashboard-attendance-text-val" style="font-family: 'JetBrains Mono', monospace, var(--font-family-app) !important;">0%</div>
+              <div class="radial-ring-value" id="dashboard-attendance-text-val"
+                style="font-family: 'JetBrains Mono', monospace, var(--font-family-app) !important;">0%</div>
             </div>
-            <span style="font-size: 0.72rem; color: var(--text-secondary); text-align: center; font-family: var(--font-family-app) !important;">Progress Ring: <span
-                id="dash-metric-att-sub" style="font-family: var(--font-family-app) !important;">0%</span></span>
-            <select class="select-input" id="dash-attendance-subject-select" style="width: 100%; height: 28px; padding: 2px 8px; font-size: 0.75rem; margin-top: 8px; font-family: var(--font-family-app) !important;"></select>
+            <span
+              style="font-size: 0.72rem; color: var(--text-secondary); text-align: center; font-family: var(--font-family-app) !important;">Progress
+              Ring: <span id="dash-metric-att-sub"
+                style="font-family: var(--font-family-app) !important;">0%</span></span>
+            <select class="select-input" id="dash-attendance-subject-select"
+              style="width: 100%; height: 28px; padding: 2px 8px; font-size: 0.75rem; margin-top: 8px; font-family: var(--font-family-app) !important;"></select>
             <div id="dash-metric-att" style="display: none; font-family: var(--font-family-app) !important;">0%</div>
           </div>
 
           <!-- Academic Progress Metrics -->
-          <div class="card col-4" id="academic-progress-widget" style="font-family: var(--font-family-app) !important; display: flex; flex-direction: column; justify-content: space-between;">
-            <div class="card-title" style="font-family: var(--font-family-app) !important;">Academic Progress Metrics</div>
-            <div style="display: flex; flex-direction: column; gap: 12px; font-family: var(--font-family-app) !important; width: 100%; margin-top: auto; margin-bottom: auto;">
-              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-family: var(--font-family-app) !important;">
-                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Completed Credits</span>
-                <span id="progress-completed-credits" style="font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">0 Cr</span>
+          <div class="card col-4" id="academic-progress-widget"
+            style="font-family: var(--font-family-app) !important; display: flex; flex-direction: column; justify-content: space-between;">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">Academic Progress Metrics
+            </div>
+            <div
+              style="display: flex; flex-direction: column; gap: 12px; font-family: var(--font-family-app) !important; width: 100%; margin-top: auto; margin-bottom: auto;">
+              <div
+                style="display: flex; justify-content: space-between; font-size: 0.85rem; font-family: var(--font-family-app) !important;">
+                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Completed
+                  Credits</span>
+                <span id="progress-completed-credits"
+                  style="font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">0
+                  Cr</span>
               </div>
-              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-family: var(--font-family-app) !important;">
-                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Remaining Credits</span>
-                <span id="progress-remaining-credits" style="font-weight: 700; color: var(--text-primary) !important; font-family: var(--font-family-app) !important;">0 Cr</span>
+              <div
+                style="display: flex; justify-content: space-between; font-size: 0.85rem; font-family: var(--font-family-app) !important;">
+                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Remaining
+                  Credits</span>
+                <span id="progress-remaining-credits"
+                  style="font-weight: 700; color: var(--text-primary) !important; font-family: var(--font-family-app) !important;">0
+                  Cr</span>
               </div>
-              <div style="display: flex; flex-direction: column; gap: 6px; font-family: var(--font-family-app) !important; margin-top: 4px;">
-                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">
-                  <span id="progress-completion-label" style="font-family: var(--font-family-app) !important;">Curriculum Completion</span>
-                  <span id="progress-completion-pct" style="font-family: var(--font-family-app) !important; font-weight: 700;">0.0%</span>
+              <div
+                style="display: flex; flex-direction: column; gap: 6px; font-family: var(--font-family-app) !important; margin-top: 4px;">
+                <div
+                  style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">
+                  <span id="progress-completion-label"
+                    style="font-family: var(--font-family-app) !important;">Curriculum Completion</span>
+                  <span id="progress-completion-pct"
+                    style="font-family: var(--font-family-app) !important; font-weight: 700;">0.0%</span>
                 </div>
-                <div style="height: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; width: 100%; box-sizing: border-box;">
-                  <div id="progress-completion-fill" style="width: 0%; height: 100%; border-radius: 4px; transition: width 0.5s ease;"></div>
+                <div
+                  style="height: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; width: 100%; box-sizing: border-box;">
+                  <div id="progress-completion-fill"
+                    style="width: 0%; height: 100%; border-radius: 4px; transition: width 0.5s ease;"></div>
                 </div>
               </div>
-              <div style="border-top: 1px solid var(--border-color); margin: 12px 0; font-family: var(--font-family-app) !important;"></div>
-              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-family: var(--font-family-app) !important;">
-                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Active Semester Modules</span>
-                <span id="progress-active-modules" style="font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">0 Active Units</span>
+              <div
+                style="border-top: 1px solid var(--border-color); margin: 12px 0; font-family: var(--font-family-app) !important;">
               </div>
-              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-family: var(--font-family-app) !important;">
-                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Core vs Optional Ratio</span>
-                <span id="progress-core-optional-ratio" style="font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">Core: 0 Cr | Optional: 0 Cr</span>
+              <div
+                style="display: flex; justify-content: space-between; font-size: 0.85rem; font-family: var(--font-family-app) !important;">
+                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Active
+                  Semester Modules</span>
+                <span id="progress-active-modules"
+                  style="font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">0
+                  Active Units</span>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-family: var(--font-family-app) !important;">
-                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Degree Standing Benchmark</span>
-                <span id="progress-degree-standing" class="badge" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; font-size: 0.72rem; color: var(--accent, #00e5ff); font-weight: 600; font-family: var(--font-family-app) !important;">Year 1 General</span>
+              <div
+                style="display: flex; justify-content: space-between; font-size: 0.85rem; font-family: var(--font-family-app) !important;">
+                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Core vs
+                  Optional Ratio</span>
+                <span id="progress-core-optional-ratio"
+                  style="font-weight: 700; color: var(--text-primary); font-family: var(--font-family-app) !important;">Core:
+                  0 Cr | Optional: 0 Cr</span>
+              </div>
+              <div
+                style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-family: var(--font-family-app) !important;">
+                <span style="color: var(--text-secondary); font-family: var(--font-family-app) !important;">Degree
+                  Standing Benchmark</span>
+                <span id="progress-degree-standing" class="badge"
+                  style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; font-size: 0.72rem; color: var(--accent, #00e5ff); font-weight: 600; font-family: var(--font-family-app) !important;">Year
+                  1 General</span>
               </div>
             </div>
           </div>
 
           <!-- E: Current Academic Balance -->
           <div class="card col-6" style="justify-content: flex-start;">
-            <div class="card-title" style="font-family: var(--font-family-app) !important;">Current Academic Balance</div>
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">Current Academic Balance
+            </div>
             <div class="balance-progress-group" style="font-family: var(--font-family-app) !important;">
               <div class="balance-item" style="font-family: var(--font-family-app) !important;">
                 <div class="balance-header" style="font-family: var(--font-family-app) !important;">
@@ -509,7 +643,8 @@
                   <span style="font-family: var(--font-family-app) !important;">0%</span>
                 </div>
                 <div class="balance-bar-bg" style="font-family: var(--font-family-app) !important;">
-                  <div class="balance-bar-fill" style="width: 0%; font-family: var(--font-family-app) !important;"></div>
+                  <div class="balance-bar-fill" style="width: 0%; font-family: var(--font-family-app) !important;">
+                  </div>
                 </div>
               </div>
               <div class="balance-item" style="font-family: var(--font-family-app) !important;">
@@ -518,7 +653,8 @@
                   <span style="font-family: var(--font-family-app) !important;">0%</span>
                 </div>
                 <div class="balance-bar-bg" style="font-family: var(--font-family-app) !important;">
-                  <div class="balance-bar-fill" style="width: 0%; font-family: var(--font-family-app) !important;"></div>
+                  <div class="balance-bar-fill" style="width: 0%; font-family: var(--font-family-app) !important;">
+                  </div>
                 </div>
               </div>
               <div class="balance-item" style="font-family: var(--font-family-app) !important;">
@@ -527,7 +663,8 @@
                   <span style="font-family: var(--font-family-app) !important;">0%</span>
                 </div>
                 <div class="balance-bar-bg" style="font-family: var(--font-family-app) !important;">
-                  <div class="balance-bar-fill" style="width: 0%; font-family: var(--font-family-app) !important;"></div>
+                  <div class="balance-bar-fill" style="width: 0%; font-family: var(--font-family-app) !important;">
+                  </div>
                 </div>
               </div>
             </div>
@@ -540,7 +677,8 @@
             <div class="card-title" style="font-family: var(--font-family-app) !important;">GPA Predictor HUD</div>
             <div class="predictor-compact" style="font-family: var(--font-family-app) !important;">
               <div class="form-group" style="font-family: var(--font-family-app) !important;">
-                <label class="form-label" style="font-size: 0.55rem; font-family: var(--font-family-app) !important;">Component Weights</label>
+                <label class="form-label"
+                  style="font-size: 0.55rem; font-family: var(--font-family-app) !important;">Component Weights</label>
                 <select class="select-input" id="predictor-subject-select"
                   style="width: 100%; height: 28px; padding: 2px 8px; font-size: 0.75rem; font-family: var(--font-family-app) !important;"></select>
               </div>
@@ -563,25 +701,31 @@
               <div class="predictor-stats-row" style="font-family: var(--font-family-app) !important;">
                 <div class="predictor-stat-box" style="font-family: var(--font-family-app) !important;">
                   <label style="font-family: var(--font-family-app) !important;">Theory</label>
-                  <span style="font-family: var(--font-family-app) !important;"><span id="predictor-theory-weight" style="font-family: var(--font-family-app) !important;">70</span>%</span>
+                  <span style="font-family: var(--font-family-app) !important;"><span id="predictor-theory-weight"
+                      style="font-family: var(--font-family-app) !important;">70</span>%</span>
                 </div>
                 <div class="predictor-stat-box" style="font-family: var(--font-family-app) !important;">
                   <label style="font-family: var(--font-family-app) !important;">Prac</label>
-                  <span style="font-family: var(--font-family-app) !important;"><span id="predictor-practical-weight" style="font-family: var(--font-family-app) !important;">30</span>%</span>
+                  <span style="font-family: var(--font-family-app) !important;"><span id="predictor-practical-weight"
+                      style="font-family: var(--font-family-app) !important;">30</span>%</span>
                 </div>
                 <div class="predictor-stat-box" style="font-family: var(--font-family-app) !important;">
                   <label style="font-family: var(--font-family-app) !important;">CA</label>
-                  <span style="font-family: var(--font-family-app) !important;"><span id="predictor-ca-val" style="font-family: var(--font-family-app) !important;">0</span></span>
+                  <span style="font-family: var(--font-family-app) !important;"><span id="predictor-ca-val"
+                      style="font-family: var(--font-family-app) !important;">0</span></span>
                 </div>
               </div>
-              <div class="predictor-stats-row" style="margin-top: -6px; font-family: var(--font-family-app) !important;">
+              <div class="predictor-stats-row"
+                style="margin-top: -6px; font-family: var(--font-family-app) !important;">
                 <div class="predictor-stat-box" style="font-family: var(--font-family-app) !important;">
                   <label style="font-family: var(--font-family-app) !important;">Quiz</label>
-                  <span style="font-family: var(--font-family-app) !important;"><span id="predictor-quiz-val" style="font-family: var(--font-family-app) !important;">0</span></span>
+                  <span style="font-family: var(--font-family-app) !important;"><span id="predictor-quiz-val"
+                      style="font-family: var(--font-family-app) !important;">0</span></span>
                 </div>
                 <div class="predictor-stat-box" style="font-family: var(--font-family-app) !important;">
                   <label style="font-family: var(--font-family-app) !important;">Lab</label>
-                  <span style="font-family: var(--font-family-app) !important;"><span id="predictor-lab-val" style="font-family: var(--font-family-app) !important;">0</span></span>
+                  <span style="font-family: var(--font-family-app) !important;"><span id="predictor-lab-val"
+                      style="font-family: var(--font-family-app) !important;">0</span></span>
                 </div>
                 <div class="predictor-stat-box" style="font-family: var(--font-family-app) !important;">
                   <label style="font-family: var(--font-family-app) !important;">Grade</label>
@@ -590,11 +734,15 @@
               </div>
               <div
                 style="display: flex; align-items: center; justify-content: space-between; background: rgba(0, 229, 255, 0.08); border: 1px solid rgba(0, 229, 255, 0.15); border-radius: 6px; padding: 4px 8px; margin-top: 2px; font-family: var(--font-family-app) !important;">
-                <span style="font-size: 0.65rem; color: #ffffff; font-weight: 700; font-family: var(--font-family-app) !important;">Req Exam:</span>
-                <span style="font-size: 0.78rem; font-weight: 800; color: #ffffff; font-family: var(--font-family-app) !important;"
+                <span
+                  style="font-size: 0.65rem; color: #ffffff; font-weight: 700; font-family: var(--font-family-app) !important;">Req
+                  Exam:</span>
+                <span
+                  style="font-size: 0.78rem; font-weight: 800; color: #ffffff; font-family: var(--font-family-app) !important;"
                   id="predictor-result-required">0%</span>
               </div>
-              <div id="predictor-breakdown-list" style="display: none; font-family: var(--font-family-app) !important;"></div>
+              <div id="predictor-breakdown-list" style="display: none; font-family: var(--font-family-app) !important;">
+              </div>
             </div>
           </div>
 
@@ -653,17 +801,22 @@
           </div>
 
           <!-- Upcoming Exams Widget -->
-          <div class="card col-6" id="dashboard-exams-card" style="font-family: var(--font-family-app) !important; display: flex; flex-direction: column; gap: 12px;">
+          <div class="card col-6" id="dashboard-exams-card"
+            style="font-family: var(--font-family-app) !important; display: flex; flex-direction: column; gap: 12px;">
             <div class="card-title" style="font-family: var(--font-family-app) !important;">Upcoming Exams Widget</div>
-            <div id="dashboard-exams-container" style="display: flex; flex-direction: column; gap: 10px; font-family: var(--font-family-app) !important; flex: 1; justify-content: flex-start;">
+            <div id="dashboard-exams-container"
+              style="display: flex; flex-direction: column; gap: 10px; font-family: var(--font-family-app) !important; flex: 1; justify-content: flex-start;">
               <!-- Dyn upcoming exams populated in JS -->
             </div>
           </div>
 
           <!-- Upcoming Assignments Widget -->
-          <div class="card col-6" id="dashboard-assignments-card" style="font-family: var(--font-family-app) !important; display: flex; flex-direction: column; gap: 12px;">
-            <div class="card-title" style="font-family: var(--font-family-app) !important;">Upcoming Assignments Widget</div>
-            <div id="dashboard-assignments-container" style="display: flex; flex-direction: column; gap: 10px; font-family: var(--font-family-app) !important; flex: 1; justify-content: flex-start;">
+          <div class="card col-6" id="dashboard-assignments-card"
+            style="font-family: var(--font-family-app) !important; display: flex; flex-direction: column; gap: 12px;">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">Upcoming Assignments Widget
+            </div>
+            <div id="dashboard-assignments-container"
+              style="display: flex; flex-direction: column; gap: 10px; font-family: var(--font-family-app) !important; flex: 1; justify-content: flex-start;">
               <!-- Dyn upcoming assignments populated in JS -->
             </div>
           </div>
@@ -680,13 +833,17 @@
           </div>
 
           <!-- Focus Grid Heatmap (52 weeks x 7 days) -->
-          <div class="card col-12" id="dashboard-heatmap-card" style="font-family: var(--font-family-app) !important; display: flex; flex-direction: column; gap: 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px;">
-            <div class="card-title" style="margin: 0; font-family: var(--font-family-app) !important;">Focus Contribution Heatmap (Past 52 Weeks)</div>
+          <div class="card col-12" id="dashboard-heatmap-card"
+            style="font-family: var(--font-family-app) !important; display: flex; flex-direction: column; gap: 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px;">
+            <div class="card-title" style="margin: 0; font-family: var(--font-family-app) !important;">Focus
+              Contribution Heatmap (Past 52 Weeks)</div>
             <div style="overflow-x: auto; padding: 10px 0; width: 100%;">
-              <div id="focus-contribution-heatmap" style="display: grid; grid-template-rows: repeat(7, 10px); grid-template-columns: repeat(52, 10px); grid-auto-flow: column; gap: 3px; min-width: 680px; width: 100%;">
+              <div id="focus-contribution-heatmap"
+                style="display: grid; grid-template-rows: repeat(7, 10px); grid-template-columns: repeat(52, 10px); grid-auto-flow: column; gap: 3px; min-width: 680px; width: 100%;">
                 <!-- 52 x 7 days grid populated dynamically in JS -->
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; color: var(--text-muted); margin-top: 8px; width: 100%; max-width: 680px; padding: 0 4px; font-family: var(--font-family-app) !important;">
+              <div
+                style="display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; color: var(--text-muted); margin-top: 8px; width: 100%; max-width: 680px; padding: 0 4px; font-family: var(--font-family-app) !important;">
                 <span>Less focus logged</span>
                 <div style="display: flex; gap: 4px; align-items: center;">
                   <span class="heatmap-tile tile-empty" style="border: 1px solid var(--border-color);"></span>
@@ -727,48 +884,79 @@
         </div>
 
         <!-- Global Specialization Eligibility HUD -->
-        <div id="special-eligibility-hud" style="display: flex; flex-direction: column; gap: 12px; padding: 16px; margin-bottom: 20px; font-family: var(--font-family-app) !important; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 12px; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); box-shadow: var(--shadow-sm);">
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; width: 100%;">
+        <div id="special-eligibility-hud"
+          style="display: flex; flex-direction: column; gap: 12px; padding: 16px; margin-bottom: 20px; font-family: var(--font-family-app) !important; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 12px; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); box-shadow: var(--shadow-sm);">
+          <div
+            style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; width: 100%;">
             <div>
-              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--accent); font-family: var(--font-family-app) !important;">Year 4 Special Honours Eligibility Checkpoint</h4>
-              <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Benchmark: Cumulative GPA of first 3 years must be &ge; 3.00</p>
+              <h4
+                style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--accent); font-family: var(--font-family-app) !important;">
+                Year 4 Special Honours Eligibility Checkpoint</h4>
+              <p
+                style="margin: 2px 0 0 0; font-size: 0.78rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">
+                Benchmark: Cumulative GPA of first 3 years must be &ge; 3.00</p>
             </div>
             <div style="display: flex; align-items: center; gap: 12px; font-family: var(--font-family-app) !important;">
-              <span id="global-cgpa-display" style="font-size: 1rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-family-app) !important;">3-Yr GPA: 0.00 (Overall: 0.00)</span>
-              <span id="special-status-badge" class="badge" style="font-family: var(--font-family-app) !important; font-size: 0.72rem; font-weight: 700; padding: 6px 12px; border-radius: 20px; display: inline-flex; align-items: center; background: rgba(255, 255, 255, 0.08); color: var(--text-secondary); border: 1px solid var(--border-color); transition: all 0.3s ease; gap: 6px;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lock-svg"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              <span id="global-cgpa-display" style="font-size: 1rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-family-app) !important;">3 Year GPA: 0.00 (Overall: 0.00)</span>
+              <span id="special-status-badge" class="badge"
+                style="font-family: var(--font-family-app) !important; font-size: 0.72rem; font-weight: 700; padding: 6px 12px; border-radius: 20px; display: inline-flex; align-items: center; background: rgba(255, 255, 255, 0.08); color: var(--text-secondary); border: 1px solid var(--border-color); transition: all 0.3s ease; gap: 6px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                  stroke-linecap="round" stroke-linejoin="round" class="lock-svg">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
                 <span>General Bound (GPA &lt; 3.0)</span>
               </span>
             </div>
           </div>
           <div style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
-            <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">
+            <div
+              style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">
               <span style="font-family: var(--font-family-app) !important;">GPA Progress (3.00 Threshold Gauge)</span>
-              <span id="hud-progress-text" style="font-family: var(--font-family-app) !important; font-weight: 700;">0.0%</span>
+              <span id="hud-progress-text"
+                style="font-family: var(--font-family-app) !important; font-weight: 700;">0.0%</span>
             </div>
-            <div style="height: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; width: 100%; box-sizing: border-box;">
-              <div id="hud-progress-fill" style="width: 0%; height: 100%; border-radius: 4px; transition: width 0.5s ease;"></div>
+            <div
+              style="height: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; width: 100%; box-sizing: border-box;">
+              <div id="hud-progress-fill"
+                style="width: 0%; height: 100%; border-radius: 4px; transition: width 0.5s ease;"></div>
             </div>
           </div>
 
           <!-- Projected Special Honours Interview Selection Score Section -->
-          <div style="display: flex; flex-direction: column; gap: 6px; width: 100%; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 12px; margin-top: 4px;">
-            <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">
-              <span style="font-family: var(--font-family-app) !important;">Projected Special Honours Interview Selection Score</span>
-              <span id="hud-interview-score-text" style="font-family: var(--font-family-app) !important; font-weight: 700;">0.0%</span>
+          <div
+            style="display: flex; flex-direction: column; gap: 6px; width: 100%; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 12px; margin-top: 4px;">
+            <div
+              style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">
+              <span style="font-family: var(--font-family-app) !important;">Projected Special Honours Interview
+                Selection Score</span>
+              <span id="hud-interview-score-text"
+                style="font-family: var(--font-family-app) !important; font-weight: 700;">0.0%</span>
             </div>
-            <div style="height: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; width: 100%; box-sizing: border-box;">
-              <div id="hud-interview-score-fill" style="width: 0%; height: 100%; border-radius: 4px; transition: width 0.5s ease;"></div>
+            <div
+              style="height: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; width: 100%; box-sizing: border-box;">
+              <div id="hud-interview-score-fill"
+                style="width: 0%; height: 100%; border-radius: 4px; transition: width 0.5s ease;"></div>
             </div>
-            <div style="font-size: 0.65rem; color: var(--text-muted); display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-family: var(--font-family-app) !important;">
-              <span id="hud-interview-gpa-part" style="font-family: var(--font-family-app) !important;">GPA (65 Cr, 70% max): 0%</span>
-              <span id="hud-interview-sports-part" style="font-family: var(--font-family-app) !important;">Sports Achievement (5% max): 0%</span>
-              <span id="hud-interview-project-part" style="font-family: var(--font-family-app) !important;">Group Project COM 3405/ICT 3411 (5% max): 0%</span>
-              <span id="hud-interview-enrichment-part" style="font-family: var(--font-family-app) !important;">Academic Enrichment (15% max): 0%</span>
+            <div
+              style="font-size: 0.65rem; color: var(--text-muted); display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-family: var(--font-family-app) !important;">
+              <span id="hud-interview-gpa-part" style="font-family: var(--font-family-app) !important;">GPA (65 Cr, 70%
+                max): 0%</span>
+              <span id="hud-interview-sports-part" style="font-family: var(--font-family-app) !important;">Sports
+                Achievement (5% max): 0%</span>
+              <span id="hud-interview-project-part" style="font-family: var(--font-family-app) !important;">Group
+                Project COM 3405/ICT 3411 (5% max): 0%</span>
+              <span id="hud-interview-enrichment-part" style="font-family: var(--font-family-app) !important;">Academic
+                Enrichment (15% max): 0%</span>
               <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-                <span id="hud-interview-panel-part" style="color: var(--text-secondary) !important; font-weight: 500;">Interview Performance (5% max): 0.0%</span>
-                <button type="button" id="btn-edit-viva-score" style="background: transparent; border: 1px solid var(--border-color); color: var(--accent); font-size: 0.68rem; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-family: var(--font-family-app) !important;">Edit Marks</button>
-                <input type="number" id="input-viva-score-inline" min="0" max="5" step="0.1" style="display: none; width: 60px; height: 22px; font-size: 0.72rem; padding: 2px 4px; background: rgba(0,0,0,0.4); border: 1px solid var(--accent); color: #fff; border-radius: 4px; outline: none; text-align: center;">
+                <span id="hud-interview-panel-part"
+                  style="color: var(--text-secondary) !important; font-weight: 500;">Interview Performance (5% max):
+                  0.0%</span>
+                <button type="button" id="btn-edit-viva-score"
+                  style="background: transparent; border: 1px solid var(--border-color); color: var(--accent); font-size: 0.68rem; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-family: var(--font-family-app) !important;">Edit
+                  Marks</button>
+                <input type="number" id="input-viva-score-inline" min="0" max="5" step="0.1"
+                  style="display: none; width: 60px; height: 22px; font-size: 0.72rem; padding: 2px 4px; background: rgba(0,0,0,0.4); border: 1px solid var(--accent); color: #fff; border-radius: 4px; outline: none; text-align: center;">
               </div>
             </div>
           </div>
@@ -800,7 +988,8 @@
             <button class="btn-solid" id="btn-add-exam">+ Schedule Exam</button>
           </div>
         </div>
-        <div id="exams-gantt-container" class="gantt-roadmap-container" style="display: none; margin-bottom: 20px; width: 100%;"></div>
+        <div id="exams-gantt-container" class="gantt-roadmap-container"
+          style="display: none; margin-bottom: 20px; width: 100%;"></div>
         <div class="grid-layout" id="exams-list-container">
           <!-- Dyn cards -->
         </div>
@@ -829,7 +1018,8 @@
           </div>
           <button class="btn-solid" id="btn-add-assignment">+ Log Assignment</button>
         </div>
-        <div id="assignments-gantt-container" class="gantt-roadmap-container" style="display: none; margin-bottom: 20px; width: 100%;"></div>
+        <div id="assignments-gantt-container" class="gantt-roadmap-container"
+          style="display: none; margin-bottom: 20px; width: 100%;"></div>
         <div class="grid-layout" id="assignments-list-container">
           <!-- Dyn items -->
         </div>
@@ -840,11 +1030,13 @@
         <div class="page-header" style="font-family: var(--font-family-app) !important;">
           <div style="font-family: var(--font-family-app) !important;">
             <h1 style="font-family: var(--font-family-app) !important;">Academic Resources</h1>
-            <p style="font-family: var(--font-family-app) !important;">Organize lecture slides, study guides, PDF references, and online links.</p>
+            <p style="font-family: var(--font-family-app) !important;">Organize lecture slides, study guides, PDF
+              references, and online links.</p>
           </div>
-          <button class="btn-solid" id="btn-add-resource" style="font-family: var(--font-family-app) !important;">+ Add Resource</button>
+          <button class="btn-solid" id="btn-add-resource" style="font-family: var(--font-family-app) !important;">+ Add
+            Resource</button>
         </div>
-        
+
         <div class="grid-layout" id="resources-list-container" style="font-family: var(--font-family-app) !important;">
           <!-- Dynamic resource cards injected via ResourcesModule -->
         </div>
@@ -922,9 +1114,11 @@
           <!-- Target CGPA Matrix -->
           <div class="card col-6" id="gpa-matrix-card">
             <div class="card-title">Target CGPA Distribution Matrix</div>
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px;">
+            <div
+              style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px;">
               <span class="form-label" style="margin-bottom: 0;">Overall Target CGPA:</span>
-              <input type="number" id="gpa-matrix-target-input" class="input-text" step="0.05" min="2.00" max="4.00" style="width: 100px; padding: 4px 8px; height: 30px;" value="3.70">
+              <input type="number" id="gpa-matrix-target-input" class="input-text" step="0.05" min="2.00" max="4.00"
+                style="width: 100px; padding: 4px 8px; height: 30px;" value="3.70">
             </div>
             <div id="gpa-matrix-results" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem;">
               <!-- Dyn content -->
@@ -935,16 +1129,19 @@
           <div class="card col-6" id="gpa-simulator-card">
             <div class="card-title">Repeat & Upgrade Mock Simulator</div>
             <p style="font-size: 0.76rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">
-              Select a subject below or click its grade in the log book to simulate how repeating it and scoring an A/A- boosts your overall CGPA.
+              Select a subject below or click its grade in the log book to simulate how repeating it and scoring an A/A-
+              boosts your overall CGPA.
             </p>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px;">
               <div class="form-group">
                 <label class="form-label">Subject</label>
-                <select id="sim-subject-select" class="select-input" style="height: 32px; padding: 4px 8px; font-size: 0.8rem;"></select>
+                <select id="sim-subject-select" class="select-input"
+                  style="height: 32px; padding: 4px 8px; font-size: 0.8rem;"></select>
               </div>
               <div class="form-group">
                 <label class="form-label">Mock Grade</label>
-                <select id="sim-grade-select" class="select-input" style="height: 32px; padding: 4px 8px; font-size: 0.8rem;">
+                <select id="sim-grade-select" class="select-input"
+                  style="height: 32px; padding: 4px 8px; font-size: 0.8rem;">
                   <option value="A+">A+ (4.00)</option>
                   <option value="A" selected>A (4.00)</option>
                   <option value="A-">A- (3.70)</option>
@@ -953,21 +1150,27 @@
                 </select>
               </div>
             </div>
-            <div id="sim-result-box" style="display: none; background: rgba(0, 229, 255, 0.06); border: 1px solid rgba(0, 229, 255, 0.15); border-radius: 6px; padding: 10px; text-align: center; font-size: 0.82rem; margin-top: 8px;">
+            <div id="sim-result-box"
+              style="display: none; background: rgba(0, 229, 255, 0.06); border: 1px solid rgba(0, 229, 255, 0.15); border-radius: 6px; padding: 10px; text-align: center; font-size: 0.82rem; margin-top: 8px;">
               <!-- Dyn output -->
             </div>
           </div>
 
           <!-- Course Prefix GPA and Credit Track Progress Card -->
-          <div class="card col-6" id="gpa-prefix-breakdown-card" style="font-family: var(--font-family-app) !important;">
-            <div class="card-title" style="font-family: var(--font-family-app) !important;">Course Prefix GPA Breakdown</div>
-            <div id="gpa-prefix-breakdown-container" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem; font-family: var(--font-family-app) !important;">
+          <div class="card col-6" id="gpa-prefix-breakdown-card"
+            style="font-family: var(--font-family-app) !important;">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">Course Prefix GPA Breakdown
+            </div>
+            <div id="gpa-prefix-breakdown-container"
+              style="display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem; font-family: var(--font-family-app) !important;">
               <!-- Dyn prefix rows -->
             </div>
           </div>
           <div class="card col-6" id="gpa-credit-progress-card" style="font-family: var(--font-family-app) !important;">
-            <div class="card-title" style="font-family: var(--font-family-app) !important;">BSc & Honours Credit Benchmarks</div>
-            <div id="gpa-credit-progress-container" style="display: flex; flex-direction: column; gap: 12px; font-size: 0.82rem; font-family: var(--font-family-app) !important;">
+            <div class="card-title" style="font-family: var(--font-family-app) !important;">BSc & Honours Credit
+              Benchmarks</div>
+            <div id="gpa-credit-progress-container"
+              style="display: flex; flex-direction: column; gap: 12px; font-size: 0.82rem; font-family: var(--font-family-app) !important;">
               <!-- Dyn credit bars -->
             </div>
           </div>
@@ -981,10 +1184,12 @@
         <div class="page-header" style="font-family: var(--font-family-app) !important;">
           <div style="font-family: var(--font-family-app) !important;">
             <h1 style="font-family: var(--font-family-app) !important;">Attendance Tracker</h1>
-            <p style="font-family: var(--font-family-app) !important;">Track class session counts to secure exam admission eligibility (&gt;80%).</p>
+            <p style="font-family: var(--font-family-app) !important;">Track class session counts to secure exam
+              admission eligibility (&gt;80%).</p>
           </div>
           <div style="display: flex; gap: 12px; align-items: center; font-family: var(--font-family-app) !important;">
-            <select class="select-input" id="attendance-semester-filter" style="width: 180px; font-family: var(--font-family-app) !important;">
+            <select class="select-input" id="attendance-semester-filter"
+              style="width: 180px; font-family: var(--font-family-app) !important;">
               <option value="1-1" style="font-family: var(--font-family-app) !important;">Year 1 - Semester I</option>
               <option value="1-2" style="font-family: var(--font-family-app) !important;">Year 1 - Semester II</option>
               <option value="2-1" style="font-family: var(--font-family-app) !important;">Year 2 - Semester I</option>
@@ -1052,17 +1257,27 @@
           <!-- Pomodoro Widget Card -->
           <div class="card col-4" style="text-align: center;">
             <div class="card-title" id="pomo-type-label-main">Pomodoro Timer</div>
-            <div class="form-group" style="text-align: left; margin-bottom: 12px; font-family: var(--font-family-app) !important;">
-              <label class="form-label" style="font-size: 0.72rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Associated Sub-Module</label>
-              <select id="pomo-subject-select" class="select-input" style="font-size: 0.78rem; padding: 6px 10px; width: 100%; border: 1px solid var(--border-color); background: rgba(0,0,0,0.25); color: var(--text-primary); border-radius: 6px; font-family: var(--font-family-app) !important;">
+            <div class="form-group"
+              style="text-align: left; margin-bottom: 12px; font-family: var(--font-family-app) !important;">
+              <label class="form-label"
+                style="font-size: 0.72rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Associated
+                Sub-Module</label>
+              <select id="pomo-subject-select" class="select-input"
+                style="font-size: 0.78rem; padding: 6px 10px; width: 100%; border: 1px solid var(--border-color); background: rgba(0,0,0,0.25); color: var(--text-primary); border-radius: 6px; font-family: var(--font-family-app) !important;">
                 <!-- Dynamically populated -->
               </select>
             </div>
             <div
               style="font-family: 'JetBrains Mono', monospace; font-size: 3.5rem; font-weight: 800; margin: 16px 0; color: var(--accent);"
               id="pomo-time-display">25:00</div>
-            <div id="pomo-quality-container" style="font-size: 0.78rem; color: var(--text-secondary); margin-top: -10px; margin-bottom: 12px; font-weight: 600;">Focus Quality: <span id="pomo-quality-val" style="color: var(--success); font-family: 'JetBrains Mono', monospace;">100%</span></div>
-            <div id="pomo-streak-container" style="font-size: 0.78rem; color: var(--text-secondary); margin-top: -8px; margin-bottom: 12px; font-weight: 600;">Daily Streak: <span id="pomo-streak-val" style="color: var(--accent); font-family: var(--font-family-app) !important;">0</span></div>
+            <div id="pomo-quality-container"
+              style="font-size: 0.78rem; color: var(--text-secondary); margin-top: -10px; margin-bottom: 12px; font-weight: 600;">
+              Focus Quality: <span id="pomo-quality-val"
+                style="color: var(--success); font-family: 'JetBrains Mono', monospace;">100%</span></div>
+            <div id="pomo-streak-container"
+              style="font-size: 0.78rem; color: var(--text-secondary); margin-top: -8px; margin-bottom: 12px; font-weight: 600;">
+              Daily Streak: <span id="pomo-streak-val"
+                style="color: var(--accent); font-family: var(--font-family-app) !important;">0</span></div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
               <button class="btn-solid" id="pomo-start">Start Session</button>
               <div style="display: flex; gap: 10px;">
@@ -1122,15 +1337,21 @@
                 <input type="text" id="note-tags" class="input-text" placeholder="e.g. Zoology, Invertebrates">
               </div>
             </div>
-            <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 8px;">
-              <button type="button" class="btn-outline btn-sm note-tab active" id="note-tab-write" style="padding: 4px 12px; font-size: 0.72rem; border-radius: 4px;">Write</button>
-              <button type="button" class="btn-outline btn-sm note-tab" id="note-tab-preview" style="padding: 4px 12px; font-size: 0.72rem; border-radius: 4px;">Preview HTML</button>
+            <div
+              style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 8px;">
+              <button type="button" class="btn-outline btn-sm note-tab active" id="note-tab-write"
+                style="padding: 4px 12px; font-size: 0.72rem; border-radius: 4px;">Write</button>
+              <button type="button" class="btn-outline btn-sm note-tab" id="note-tab-preview"
+                style="padding: 4px 12px; font-size: 0.72rem; border-radius: 4px;">Preview HTML</button>
             </div>
             <textarea id="note-body" class="textarea-input"
               style="flex: 1; font-family: var(--font-body); font-size: 0.9rem; line-height: 1.6; resize: none; min-height: 300px;"
               placeholder="Start writing markdown-styled study notes here..."></textarea>
-            <div id="note-preview-area" class="textarea-input" style="display: none; flex: 1; min-height: 300px; overflow-y: auto; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; font-size: 0.9rem; line-height: 1.6;"></div>
-            <button class="btn-solid" id="btn-save-note" style="width: 140px; margin-left: auto; margin-top: 8px;">Save Page</button>
+            <div id="note-preview-area" class="textarea-input"
+              style="display: none; flex: 1; min-height: 300px; overflow-y: auto; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; font-size: 0.9rem; line-height: 1.6;">
+            </div>
+            <button class="btn-solid" id="btn-save-note" style="width: 140px; margin-left: auto; margin-top: 8px;">Save
+              Page</button>
           </div>
         </div>
       </div>
@@ -1146,26 +1367,35 @@
 
         <div class="grid-layout">
           <!-- Global Daily Productivity HUD Card -->
-          <div class="card col-12 grid-layout" style="gap: 20px; padding: 24px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 16px;">
-            <div class="col-4" style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 1px solid rgba(255, 255, 255, 0.05); padding-right: 20px; font-family: var(--font-family-app) !important;">
-              <div class="card-title" style="margin: 0; font-family: var(--font-family-app) !important;">Daily Productivity Score</div>
-              
+          <div class="card col-12 grid-layout"
+            style="gap: 20px; padding: 24px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 16px;">
+            <div class="col-4"
+              style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 1px solid rgba(255, 255, 255, 0.05); padding-right: 20px; font-family: var(--font-family-app) !important;">
+              <div class="card-title" style="margin: 0; font-family: var(--font-family-app) !important;">Daily
+                Productivity Score</div>
+
               <div style="position: relative; width: 120px; height: 120px; margin: 15px 0; display: inline-block;">
                 <svg width="120" height="120" viewBox="0 0 120 120" style="transform: rotate(-90deg);">
                   <circle cx="60" cy="60" r="50" stroke="rgba(255,255,255,0.05)" stroke-width="8" fill="transparent" />
-                  <circle id="productivity-score-ring" cx="60" cy="60" r="50" stroke="var(--accent)" stroke-width="8" fill="transparent"
-                    stroke-dasharray="314.16" stroke-dashoffset="314.16" style="transition: stroke-dashoffset 0.5s ease;" />
+                  <circle id="productivity-score-ring" cx="60" cy="60" r="50" stroke="var(--accent)" stroke-width="8"
+                    fill="transparent" stroke-dasharray="314.16" stroke-dashoffset="314.16"
+                    style="transition: stroke-dashoffset 0.5s ease;" />
                 </svg>
-                <div id="productivity-score-text" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: var(--text-primary);">0%</div>
+                <div id="productivity-score-text"
+                  style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: var(--text-primary);">
+                  0%</div>
               </div>
-              
-              <p style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.4; margin: 0; font-family: var(--font-family-app) !important;">
+
+              <p
+                style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.4; margin: 0; font-family: var(--font-family-app) !important;">
                 40% Attendance + 40% Assignments + 20% Focus Today
               </p>
             </div>
-            
-            <div class="col-8" style="font-family: var(--font-family-app) !important; display: flex; flex-direction: column; justify-content: center; gap: 8px; padding-left: 20px;">
-              <div class="card-title" style="margin: 0; font-family: var(--font-family-app) !important;">Score Breakdown</div>
+
+            <div class="col-8"
+              style="font-family: var(--font-family-app) !important; display: flex; flex-direction: column; justify-content: center; gap: 8px; padding-left: 20px;">
+              <div class="card-title" style="margin: 0; font-family: var(--font-family-app) !important;">Score Breakdown
+              </div>
               <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem;">
                 <div style="display: flex; justify-content: space-between;">
                   <span style="color: var(--text-secondary);">Class Attendance Metric:</span>
@@ -1210,10 +1440,12 @@
           </div>
         </div>
 
-        <div class="card col-12" style="gap: 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px;">
+        <div class="card col-12"
+          style="gap: 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px;">
           <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <h2 id="calendar-month-year-label" style="font-size: 1.1rem; font-weight: 700; margin: 0;">June 2026</h2>
-            <select id="calendar-month-selector" class="select-input" style="width: auto; background: rgba(0,0,0,0.35); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 12px; border-radius: 6px; font-family: var(--font-family-app) !important; font-size: 0.82rem; outline: none; cursor: pointer;">
+            <select id="calendar-month-selector" class="select-input"
+              style="width: auto; background: rgba(0,0,0,0.35); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 12px; border-radius: 6px; font-family: var(--font-family-app) !important; font-size: 0.82rem; outline: none; cursor: pointer;">
               <!-- Dynamically populated in JS -->
             </select>
           </div>
@@ -1224,7 +1456,8 @@
         </div>
 
         <!-- Monthly Review HUD Card -->
-        <div class="card col-12" id="calendar-monthly-review-card" style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); font-family: var(--font-family-app) !important; padding: 24px; border-radius: 16px;">
+        <div class="card col-12" id="calendar-monthly-review-card"
+          style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); font-family: var(--font-family-app) !important; padding: 24px; border-radius: 16px;">
           <!-- Dynamically populated in JS -->
         </div>
       </div>
@@ -1306,101 +1539,139 @@
 
                 <!-- Additional Academic Info -->
                 <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; margin-top: 6px;">
-                  <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">Additional Academic Info</h4>
-                  
+                  <h4
+                    style="font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">
+                    Additional Academic Info</h4>
+
                   <div class="form-group" style="margin-bottom: 12px;">
-                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Student ID / Index No.</label>
-                    <input type="text" id="settings-student-id" class="input-text" style="font-family: var(--font-family-app) !important;">
-                  </div>
-                  
-                  <div class="form-group" style="margin-bottom: 12px;">
-                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Registration Number</label>
-                    <input type="text" id="settings-reg-num" class="input-text" style="font-family: var(--font-family-app) !important;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Student ID / Index
+                      No.</label>
+                    <input type="text" id="settings-student-id" class="input-text"
+                      style="font-family: var(--font-family-app) !important;">
                   </div>
 
                   <div class="form-group" style="margin-bottom: 12px;">
-                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Degree Programme</label>
-                    <input type="text" id="settings-degree" class="input-text" style="font-family: var(--font-family-app) !important;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Registration
+                      Number</label>
+                    <input type="text" id="settings-reg-num" class="input-text"
+                      style="font-family: var(--font-family-app) !important;">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Degree
+                      Programme</label>
+                    <input type="text" id="settings-degree" class="input-text"
+                      style="font-family: var(--font-family-app) !important;">
                   </div>
 
                   <div class="form-group" style="margin-bottom: 12px;">
                     <label class="form-label" style="font-family: var(--font-family-app) !important;">Department</label>
-                    <input type="text" id="settings-dept" class="input-text" style="font-family: var(--font-family-app) !important;">
+                    <input type="text" id="settings-dept" class="input-text"
+                      style="font-family: var(--font-family-app) !important;">
                   </div>
 
                   <div class="form-group" style="margin-bottom: 12px;">
                     <label class="form-label" style="font-family: var(--font-family-app) !important;">Batch</label>
-                    <input type="text" id="settings-batch" class="input-text" style="font-family: var(--font-family-app) !important;">
+                    <input type="text" id="settings-batch" class="input-text"
+                      style="font-family: var(--font-family-app) !important;">
                   </div>
 
                   <div class="form-group" style="margin-bottom: 12px;">
-                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Student Email</label>
-                    <input type="email" id="settings-email" class="input-text" style="font-family: var(--font-family-app) !important;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Student
+                      Email</label>
+                    <input type="email" id="settings-email" class="input-text"
+                      style="font-family: var(--font-family-app) !important;">
                   </div>
 
                   <div class="form-group" style="margin-bottom: 12px;">
-                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Phone Number</label>
-                    <input type="text" id="settings-phone" class="input-text" style="font-family: var(--font-family-app) !important;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Phone
+                      Number</label>
+                    <input type="text" id="settings-phone" class="input-text"
+                      style="font-family: var(--font-family-app) !important;">
                   </div>
                 </div>
 
                 <!-- Mentor Section -->
                 <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px;">
-                  <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">Mentor Details</h4>
-                  
+                  <h4
+                    style="font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">
+                    Mentor Details</h4>
+
                   <div class="form-group" style="margin-bottom: 12px;">
-                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Mentor Name</label>
-                    <input type="text" id="settings-mentor-name" class="input-text" style="font-family: var(--font-family-app) !important;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Mentor
+                      Name</label>
+                    <input type="text" id="settings-mentor-name" class="input-text"
+                      style="font-family: var(--font-family-app) !important;">
                   </div>
 
                   <div class="form-group" style="margin-bottom: 12px;">
-                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Mentor Email</label>
-                    <input type="email" id="settings-mentor-email" class="input-text" style="font-family: var(--font-family-app) !important;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Mentor
+                      Email</label>
+                    <input type="email" id="settings-mentor-email" class="input-text"
+                      style="font-family: var(--font-family-app) !important;">
                   </div>
 
                   <div class="form-group" style="margin-bottom: 12px;">
-                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Mentor Contact</label>
-                    <input type="text" id="settings-mentor-contact" class="input-text" style="font-family: var(--font-family-app) !important;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Mentor
+                      Contact</label>
+                    <input type="text" id="settings-mentor-contact" class="input-text"
+                      style="font-family: var(--font-family-app) !important;">
                   </div>
                 </div>
 
                 <!-- Academic Advisor Section -->
                 <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px;">
-                  <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">Academic Advisor Details</h4>
-                  
+                  <h4
+                    style="font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">
+                    Academic Advisor Details</h4>
+
                   <div class="form-group" style="margin-bottom: 12px;">
-                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Advisor Name</label>
-                    <input type="text" id="settings-advisor-name" class="input-text" style="font-family: var(--font-family-app) !important;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Advisor
+                      Name</label>
+                    <input type="text" id="settings-advisor-name" class="input-text"
+                      style="font-family: var(--font-family-app) !important;">
                   </div>
 
                   <div class="form-group" style="margin-bottom: 12px;">
-                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Advisor Email</label>
-                    <input type="email" id="settings-advisor-email" class="input-text" style="font-family: var(--font-family-app) !important;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Advisor
+                      Email</label>
+                    <input type="email" id="settings-advisor-email" class="input-text"
+                      style="font-family: var(--font-family-app) !important;">
                   </div>
 
                   <div class="form-group" style="margin-bottom: 12px;">
-                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Advisor Contact</label>
-                    <input type="text" id="settings-advisor-contact" class="input-text" style="font-family: var(--font-family-app) !important;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Advisor
+                      Contact</label>
+                    <input type="text" id="settings-advisor-contact" class="input-text"
+                      style="font-family: var(--font-family-app) !important;">
                   </div>
                 </div>
 
                 <!-- Academic Enrichment Section -->
                 <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; margin-top: 6px;">
-                  <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">Academic Enrichment</h4>
-                  
+                  <h4
+                    style="font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-family-app) !important;">
+                    Academic Enrichment</h4>
+
                   <div class="form-group" style="margin-bottom: 12px;">
-                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Hackathons / Competitions (Max 8)</label>
-                    <input type="number" id="enrichment-hackathons" class="input-text" max="8" min="0" value="0" style="font-family: var(--font-family-app) !important;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Hackathons /
+                      Competitions (Max 8)</label>
+                    <input type="number" id="enrichment-hackathons" class="input-text" max="8" min="0" value="0"
+                      style="font-family: var(--font-family-app) !important;">
                   </div>
 
                   <div class="form-group" style="margin-bottom: 12px;">
-                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Voluntary / Societies (Max 2)</label>
-                    <input type="number" id="enrichment-societies" class="input-text" max="2" min="0" value="0" style="font-family: var(--font-family-app) !important;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Voluntary /
+                      Societies (Max 2)</label>
+                    <input type="number" id="enrichment-societies" class="input-text" max="2" min="0" value="0"
+                      style="font-family: var(--font-family-app) !important;">
                   </div>
 
                   <div class="form-group" style="margin-bottom: 12px;">
-                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Community / Industry Engagement (Max 5)</label>
-                    <input type="number" id="enrichment-industry" class="input-text" max="5" min="0" value="0" style="font-family: var(--font-family-app) !important;">
+                    <label class="form-label" style="font-family: var(--font-family-app) !important;">Community /
+                      Industry Engagement (Max 5)</label>
+                    <input type="number" id="enrichment-industry" class="input-text" max="5" min="0" value="0"
+                      style="font-family: var(--font-family-app) !important;">
                   </div>
                 </div>
 
@@ -1410,55 +1681,77 @@
           </div>
 
           <!-- Right Side Component Track -->
-          <div class="col-6" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%; gap: 20px; font-family: var(--font-family-app) !important;">
+          <div class="col-6"
+            style="display: flex; flex-direction: column; justify-content: space-between; height: 100%; gap: 20px; font-family: var(--font-family-app) !important;">
             <!-- Academic Target Benchmarks Card -->
-            <div class="card" style="justify-content: flex-start; width: 100%; margin-bottom: 0; font-family: var(--font-family-app) !important;">
+            <div class="card"
+              style="justify-content: flex-start; width: 100%; margin-bottom: 0; font-family: var(--font-family-app) !important;">
               <div class="card-title" style="font-family: var(--font-family-app) !important;">Academic Benchmarks</div>
-              <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; font-family: var(--font-family-app) !important;">
+              <p
+                style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; font-family: var(--font-family-app) !important;">
                 Configure the total credit requirements for graduation tracks and core course targets.
               </p>
-              <form id="settings-benchmarks-form" style="display: flex; flex-direction: column; gap: 14px; margin-top: 12px; width: 100%;">
+              <form id="settings-benchmarks-form"
+                style="display: flex; flex-direction: column; gap: 14px; margin-top: 12px; width: 100%;">
                 <div class="form-group" style="font-family: var(--font-family-app) !important;">
-                  <label class="form-label" style="font-family: var(--font-family-app) !important;">BSc Track Target (Credits)</label>
-                  <input type="number" id="benchmark-bsc-total" class="input-text" required min="1" style="font-family: var(--font-family-app) !important;">
+                  <label class="form-label" style="font-family: var(--font-family-app) !important;">BSc Track Target
+                    (Credits)</label>
+                  <input type="number" id="benchmark-bsc-total" class="input-text" required min="1"
+                    style="font-family: var(--font-family-app) !important;">
                 </div>
                 <div class="form-group" style="font-family: var(--font-family-app) !important;">
-                  <label class="form-label" style="font-family: var(--font-family-app) !important;">Honours Track Target (Credits)</label>
-                  <input type="number" id="benchmark-honours-total" class="input-text" required min="1" style="font-family: var(--font-family-app) !important;">
+                  <label class="form-label" style="font-family: var(--font-family-app) !important;">Honours Track Target
+                    (Credits)</label>
+                  <input type="number" id="benchmark-honours-total" class="input-text" required min="1"
+                    style="font-family: var(--font-family-app) !important;">
                 </div>
                 <div class="form-group" style="font-family: var(--font-family-app) !important;">
-                  <label class="form-label" style="font-family: var(--font-family-app) !important;">Active Core Target (Credits)</label>
-                  <input type="number" id="benchmark-active-core-target" class="input-text" required min="1" style="font-family: var(--font-family-app) !important;">
+                  <label class="form-label" style="font-family: var(--font-family-app) !important;">Active Core Target
+                    (Credits)</label>
+                  <input type="number" id="benchmark-active-core-target" class="input-text" required min="1"
+                    style="font-family: var(--font-family-app) !important;">
                 </div>
-                <button type="submit" class="btn-solid" style="margin-top: 4px; font-family: var(--font-family-app) !important;">Update Benchmarks</button>
+                <button type="submit" class="btn-solid"
+                  style="margin-top: 4px; font-family: var(--font-family-app) !important;">Update Benchmarks</button>
               </form>
             </div>
 
             <!-- Backup Card -->
-            <div class="card" style="justify-content: flex-start; width: 100%; margin-bottom: 0; font-family: var(--font-family-app) !important;">
-              <div class="card-title" style="font-family: var(--font-family-app) !important;">Database Storage & Backups</div>
-              <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; font-family: var(--font-family-app) !important;">
+            <div class="card"
+              style="justify-content: flex-start; width: 100%; margin-bottom: 0; font-family: var(--font-family-app) !important;">
+              <div class="card-title" style="font-family: var(--font-family-app) !important;">Database Storage & Backups
+              </div>
+              <p
+                style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; font-family: var(--font-family-app) !important;">
                 Rajarata Life runs completely offline. Export your database into a local JSON file to ensure backup
                 safety, or select a previous JSON file to restore records.
               </p>
-              <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px; font-family: var(--font-family-app) !important;">
-                <button class="btn-solid" id="btn-backup-export" style="background-color: var(--success); font-family: var(--font-family-app) !important;">Export Database to JSON</button>
+              <div
+                style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px; font-family: var(--font-family-app) !important;">
+                <button class="btn-solid" id="btn-backup-export"
+                  style="background-color: var(--success); font-family: var(--font-family-app) !important;">Export
+                  Database to JSON</button>
                 <div
                   style="border: 1px dashed var(--border-color); border-radius: 8px; padding: 16px; text-align: center; position: relative; font-family: var(--font-family-app) !important;">
                   <input type="file" id="backup-import-file" accept=".json"
                     style="position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; font-family: var(--font-family-app) !important;">
-                  <span style="font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Drag or click here to restore from JSON file</span>
+                  <span
+                    style="font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Drag
+                    or click here to restore from JSON file</span>
                 </div>
               </div>
             </div>
 
             <!-- Typography Settings Card -->
-            <div class="card" style="justify-content: flex-start; width: 100%; margin-bottom: 0; font-family: var(--font-family-app) !important;">
+            <div class="card"
+              style="justify-content: flex-start; width: 100%; margin-bottom: 0; font-family: var(--font-family-app) !important;">
               <div class="card-title" style="font-family: var(--font-family-app) !important;">Typography Settings</div>
-              <div style="display: flex; flex-direction: column; gap: 14px; font-family: var(--font-family-app) !important;">
+              <div
+                style="display: flex; flex-direction: column; gap: 14px; font-family: var(--font-family-app) !important;">
                 <div class="form-group" style="font-family: var(--font-family-app) !important;">
                   <label class="form-label" style="font-family: var(--font-family-app) !important;">Font Family</label>
-                  <select id="settings-font-family" class="select-input" style="font-family: var(--font-family-app) !important;">
+                  <select id="settings-font-family" class="select-input"
+                    style="font-family: var(--font-family-app) !important;">
                     <option value="Inter">Inter (Default)</option>
                     <option value="Poppins">Poppins</option>
                     <option value="Roboto">Roboto</option>
@@ -1469,7 +1762,8 @@
                 </div>
                 <div class="form-group" style="font-family: var(--font-family-app) !important;">
                   <label class="form-label" style="font-family: var(--font-family-app) !important;">Font Size</label>
-                  <select id="settings-font-size" class="select-input" style="font-family: var(--font-family-app) !important;">
+                  <select id="settings-font-size" class="select-input"
+                    style="font-family: var(--font-family-app) !important;">
                     <option value="small">Small</option>
                     <option value="medium" selected>Medium (Default)</option>
                     <option value="large">Large</option>
@@ -1492,43 +1786,54 @@
             </div>
 
             <!-- Theme Studio Card -->
-            <div class="card" style="justify-content: flex-start; width: 100%; margin-bottom: 0; font-family: var(--font-family-app) !important;">
+            <div class="card"
+              style="justify-content: flex-start; width: 100%; margin-bottom: 0; font-family: var(--font-family-app) !important;">
               <div class="card-title" style="font-family: var(--font-family-app) !important;">Theme Studio</div>
-              <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; font-family: var(--font-family-app) !important;">
+              <p
+                style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; font-family: var(--font-family-app) !important;">
                 Customize your Academic OS. Select a theme variant derived from visual palette parameters and configure
                 visual engine toggles.
               </p>
 
               <!-- Visual Theme Grid -->
               <div style="margin-top: 8px; font-family: var(--font-family-app) !important;">
-                <label class="form-label" style="margin-bottom: 8px; display: block; font-family: var(--font-family-app) !important;">Select Theme Palette</label>
-                <div class="theme-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-family: var(--font-family-app) !important;">
-                  <div class="theme-swatch active" data-theme-id="space-gravity" style="font-family: var(--font-family-app) !important;">
+                <label class="form-label"
+                  style="margin-bottom: 8px; display: block; font-family: var(--font-family-app) !important;">Select
+                  Theme Palette</label>
+                <div class="theme-grid"
+                  style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-family: var(--font-family-app) !important;">
+                  <div class="theme-swatch active" data-theme-id="space-gravity"
+                    style="font-family: var(--font-family-app) !important;">
                     <div class="swatch-colors" style="background: linear-gradient(135deg, #0a0f1d 0%, #00e5ff 100%);">
                     </div>
                     <span style="font-family: var(--font-family-app) !important;">Space Gravity</span>
                   </div>
-                  <div class="theme-swatch" data-theme-id="emerald-aurora" style="font-family: var(--font-family-app) !important;">
+                  <div class="theme-swatch" data-theme-id="emerald-aurora"
+                    style="font-family: var(--font-family-app) !important;">
                     <div class="swatch-colors" style="background: linear-gradient(135deg, #0e1d20 0%, #45dfb1 100%);">
                     </div>
                     <span style="font-family: var(--font-family-app) !important;">Emerald Aurora</span>
                   </div>
-                  <div class="theme-swatch" data-theme-id="sunset-amethyst" style="font-family: var(--font-family-app) !important;">
+                  <div class="theme-swatch" data-theme-id="sunset-amethyst"
+                    style="font-family: var(--font-family-app) !important;">
                     <div class="swatch-colors" style="background: linear-gradient(135deg, #0f0714 0%, #e3b6b1 100%);">
                     </div>
                     <span style="font-family: var(--font-family-app) !important;">Sunset Amethyst</span>
                   </div>
-                  <div class="theme-swatch" data-theme-id="deep-indigo" style="font-family: var(--font-family-app) !important;">
+                  <div class="theme-swatch" data-theme-id="deep-indigo"
+                    style="font-family: var(--font-family-app) !important;">
                     <div class="swatch-colors" style="background: linear-gradient(135deg, #030430 0%, #00b4d8 100%);">
                     </div>
                     <span style="font-family: var(--font-family-app) !important;">Deep Indigo</span>
                   </div>
-                  <div class="theme-swatch" data-theme-id="steel-slate" style="font-family: var(--font-family-app) !important;">
+                  <div class="theme-swatch" data-theme-id="steel-slate"
+                    style="font-family: var(--font-family-app) !important;">
                     <div class="swatch-colors" style="background: linear-gradient(135deg, #121a24 0%, #aab7b7 100%);">
                     </div>
                     <span style="font-family: var(--font-family-app) !important;">Steel Slate</span>
                   </div>
-                  <div class="theme-swatch" data-theme-id="crimson-obsidian" style="font-family: var(--font-family-app) !important;">
+                  <div class="theme-swatch" data-theme-id="crimson-obsidian"
+                    style="font-family: var(--font-family-app) !important;">
                     <div class="swatch-colors" style="background: linear-gradient(135deg, #080002 0%, #d00018 100%);">
                     </div>
                     <span style="font-family: var(--font-family-app) !important;">Crimson Obsidian</span>
@@ -1537,39 +1842,49 @@
               </div>
 
               <!-- Visual Toggles -->
-              <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px; font-family: var(--font-family-app) !important;">
-                <label class="form-label" style="font-family: var(--font-family-app) !important;">Engine Configurations</label>
+              <div
+                style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px; font-family: var(--font-family-app) !important;">
+                <label class="form-label" style="font-family: var(--font-family-app) !important;">Engine
+                  Configurations</label>
                 <label class="toggle-container"
                   style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary); font-family: var(--font-family-app) !important;">
-                  <input type="checkbox" id="toggle-glow" checked style="cursor: pointer; font-family: var(--font-family-app) !important;">
+                  <input type="checkbox" id="toggle-glow" checked
+                    style="cursor: pointer; font-family: var(--font-family-app) !important;">
                   <span style="font-family: var(--font-family-app) !important;">Enable Glow Effects</span>
                 </label>
                 <label class="toggle-container"
                   style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary); font-family: var(--font-family-app) !important;">
-                  <input type="checkbox" id="toggle-hover-anims" checked style="cursor: pointer; font-family: var(--font-family-app) !important;">
+                  <input type="checkbox" id="toggle-hover-anims" checked
+                    style="cursor: pointer; font-family: var(--font-family-app) !important;">
                   <span style="font-family: var(--font-family-app) !important;">Enable Animated Hover Effects</span>
                 </label>
                 <label class="toggle-container"
                   style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary); font-family: var(--font-family-app) !important;">
-                  <input type="checkbox" id="toggle-reflections" checked style="cursor: pointer; font-family: var(--font-family-app) !important;">
+                  <input type="checkbox" id="toggle-reflections" checked
+                    style="cursor: pointer; font-family: var(--font-family-app) !important;">
                   <span style="font-family: var(--font-family-app) !important;">Enable Glass Reflections</span>
                 </label>
                 <label class="toggle-container"
                   style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary); font-family: var(--font-family-app) !important;">
-                  <input type="checkbox" id="toggle-accent-lighting" checked style="cursor: pointer; font-family: var(--font-family-app) !important;">
+                  <input type="checkbox" id="toggle-accent-lighting" checked
+                    style="cursor: pointer; font-family: var(--font-family-app) !important;">
                   <span style="font-family: var(--font-family-app) !important;">Enable Dynamic Accent Lighting</span>
                 </label>
               </div>
 
               <!-- Actions -->
               <div style="display: flex; gap: 10px; margin-top: 16px; font-family: var(--font-family-app) !important;">
-                <button class="btn-solid" id="btn-apply-theme" style="flex: 1; padding: 10px 14px; font-family: var(--font-family-app) !important;">Apply Theme</button>
-                <button class="btn-outline" id="btn-reset-theme" style="padding: 10px 14px; font-family: var(--font-family-app) !important;">Reset</button>
+                <button class="btn-solid" id="btn-apply-theme"
+                  style="flex: 1; padding: 10px 14px; font-family: var(--font-family-app) !important;">Apply
+                  Theme</button>
+                <button class="btn-outline" id="btn-reset-theme"
+                  style="padding: 10px 14px; font-family: var(--font-family-app) !important;">Reset</button>
               </div>
             </div>
 
             <!-- Theme Live Preview Card -->
-            <div class="card" style="flex: 1; display: flex; flex-direction: column; justify-content: flex-start; margin-bottom: 0; font-family: var(--font-family-app) !important;">
+            <div class="card"
+              style="flex: 1; display: flex; flex-direction: column; justify-content: flex-start; margin-bottom: 0; font-family: var(--font-family-app) !important;">
               <div class="card-title" style="font-family: var(--font-family-app) !important;">Live Preview Panel</div>
 
               <!-- Mock Container applying local CSS variables reflecting selection -->
@@ -1587,11 +1902,14 @@
                 <!-- Mini Navigation Header -->
                 <div
                   style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-family: var(--font-family-app) !important;">
-                  <div style="display: flex; align-items: center; gap: 6px; font-family: var(--font-family-app) !important;">
+                  <div
+                    style="display: flex; align-items: center; gap: 6px; font-family: var(--font-family-app) !important;">
                     <div class="preview-logo-dot"
                       style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent);">
                     </div>
-                    <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-family-app) !important;">Preview OS</span>
+                    <span
+                      style="font-size: 0.75rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-family-app) !important;">Preview
+                      OS</span>
                   </div>
                   <div style="display: flex; gap: 8px; font-family: var(--font-family-app) !important;">
                     <span class="preview-nav-item active"
@@ -1610,9 +1928,12 @@
                   <div
                     style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; font-family: var(--font-family-app) !important;">
                     <span style="font-family: var(--font-family-app) !important;">Academic Gravity</span>
-                    <span style="color: var(--accent); font-weight: 700; font-family: var(--font-family-app) !important;">Active</span>
+                    <span
+                      style="color: var(--accent); font-weight: 700; font-family: var(--font-family-app) !important;">Active</span>
                   </div>
-                  <div style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin-top: 6px; font-family: var(--font-family-app) !important;">3.84 GPA</div>
+                  <div
+                    style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin-top: 6px; font-family: var(--font-family-app) !important;">
+                    3.84 GPA</div>
 
                   <!-- Mini Progress Bar -->
                   <div
@@ -1624,11 +1945,13 @@
                 </div>
 
                 <!-- Interactive Controls (Mock Button & Input) -->
-                <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px; font-family: var(--font-family-app) !important;">
+                <div
+                  style="display: flex; gap: 8px; align-items: center; margin-top: 4px; font-family: var(--font-family-app) !important;">
                   <input type="text" value="Text Field Input" readonly
                     style="flex: 1; font-size: 0.7rem; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-secondary); pointer-events: none; outline: none; font-family: var(--font-family-app) !important;">
                   <button class="preview-btn-solid"
-                    style="font-size: 0.7rem; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-hover) !important; background: var(--accent) !important; color: #030a0e !important; box-shadow: 0 0 12px var(--accent-glow) !important; cursor: default; transition: all 0.3s ease; font-family: var(--font-family-app) !important;">Trigger Action</button>
+                    style="font-size: 0.7rem; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-hover) !important; background: var(--accent) !important; color: #030a0e !important; box-shadow: 0 0 12px var(--accent-glow) !important; cursor: default; transition: all 0.3s ease; font-family: var(--font-family-app) !important;">Trigger
+                    Action</button>
                 </div>
 
               </div>
@@ -1678,7 +2001,13 @@
         <div class="focus-hub-list">
           <div class="focus-hub-item">
             <div class="focus-hub-info">
-              <span class="focus-hub-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hub-svg"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+              <span class="focus-hub-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hub-svg">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg></span>
               <div>
                 <div class="focus-hub-name">Mainscanner</div>
                 <div class="focus-hub-count">785 members online</div>
@@ -1688,7 +2017,13 @@
           </div>
           <div class="focus-hub-item">
             <div class="focus-hub-info">
-              <span class="focus-hub-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hub-svg"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+              <span class="focus-hub-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hub-svg">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg></span>
               <div>
                 <div class="focus-hub-name">Gepalitities</div>
                 <div class="focus-hub-count">282 members online</div>
@@ -1698,7 +2033,15 @@
           </div>
           <div class="focus-hub-item">
             <div class="focus-hub-info">
-              <span class="focus-hub-icon"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" class="hub-svg"><path d="M6 18h8"></path><path d="M3 22h18"></path><path d="M14 22a7 7 0 1 0-14 0"></path><path d="M9 14h2"></path><path d="M9 12a3 3 0 0 1-3-3V6h6v3a3 3 0 0 1-3 3Z"></path><path d="m12 6 4-4 3 3-4 4"></path></svg></span>
+              <span class="focus-hub-icon"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" class="hub-svg">
+                  <path d="M6 18h8"></path>
+                  <path d="M3 22h18"></path>
+                  <path d="M14 22a7 7 0 1 0-14 0"></path>
+                  <path d="M9 14h2"></path>
+                  <path d="M9 12a3 3 0 0 1-3-3V6h6v3a3 3 0 0 1-3 3Z"></path>
+                  <path d="m12 6 4-4 3 3-4 4"></path>
+                </svg></span>
               <div>
                 <div class="focus-hub-name">Research Developments</div>
                 <div class="focus-hub-count">Study online</div>
@@ -1734,7 +2077,12 @@
     <div class="modal-box">
       <div class="modal-header">
         <h3 id="subject-modal-title">New Subject</h3>
-        <button class="btn-icon modal-close-btn" type="button" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        <button class="btn-icon modal-close-btn" type="button" aria-label="Close"><svg width="16" height="16"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+            stroke-linejoin="round" class="close-svg">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg></button>
       </div>
       <form id="subject-form">
         <div class="modal-body">
@@ -1742,15 +2090,18 @@
           <input type="hidden" id="sub-code" value="">
           <div class="form-group">
             <label class="form-label" style="font-family: var(--font-family-app) !important;">Subject Title</label>
-            <input type="text" id="sub-name" class="input-text" placeholder="e.g. General Chemistry" required style="font-family: var(--font-family-app) !important;">
+            <input type="text" id="sub-name" class="input-text" placeholder="e.g. General Chemistry" required
+              style="font-family: var(--font-family-app) !important;">
           </div>
           <div class="form-group">
             <label class="form-label" style="font-family: var(--font-family-app) !important;">Department</label>
-            <input type="text" id="sub-department" class="input-text" placeholder="e.g. Physical Sciences" style="font-family: var(--font-family-app) !important;">
+            <input type="text" id="sub-department" class="input-text" placeholder="e.g. Physical Sciences"
+              style="font-family: var(--font-family-app) !important;">
           </div>
           <div class="form-group">
             <label class="form-label" style="font-family: var(--font-family-app) !important;">Year & Semester</label>
-            <select id="sub-year-semester-select" class="select-input" style="font-family: var(--font-family-app) !important;">
+            <select id="sub-year-semester-select" class="select-input"
+              style="font-family: var(--font-family-app) !important;">
               <option value="1-1">Year 1 - Semester I</option>
               <option value="1-2">Year 1 - Semester II</option>
               <option value="2-1">Year 2 - Semester I</option>
@@ -1772,21 +2123,29 @@
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label" style="font-family: var(--font-family-app) !important;">Prerequisites (Comma separated codes)</label>
-            <input type="text" id="sub-prerequisites" class="input-text" placeholder="e.g. CHE 1101, CHE 1102" style="font-family: var(--font-family-app) !important;">
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Prerequisites (Comma
+              separated codes)</label>
+            <input type="text" id="sub-prerequisites" class="input-text" placeholder="e.g. CHE 1101, CHE 1102"
+              style="font-family: var(--font-family-app) !important;">
           </div>
           <div class="form-group">
-            <label class="form-label" style="font-family: var(--font-family-app) !important;">Corequisites (Comma separated codes)</label>
-            <input type="text" id="sub-corequisites" class="input-text" placeholder="e.g. CHE 1202" style="font-family: var(--font-family-app) !important;">
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Corequisites (Comma
+              separated codes)</label>
+            <input type="text" id="sub-corequisites" class="input-text" placeholder="e.g. CHE 1202"
+              style="font-family: var(--font-family-app) !important;">
           </div>
           <div class="form-group">
-            <label class="form-label" style="font-family: var(--font-family-app) !important;">Subject Description (Optional)</label>
-            <textarea id="sub-description" class="input-text" rows="4" placeholder="Enter brief subject description..." style="resize: vertical; min-height: 80px; font-family: var(--font-family-app) !important; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; width: 100%; box-sizing: border-box;"></textarea>
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">Subject Description
+              (Optional)</label>
+            <textarea id="sub-description" class="input-text" rows="4" placeholder="Enter brief subject description..."
+              style="resize: vertical; min-height: 80px; font-family: var(--font-family-app) !important; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; width: 100%; box-sizing: border-box;"></textarea>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn-outline modal-close-btn" style="font-family: var(--font-family-app) !important;">Cancel</button>
-          <button type="submit" class="btn-solid" style="font-family: var(--font-family-app) !important;">Save Subject</button>
+          <button type="button" class="btn-outline modal-close-btn"
+            style="font-family: var(--font-family-app) !important;">Cancel</button>
+          <button type="submit" class="btn-solid" style="font-family: var(--font-family-app) !important;">Save
+            Subject</button>
         </div>
       </form>
     </div>
@@ -1797,34 +2156,41 @@
     <div class="modal-box">
       <div class="modal-header">
         <h3 id="sub-module-modal-title">Add Sub-Module</h3>
-        <button class="btn-icon modal-close-btn" type="button" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        <button class="btn-icon modal-close-btn" type="button" aria-label="Close"><svg width="16" height="16"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+            stroke-linejoin="round" class="close-svg">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg></button>
       </div>
       <form id="sub-module-form">
         <div class="modal-body">
           <input type="hidden" id="sub-module-mode" value="add">
           <input type="hidden" id="sub-module-id" value="">
-          
+
           <div class="form-group">
             <label class="form-label">Parent Subject</label>
             <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
               <select id="module-parent-subject-select" class="select-input" style="flex: 1;" required>
                 <!-- Dynamically populated -->
               </select>
-              <button type="button" id="btn-shortcut-add-subject" class="btn-outline" 
-                      style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 700; border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.05); color: var(--accent); border-radius: 6px; cursor: pointer; transition: all 0.2s;" 
-                      title="Add new subject">+</button>
+              <button type="button" id="btn-shortcut-add-subject" class="btn-outline"
+                style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 700; border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.05); color: var(--accent); border-radius: 6px; cursor: pointer; transition: all 0.2s;"
+                title="Add new subject">+</button>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label" style="font-family: var(--font-family-app) !important;">SUB-MODULE CODE (ID)</label>
-            <input type="text" id="submodule-code-input" class="input-text" placeholder="e.g. BOT 2201-T or CHEM 1205-P" required style="font-family: var(--font-family-app) !important;">
+            <label class="form-label" style="font-family: var(--font-family-app) !important;">SUB-MODULE CODE
+              (ID)</label>
+            <input type="text" id="submodule-code-input" class="input-text" placeholder="e.g. BOT 2201-T or CHEM 1205-P"
+              required style="font-family: var(--font-family-app) !important;">
           </div>
           <div class="form-group" id="project-final-mark-group" style="display: none;">
             <label class="form-label">FINAL PROJECT PERFORMANCE MARK (0-100)</label>
             <input type="number" id="module-project-mark" class="input-text" max="100" min="0" placeholder="e.g. 85">
           </div>
-          
+
           <div class="form-group">
             <label class="form-label">Sub-Module Title</label>
             <input type="text" id="sub-module-title" class="input-text" placeholder="e.g. Plant Diversity" required>
@@ -1888,8 +2254,17 @@
             </select>
           </div>
 
-          <div style="margin: 16px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent); border-top: 1px solid var(--border-color); padding-top: 16px; display: flex; align-items: center; gap: 6px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="modal-title-svg"><path d="M6 18h8"></path><path d="M3 22h18"></path><path d="M14 22a7 7 0 1 0-14 0"></path><path d="M9 14h2"></path><path d="M9 12a3 3 0 0 1-3-3V6h6v3a3 3 0 0 1-3 3Z"></path><path d="m12 6 4-4 3 3-4 4"></path></svg>
+          <div
+            style="margin: 16px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent); border-top: 1px solid var(--border-color); padding-top: 16px; display: flex; align-items: center; gap: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" class="modal-title-svg">
+              <path d="M6 18h8"></path>
+              <path d="M3 22h18"></path>
+              <path d="M14 22a7 7 0 1 0-14 0"></path>
+              <path d="M9 14h2"></path>
+              <path d="M9 12a3 3 0 0 1-3-3V6h6v3a3 3 0 0 1-3 3Z"></path>
+              <path d="m12 6 4-4 3 3-4 4"></path>
+            </svg>
             <span>Component Weights</span>
           </div>
           <div style="display: flex; gap: 12px;">
@@ -1899,12 +2274,19 @@
             </div>
             <div class="form-group" style="flex: 1;">
               <label class="form-label">Practical Weight %</label>
-              <input type="number" id="module-practical-weight" class="input-text" value="30" min="0" max="100" required>
+              <input type="number" id="module-practical-weight" class="input-text" value="30" min="0" max="100"
+                required>
             </div>
           </div>
 
-          <div style="margin: 12px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent); display: flex; align-items: center; gap: 6px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="modal-title-svg"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          <div
+            style="margin: 12px 0 8px; font-weight: 700; font-size: 0.85rem; color: var(--accent); display: flex; align-items: center; gap: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" class="modal-title-svg">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
             <span>Continuous Assessments / Internal Marks</span>
           </div>
           <div style="display: flex; gap: 10px;">
@@ -1932,12 +2314,18 @@
   </div>
 
   <!-- Standalone Sub-Module Schedule Manager Modal -->
-  <div class="modal-overlay" id="sub-module-schedule-modal" style="z-index: 1010; font-family: var(--font-family-app) !important;">
-    <div class="modal-box" style="max-width: 600px; width: 90%; font-family: var(--font-family-app) !important; background: var(--bg-card); border: 1px solid var(--border-color); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border-radius: 16px; box-shadow: var(--shadow-lg);">
-      <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
-        <h3 id="schedule-modal-title" style="font-size: 1.15rem; font-weight: 700; color: var(--accent);">Lecture Schedules</h3>
-        <button class="btn-icon modal-close-btn" type="button" aria-label="Close" style="color: var(--text-secondary); background: transparent; border: none; cursor: pointer;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg">
+  <div class="modal-overlay" id="sub-module-schedule-modal"
+    style="z-index: 1010; font-family: var(--font-family-app) !important;">
+    <div class="modal-box"
+      style="max-width: 600px; width: 90%; font-family: var(--font-family-app) !important; background: var(--bg-card); border: 1px solid var(--border-color); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border-radius: 16px; box-shadow: var(--shadow-lg);">
+      <div class="modal-header"
+        style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+        <h3 id="schedule-modal-title" style="font-size: 1.15rem; font-weight: 700; color: var(--accent);">Lecture
+          Schedules</h3>
+        <button class="btn-icon modal-close-btn" type="button" aria-label="Close"
+          style="color: var(--text-secondary); background: transparent; border: none; cursor: pointer;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round" class="close-svg">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
@@ -1945,16 +2333,21 @@
       </div>
       <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; padding: 0;">
         <input type="hidden" id="schedule-module-id" value="">
-        
+
         <!-- Schedules Table Container -->
-        <div id="schedule-table-container" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0, 0, 0, 0.15);">
-          <table class="schedule-table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; color: var(--text-primary);">
+        <div id="schedule-table-container"
+          style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0, 0, 0, 0.15);">
+          <table class="schedule-table"
+            style="width: 100%; border-collapse: collapse; font-size: 0.85rem; color: var(--text-primary);">
             <thead>
-              <tr style="border-bottom: 1px solid var(--border-color); text-align: left; font-size: 0.72rem; text-transform: uppercase; color: var(--text-secondary); background: rgba(255, 255, 255, 0.02);">
+              <tr
+                style="border-bottom: 1px solid var(--border-color); text-align: left; font-size: 0.72rem; text-transform: uppercase; color: var(--text-secondary); background: rgba(255, 255, 255, 0.02);">
                 <th style="padding: 10px 12px; font-weight: 700; letter-spacing: 0.5px;">Date</th>
                 <th style="padding: 10px 12px; font-weight: 700; letter-spacing: 0.5px;">Time</th>
                 <th style="padding: 10px 12px; font-weight: 700; letter-spacing: 0.5px;">Venue</th>
-                <th style="padding: 10px 12px; font-weight: 700; letter-spacing: 0.5px; text-align: center; width: 100px;">Actions</th>
+                <th
+                  style="padding: 10px 12px; font-weight: 700; letter-spacing: 0.5px; text-align: center; width: 100px;">
+                  Actions</th>
               </tr>
             </thead>
             <tbody id="schedule-table-body">
@@ -1962,40 +2355,58 @@
             </tbody>
           </table>
         </div>
-        
+
         <!-- Add/Edit Mini Form -->
-        <div id="schedule-form-container" style="display: none; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; animation: fadeIn 0.3s ease;">
-          <h4 id="schedule-form-title" style="font-size: 0.85rem; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Add Lecture Schedule</h4>
+        <div id="schedule-form-container"
+          style="display: none; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; animation: fadeIn 0.3s ease;">
+          <h4 id="schedule-form-title"
+            style="font-size: 0.85rem; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">
+            Add Lecture Schedule</h4>
           <input type="hidden" id="schedule-entry-id" value="">
-          
+
           <div style="display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
             <div class="form-group" style="flex: 1; min-width: 120px; margin: 0;">
-              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px; font-weight: 600; color: var(--text-secondary);">Date</label>
-              <input type="date" id="schedule-date" class="input-text" required style="font-family: var(--font-family-app) !important; font-size: 0.8rem; padding: 8px 10px; color-scheme: dark;">
+              <label class="form-label"
+                style="font-size: 0.75rem; margin-bottom: 4px; font-weight: 600; color: var(--text-secondary);">Date</label>
+              <input type="date" id="schedule-date" class="input-text" required
+                style="font-family: var(--font-family-app) !important; font-size: 0.8rem; padding: 8px 10px; color-scheme: dark;">
             </div>
             <div class="form-group" style="flex: 1; min-width: 100px; margin: 0;">
-              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px; font-weight: 600; color: var(--text-secondary);">Time</label>
-              <input type="time" id="schedule-time" class="input-text" required style="font-family: var(--font-family-app) !important; font-size: 0.8rem; padding: 8px 10px; color-scheme: dark;">
+              <label class="form-label"
+                style="font-size: 0.75rem; margin-bottom: 4px; font-weight: 600; color: var(--text-secondary);">Time</label>
+              <input type="time" id="schedule-time" class="input-text" required
+                style="font-family: var(--font-family-app) !important; font-size: 0.8rem; padding: 8px 10px; color-scheme: dark;">
             </div>
           </div>
           <div class="form-group" style="margin-bottom: 16px;">
-            <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px; font-weight: 600; color: var(--text-secondary);">Venue</label>
-            <input type="text" id="schedule-venue" class="input-text" placeholder="e.g. Lecture Hall B, FAS Room 102" style="font-family: var(--font-family-app) !important; font-size: 0.8rem; padding: 8px 10px;">
+            <label class="form-label"
+              style="font-size: 0.75rem; margin-bottom: 4px; font-weight: 600; color: var(--text-secondary);">Venue</label>
+            <input type="text" id="schedule-venue" class="input-text" placeholder="e.g. Lecture Hall B, FAS Room 102"
+              style="font-family: var(--font-family-app) !important; font-size: 0.8rem; padding: 8px 10px;">
           </div>
-          
+
           <div style="display: flex; gap: 8px; justify-content: flex-end;">
-            <button type="button" id="btn-cancel-schedule-entry" class="btn-outline btn-sm" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 6px;">Cancel</button>
-            <button type="button" id="btn-save-schedule-entry" class="btn-solid btn-sm" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 6px;">Save Entry</button>
+            <button type="button" id="btn-cancel-schedule-entry" class="btn-outline btn-sm"
+              style="font-size: 0.75rem; padding: 6px 12px; border-radius: 6px;">Cancel</button>
+            <button type="button" id="btn-save-schedule-entry" class="btn-solid btn-sm"
+              style="font-size: 0.75rem; padding: 6px 12px; border-radius: 6px;">Save Entry</button>
           </div>
         </div>
-        
-        <button type="button" id="btn-show-add-schedule" class="btn-outline btn-sm" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-size: 0.8rem; font-weight: 600; border-radius: 8px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+
+        <button type="button" id="btn-show-add-schedule" class="btn-outline btn-sm"
+          style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-size: 0.8rem; font-weight: 600; border-radius: 8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
           Add Lecture Schedule
         </button>
       </div>
-      <div class="modal-footer" style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 8px; display: flex; justify-content: flex-end;">
-        <button type="button" class="btn-outline modal-close-btn" style="padding: 8px 16px; border-radius: 8px;">Close</button>
+      <div class="modal-footer"
+        style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 8px; display: flex; justify-content: flex-end;">
+        <button type="button" class="btn-outline modal-close-btn"
+          style="padding: 8px 16px; border-radius: 8px;">Close</button>
       </div>
     </div>
   </div>
@@ -2005,14 +2416,25 @@
     <div class="modal-box">
       <div class="modal-header">
         <h3 id="exam-modal-title">Schedule Exam</h3>
-        <button class="btn-icon modal-close-btn" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        <button class="btn-icon modal-close-btn" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+            class="close-svg">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg></button>
       </div>
       <form id="exam-form">
         <div class="modal-body">
           <input type="hidden" id="exam-mode" value="add">
           <input type="hidden" id="exam-id" value="">
-          <div id="exam-validation-warning" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); border-radius: 8px; padding: 12px; margin-bottom: 16px; color: var(--danger); font-weight: 700; font-size: 0.82rem; font-family: var(--font-family-app) !important; align-items: center; gap: 6px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="alert-svg"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <div id="exam-validation-warning"
+            style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); border-radius: 8px; padding: 12px; margin-bottom: 16px; color: var(--danger); font-weight: 700; font-size: 0.82rem; font-family: var(--font-family-app) !important; align-items: center; gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round" class="alert-svg">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
             <span>Examination Admission Barred: Attendance Below 80% Bounds.</span>
           </div>
           <div class="form-group">
@@ -2065,7 +2487,12 @@
     <div class="modal-box">
       <div class="modal-header">
         <h3 id="practical-modal-title">Add Practical Session</h3>
-        <button class="btn-icon modal-close-btn" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        <button class="btn-icon modal-close-btn" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+            class="close-svg">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg></button>
       </div>
       <form id="practical-form">
         <div class="modal-body">
@@ -2114,7 +2541,12 @@
     <div class="modal-box">
       <div class="modal-header">
         <h3 id="assignment-modal-title">Log Assignment</h3>
-        <button class="btn-icon modal-close-btn" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        <button class="btn-icon modal-close-btn" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+            class="close-svg">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg></button>
       </div>
       <form id="assignment-form">
         <div class="modal-body">
@@ -2163,7 +2595,12 @@
     <div class="modal-box" style="font-family: var(--font-family-app) !important;">
       <div class="modal-header" style="font-family: var(--font-family-app) !important;">
         <h3 id="resource-modal-title" style="font-family: var(--font-family-app) !important;">Add Resource</h3>
-        <button class="btn-icon modal-close-btn" style="font-family: var(--font-family-app) !important;" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        <button class="btn-icon modal-close-btn" style="font-family: var(--font-family-app) !important;"
+          aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg></button>
       </div>
       <form id="resource-form" style="font-family: var(--font-family-app) !important;">
         <div class="modal-body" style="font-family: var(--font-family-app) !important;">
@@ -2171,30 +2608,41 @@
           <input type="hidden" id="resource-id" value="">
           <div class="form-group" style="font-family: var(--font-family-app) !important;">
             <label class="form-label" style="font-family: var(--font-family-app) !important;">Resource Title</label>
-            <input type="text" id="resource-title" class="input-text" placeholder="e.g. Organic Chemistry Lecture 1 Slides" required style="font-family: var(--font-family-app) !important;">
+            <input type="text" id="resource-title" class="input-text"
+              placeholder="e.g. Organic Chemistry Lecture 1 Slides" required
+              style="font-family: var(--font-family-app) !important;">
           </div>
           <div class="form-group" style="font-family: var(--font-family-app) !important;">
             <label class="form-label" style="font-family: var(--font-family-app) !important;">Course Unit Tag</label>
-            <select id="resource-subject" class="select-input" required style="font-family: var(--font-family-app) !important;"></select>
+            <select id="resource-subject" class="select-input" required
+              style="font-family: var(--font-family-app) !important;"></select>
           </div>
           <div class="form-group" style="font-family: var(--font-family-app) !important;">
             <label class="form-label" style="font-family: var(--font-family-app) !important;">Resource Type</label>
-            <select id="resource-type" class="select-input" required style="font-family: var(--font-family-app) !important;">
+            <select id="resource-type" class="select-input" required
+              style="font-family: var(--font-family-app) !important;">
               <option value="PDF Link" style="font-family: var(--font-family-app) !important;">PDF Link</option>
-              <option value="Lecture Slide Link" style="font-family: var(--font-family-app) !important;">Lecture Slide Link</option>
-              <option value="Video Tutorial Link" style="font-family: var(--font-family-app) !important;">Video Tutorial Link</option>
-              <option value="Online Guide Link" style="font-family: var(--font-family-app) !important;">Online Guide Link</option>
-              <option value="Reference Link" style="font-family: var(--font-family-app) !important;">Reference Link</option>
+              <option value="Lecture Slide Link" style="font-family: var(--font-family-app) !important;">Lecture Slide
+                Link</option>
+              <option value="Video Tutorial Link" style="font-family: var(--font-family-app) !important;">Video Tutorial
+                Link</option>
+              <option value="Online Guide Link" style="font-family: var(--font-family-app) !important;">Online Guide
+                Link</option>
+              <option value="Reference Link" style="font-family: var(--font-family-app) !important;">Reference Link
+              </option>
             </select>
           </div>
           <div class="form-group" style="font-family: var(--font-family-app) !important;">
             <label class="form-label" style="font-family: var(--font-family-app) !important;">Resource Link URL</label>
-            <input type="url" id="resource-url" class="input-text" placeholder="https://example.com/slides.pdf" required style="font-family: var(--font-family-app) !important;">
+            <input type="url" id="resource-url" class="input-text" placeholder="https://example.com/slides.pdf" required
+              style="font-family: var(--font-family-app) !important;">
           </div>
         </div>
         <div class="modal-footer" style="font-family: var(--font-family-app) !important;">
-          <button type="button" class="btn-outline modal-close-btn" style="font-family: var(--font-family-app) !important;">Cancel</button>
-          <button type="submit" class="btn-solid" style="font-family: var(--font-family-app) !important;">Save Resource</button>
+          <button type="button" class="btn-outline modal-close-btn"
+            style="font-family: var(--font-family-app) !important;">Cancel</button>
+          <button type="submit" class="btn-solid" style="font-family: var(--font-family-app) !important;">Save
+            Resource</button>
         </div>
       </form>
     </div>
@@ -2205,7 +2653,12 @@
     <div class="modal-box">
       <div class="modal-header">
         <h3 id="sport-modal-title">Sports Activity</h3>
-        <button class="btn-icon modal-close-btn" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        <button class="btn-icon modal-close-btn" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+            class="close-svg">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg></button>
       </div>
       <form id="sport-form">
         <div class="modal-body">
@@ -2263,7 +2716,12 @@
     <div class="modal-box">
       <div class="modal-header">
         <h3 id="study-plan-modal-title">Schedule Study Session</h3>
-        <button class="btn-icon modal-close-btn" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        <button class="btn-icon modal-close-btn" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+            class="close-svg">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg></button>
       </div>
       <form id="study-plan-form">
         <div class="modal-body">
@@ -2299,59 +2757,100 @@
 
   <!-- Custom Confirmation Modal HUD -->
   <div class="modal-overlay" id="modal-custom-confirm">
-    <div class="modal-box" style="background: rgba(10, 24, 32, 0.95) !important; border: 1px solid var(--border-color) !important; box-shadow: var(--shadow-lg), var(--shadow-glow) !important; backdrop-filter: var(--glass-blur) !important; -webkit-backdrop-filter: var(--glass-blur) !important; font-family: var(--font-family-app) !important; max-width: 400px; width: 90%;">
-      <div class="modal-header" style="border-bottom: 1px solid var(--border-color) !important; display: flex; align-items: center; justify-content: flex-start !important; gap: 10px; font-family: var(--font-family-app) !important; padding: 18px 24px !important;">
-        <h3 id="confirm-modal-title" style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-family-app) !important;">Confirm Action</h3>
+    <div class="modal-box"
+      style="background: rgba(10, 24, 32, 0.95) !important; border: 1px solid var(--border-color) !important; box-shadow: var(--shadow-lg), var(--shadow-glow) !important; backdrop-filter: var(--glass-blur) !important; -webkit-backdrop-filter: var(--glass-blur) !important; font-family: var(--font-family-app) !important; max-width: 400px; width: 90%;">
+      <div class="modal-header"
+        style="border-bottom: 1px solid var(--border-color) !important; display: flex; align-items: center; justify-content: flex-start !important; gap: 10px; font-family: var(--font-family-app) !important; padding: 18px 24px !important;">
+        <h3 id="confirm-modal-title"
+          style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-family-app) !important;">
+          Confirm Action</h3>
       </div>
-      <div class="modal-body" style="font-family: var(--font-family-app) !important; padding: 20px 24px !important; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5;">
+      <div class="modal-body"
+        style="font-family: var(--font-family-app) !important; padding: 20px 24px !important; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5;">
         <p id="confirm-modal-message" style="margin: 0; font-family: var(--font-family-app) !important;"></p>
       </div>
-      <div class="modal-footer" style="border-top: 1px solid rgba(255, 255, 255, 0.05) !important; display: flex; justify-content: flex-end; gap: 12px; font-family: var(--font-family-app) !important; padding: 16px 24px !important;">
-        <button type="button" class="btn-outline modal-close-btn" id="btn-custom-confirm-cancel" style="font-family: var(--font-family-app) !important; background: rgba(255, 255, 255, 0.05) !important; border: 1px solid var(--border-color) !important; color: var(--text-primary) !important; cursor: pointer; transition: all 0.2s ease; border-radius: 8px; padding: 8px 16px; font-weight: 600;">Cancel</button>
-        <button type="button" class="btn-solid" id="btn-custom-confirm-action" style="font-family: var(--font-family-app) !important; cursor: pointer; transition: all 0.2s ease; border-radius: 8px; padding: 8px 16px; font-weight: 700;">Confirm</button>
+      <div class="modal-footer"
+        style="border-top: 1px solid rgba(255, 255, 255, 0.05) !important; display: flex; justify-content: flex-end; gap: 12px; font-family: var(--font-family-app) !important; padding: 16px 24px !important;">
+        <button type="button" class="btn-outline modal-close-btn" id="btn-custom-confirm-cancel"
+          style="font-family: var(--font-family-app) !important; background: rgba(255, 255, 255, 0.05) !important; border: 1px solid var(--border-color) !important; color: var(--text-primary) !important; cursor: pointer; transition: all 0.2s ease; border-radius: 8px; padding: 8px 16px; font-weight: 600;">Cancel</button>
+        <button type="button" class="btn-solid" id="btn-custom-confirm-action"
+          style="font-family: var(--font-family-app) !important; cursor: pointer; transition: all 0.2s ease; border-radius: 8px; padding: 8px 16px; font-weight: 700;">Confirm</button>
       </div>
     </div>
   </div>
 
   <!-- Unified Security PIN Gate Modal -->
   <div class="modal-overlay" id="modal-secure-delete-gate">
-    <div class="modal-box" style="background: rgba(10, 24, 32, 0.96) !important; border: 1px solid var(--danger) !important; box-shadow: var(--shadow-lg), var(--shadow-glow) !important; backdrop-filter: var(--glass-blur) !important; -webkit-backdrop-filter: var(--glass-blur) !important; font-family: var(--font-family-app) !important; max-width: 400px; width: 90%;">
-      <div class="modal-header" style="border-bottom: 1px solid rgba(239, 68, 68, 0.2) !important; display: flex; align-items: center; justify-content: flex-start !important; gap: 10px; font-family: var(--font-family-app) !important; padding: 18px 24px !important;">
-        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--danger) !important; font-family: var(--font-family-app) !important; letter-spacing: -0.5px;">Security Verification</h3>
+    <div class="modal-box"
+      style="background: rgba(10, 24, 32, 0.96) !important; border: 1px solid var(--danger) !important; box-shadow: var(--shadow-lg), var(--shadow-glow) !important; backdrop-filter: var(--glass-blur) !important; -webkit-backdrop-filter: var(--glass-blur) !important; font-family: var(--font-family-app) !important; max-width: 400px; width: 90%;">
+      <div class="modal-header"
+        style="border-bottom: 1px solid rgba(239, 68, 68, 0.2) !important; display: flex; align-items: center; justify-content: flex-start !important; gap: 10px; font-family: var(--font-family-app) !important; padding: 18px 24px !important;">
+        <h3
+          style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--danger) !important; font-family: var(--font-family-app) !important; letter-spacing: -0.5px;">
+          Security Verification</h3>
       </div>
-      <div class="modal-body" style="font-family: var(--font-family-app) !important; padding: 20px 24px !important; display: flex; flex-direction: column; align-items: center; gap: 12px;">
-        <p id="secure-delete-prompt-message" style="margin: 0; text-align: center; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; font-family: var(--font-family-app) !important;"></p>
-        
-        <input type="password" id="secure-delete-pin-input" maxlength="4" placeholder="••••" style="font-family: 'JetBrains Mono', monospace !important; text-align: center; font-size: 1.5rem; letter-spacing: 8px; width: 140px; background: rgba(0,0,0,0.3) !important; border: 1px solid var(--border-color) !important; border-radius: 8px; color: #ffffff !important; padding: 10px; margin: 10px 0; outline: none; transition: border-color 0.2s ease, box-shadow 0.2s ease;">
-        
-        <div id="secure-delete-error-message" style="color: var(--danger) !important; font-size: 0.78rem; text-align: center; font-weight: 700; min-height: 1.2rem; font-family: var(--font-family-app) !important; transition: all 0.2s ease;"></div>
+      <div class="modal-body"
+        style="font-family: var(--font-family-app) !important; padding: 20px 24px !important; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <p id="secure-delete-prompt-message"
+          style="margin: 0; text-align: center; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; font-family: var(--font-family-app) !important;">
+        </p>
+
+        <input type="password" id="secure-delete-pin-input" maxlength="4" placeholder="••••"
+          style="font-family: 'JetBrains Mono', monospace !important; text-align: center; font-size: 1.5rem; letter-spacing: 8px; width: 140px; background: rgba(0,0,0,0.3) !important; border: 1px solid var(--border-color) !important; border-radius: 8px; color: #ffffff !important; padding: 10px; margin: 10px 0; outline: none; transition: border-color 0.2s ease, box-shadow 0.2s ease;">
+
+        <div id="secure-delete-error-message"
+          style="color: var(--danger) !important; font-size: 0.78rem; text-align: center; font-weight: 700; min-height: 1.2rem; font-family: var(--font-family-app) !important; transition: all 0.2s ease;">
+        </div>
       </div>
-      <div class="modal-footer" style="border-top: 1px solid rgba(255, 255, 255, 0.05) !important; display: flex; justify-content: flex-end; gap: 12px; font-family: var(--font-family-app) !important; padding: 16px 24px !important;">
-        <button type="button" class="btn-outline modal-close-btn" id="btn-secure-delete-cancel" style="font-family: var(--font-family-app) !important; background: rgba(255, 255, 255, 0.05) !important; border: 1px solid var(--border-color) !important; color: var(--text-primary) !important; cursor: pointer; transition: all 0.2s ease; border-radius: 8px; padding: 8px 16px; font-weight: 600;">Cancel</button>
-        <button type="button" class="btn-solid" id="btn-auth-secure-purge" style="font-family: var(--font-family-app) !important; background: var(--danger) !important; border-color: var(--danger) !important; color: #ffffff !important; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4) !important; cursor: pointer; transition: all 0.2s ease; border-radius: 8px; padding: 8px 16px; font-weight: 700;">Confirm</button>
+      <div class="modal-footer"
+        style="border-top: 1px solid rgba(255, 255, 255, 0.05) !important; display: flex; justify-content: flex-end; gap: 12px; font-family: var(--font-family-app) !important; padding: 16px 24px !important;">
+        <button type="button" class="btn-outline modal-close-btn" id="btn-secure-delete-cancel"
+          style="font-family: var(--font-family-app) !important; background: rgba(255, 255, 255, 0.05) !important; border: 1px solid var(--border-color) !important; color: var(--text-primary) !important; cursor: pointer; transition: all 0.2s ease; border-radius: 8px; padding: 8px 16px; font-weight: 600;">Cancel</button>
+        <button type="button" class="btn-solid" id="btn-auth-secure-purge"
+          style="font-family: var(--font-family-app) !important; background: var(--danger) !important; border-color: var(--danger) !important; color: #ffffff !important; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4) !important; cursor: pointer; transition: all 0.2s ease; border-radius: 8px; padding: 8px 16px; font-weight: 700;">Confirm</button>
       </div>
     </div>
   </div>
 
   <!-- Pomodoro Reflection Notes Modal -->
   <div class="modal-overlay" id="pomo-reflection-modal">
-    <div class="modal-box" style="background: rgba(10, 24, 32, 0.96) !important; border: 1px solid var(--border-color) !important; box-shadow: var(--shadow-lg), var(--shadow-glow) !important; backdrop-filter: var(--glass-blur) !important; -webkit-backdrop-filter: var(--glass-blur) !important; font-family: var(--font-family-app) !important; max-width: 480px; width: 90%;">
-      <div class="modal-header" style="border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important; display: flex; align-items: center; justify-content: space-between !important; font-family: var(--font-family-app) !important; padding: 18px 24px !important;">
-        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--accent) !important; font-family: var(--font-family-app) !important; letter-spacing: -0.5px;">Session Reflection</h3>
-        <button type="button" class="btn-icon" id="pomo-reflection-close" style="color: var(--text-secondary) !important; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center;" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    <div class="modal-box"
+      style="background: rgba(10, 24, 32, 0.96) !important; border: 1px solid var(--border-color) !important; box-shadow: var(--shadow-lg), var(--shadow-glow) !important; backdrop-filter: var(--glass-blur) !important; -webkit-backdrop-filter: var(--glass-blur) !important; font-family: var(--font-family-app) !important; max-width: 480px; width: 90%;">
+      <div class="modal-header"
+        style="border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important; display: flex; align-items: center; justify-content: space-between !important; font-family: var(--font-family-app) !important; padding: 18px 24px !important;">
+        <h3
+          style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--accent) !important; font-family: var(--font-family-app) !important; letter-spacing: -0.5px;">
+          Session Reflection</h3>
+        <button type="button" class="btn-icon" id="pomo-reflection-close"
+          style="color: var(--text-secondary) !important; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center;"
+          aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="close-svg">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg></button>
       </div>
       <form id="pomo-reflection-form" style="margin: 0;">
-        <div class="modal-body" style="font-family: var(--font-family-app) !important; padding: 20px 24px !important; display: flex; flex-direction: column; gap: 14px;">
-          <p style="margin: 0; color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; font-family: var(--font-family-app) !important;">
-            Great job! You've completed a 25-minute Pomodoro focus block. Take a second to note down what you worked on or any insights.
+        <div class="modal-body"
+          style="font-family: var(--font-family-app) !important; padding: 20px 24px !important; display: flex; flex-direction: column; gap: 14px;">
+          <p
+            style="margin: 0; color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; font-family: var(--font-family-app) !important;">
+            Great job! You've completed a 25-minute Pomodoro focus block. Take a second to note down what you worked on
+            or any insights.
           </p>
           <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
-            <label class="form-label" style="font-size: 0.72rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Reflection Notes</label>
-            <textarea id="pomo-reflection-notes" class="textarea-input" required placeholder="e.g. Completed photosynthesis topic notes, understood light-dependent reactions." style="font-family: var(--font-family-app) !important; font-size: 0.82rem; height: 80px; resize: none; background: rgba(0,0,0,0.3) !important; border: 1px solid var(--border-color) !important; border-radius: 8px; color: #ffffff !important; padding: 10px;"></textarea>
+            <label class="form-label"
+              style="font-size: 0.72rem; color: var(--text-secondary); font-family: var(--font-family-app) !important;">Reflection
+              Notes</label>
+            <textarea id="pomo-reflection-notes" class="textarea-input" required
+              placeholder="e.g. Completed photosynthesis topic notes, understood light-dependent reactions."
+              style="font-family: var(--font-family-app) !important; font-size: 0.82rem; height: 80px; resize: none; background: rgba(0,0,0,0.3) !important; border: 1px solid var(--border-color) !important; border-radius: 8px; color: #ffffff !important; padding: 10px;"></textarea>
           </div>
         </div>
-        <div class="modal-footer" style="border-top: 1px solid rgba(255, 255, 255, 0.05) !important; display: flex; justify-content: flex-end; gap: 12px; font-family: var(--font-family-app) !important; padding: 16px 24px !important;">
-          <button type="submit" class="btn-solid" style="font-family: var(--font-family-app) !important; background: var(--accent) !important; border-color: var(--accent) !important; color: #000000 !important; font-weight: 700; cursor: pointer; border-radius: 8px; padding: 8px 16px;">Save & Rest</button>
+        <div class="modal-footer"
+          style="border-top: 1px solid rgba(255, 255, 255, 0.05) !important; display: flex; justify-content: flex-end; gap: 12px; font-family: var(--font-family-app) !important; padding: 16px 24px !important;">
+          <button type="submit" class="btn-solid"
+            style="font-family: var(--font-family-app) !important; background: var(--accent) !important; border-color: var(--accent) !important; color: #000000 !important; font-weight: 700; cursor: pointer; border-radius: 8px; padding: 8px 16px;">Save
+            & Rest</button>
         </div>
       </form>
     </div>

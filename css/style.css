@@ -1048,6 +1048,17 @@ body[data-theme="light"] .theme-toggle-switch:hover .theme-toggle-track {
   color: var(--accent);
 }
 
+.calendar-event-pill.lecture-event {
+  border: 1px solid var(--accent);
+  border-left: 1px solid var(--accent);
+  background: rgba(var(--accent-rgb-fallback, 0, 229, 255), 0.1);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+}
+
 /* Modals Overlay Frame */
 .modal-overlay {
   position: fixed;

@@ -1978,6 +1978,39 @@ const App = {
   // CALENDAR
   // ────────────────────────────────────────────────────────────────────────────
 
+  async getCalendarLectures() {
+    try {
+      const subjects = await Database.getAll('subjects');
+      const map = {};
+      
+      (subjects || []).forEach(sub => {
+        if (sub.isSubmodule && Array.isArray(sub.lectureSchedule)) {
+          sub.lectureSchedule.forEach(slot => {
+            if (slot.date) {
+              if (!map[slot.date]) {
+                map[slot.date] = [];
+              }
+              const title = sub.submoduleCode ? `${sub.submoduleCode} - ${sub.moduleTitle || sub.name}` : (sub.moduleTitle || sub.name);
+              map[slot.date].push({
+                title: title,
+                time: slot.time || 'N/A',
+                venue: slot.venue || 'N/A'
+              });
+            }
+          });
+        }
+      });
+      return map;
+    } catch (err) {
+      console.error('Failed to get calendar lectures:', err);
+      return {};
+    }
+  },
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // CALENDAR
+  // ────────────────────────────────────────────────────────────────────────────
+
   async renderCalendar() {
     const grid = document.getElementById('calendar-grid-container');
     const headerTitle = document.getElementById('calendar-month-year-label');
@@ -2010,6 +2043,7 @@ const App = {
     const assignments = await Database.getAll('assignments');
     const sports = await Database.getAll('sports');
     const studyplans = await Database.getAll('studyplans');
+    const lectureMap = await this.getCalendarLectures();
 
     const getEventsForDate = (dateStr) => {
       const list = [];
@@ -2075,6 +2109,13 @@ const App = {
         pill.style.color = evt.color;
         pill.style.backgroundColor = evt.bg;
         cell.appendChild(pill);
+      });
+
+      const dateLectures = lectureMap[dateString] || [];
+      dateLectures.forEach(lec => {
+        if (typeof window.injectLectureToCalendar === 'function') {
+          window.injectLectureToCalendar(cell, lec);
+        }
       });
 
       grid.appendChild(cell);
@@ -2309,7 +2350,38 @@ const App = {
   }
 };
 
+// Utility helpers for lecture planner integration
+window.truncateLectureTitle = function(title, limit = 20) {
+  if (typeof title !== 'string') return '';
+  return title.length > limit ? title.substring(0, limit) + '...' : title;
+};
+
+window.injectLectureToCalendar = function(cell, lec) {
+  const pill = document.createElement('div');
+  pill.className = 'calendar-event-pill lecture-event';
+  pill.title = `${lec.title} - ${lec.venue}`;
+  
+  const shortTitle = window.truncateLectureTitle(lec.title, 20);
+  
+  pill.innerHTML = `
+    <span class="icon">💻</span> 
+    <span class="label" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${shortTitle}</span>
+  `;
+  cell.appendChild(pill);
+};
+
+window.updateCalendarEvents = function() {
+  if (window.App && typeof window.App.renderCalendar === 'function') {
+    window.App.renderCalendar();
+  } else {
+    window.dispatchEvent(new CustomEvent('calendarItemsUpdated'));
+  }
+};
+
 // Start Application on Load
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
+  if (typeof window.updateCalendarEvents === 'function') {
+    window.updateCalendarEvents();
+  }
 });
